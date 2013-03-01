@@ -2,16 +2,18 @@ Concraft-pl
 ===========
 
 This package provides a morphosyntactic tagger for the Polish language.
-The tool combines the following components into a processing pipeline:
+The tool combines the following components into a pipeline:
 * A morphosyntactic segmentation and analysis tool
   [Maca](http://nlp.pwr.wroc.pl/redmine/projects/libpltagger/wiki),
 * A morphosyntactic disambiguation library
   [Concraft](https://github.com/kawu/concraft),
-* TODO: A simple frequency-driven lemmatiser (currently working only
-  for Maca-recognized words).
+* A simple frequency-driven lemmatiser (TODO).
 
 Installation
 ============
+
+First you need to install the Maca tool.  The other dependencies will be
+installed automatically when you install the `concraft-pl` package.
 
 Maca
 ----
