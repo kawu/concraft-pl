@@ -1,0 +1,63 @@
+name:               concraft-pl
+version:            0.1.0
+synopsis:           Morphological tagger for Polish
+description:
+    A morphological tagger for Polish based on the concraft library.
+license:            BSD3
+license-file:       LICENSE
+cabal-version:      >= 1.6
+copyright:          Copyright (c) 2013 Jakub Waszczuk
+author:             Jakub Waszczuk
+maintainer:         waszczuk.kuba@gmail.com
+stability:          experimental
+category:           Natural Language Processing
+homepage:           http://zil.ipipan.waw.pl/Concraft
+build-type:         Simple
+
+library
+    hs-source-dirs: src
+
+    build-depends:
+        base >= 4 && < 5
+      , concraft >= 0.5 && < 0.6
+      , tagset-positional >= 0.3 && < 0.4
+      , sgd >= 0.2.2 && < 0.3
+      , process-extras >= 0.2 && < 0.3
+      , containers >= 0.5 && < 0.6
+      , text >= 0.11 && < 0.12
+--       , text-binary >= 0.1 && < 0.2
+
+--       , array
+--       , binary
+--       , vector
+--       , vector-binary
+--       , crf-chain1-constrained >= 0.1.2 && < 0.2
+--       , monad-ox >= 0.2 && < 0.3
+--       , sgd >= 0.2.2 && < 0.3
+--       , tagset-positional >= 0.3 && < 0.4
+--       , crf-chain2-generic >= 0.3 && < 0.4
+--       , monad-codec >= 0.2 && < 0.3
+--       , data-lens
+--       , transformers
+--       , comonad-transformers
+--       , temporary
+--       -- , pipes >= 3.2 && < 3.3
+--       -- , errors >= 1.4 && < 1.5
+
+    exposed-modules:
+        NLP.Concraft.Polish
+      , NLP.Concraft.Polish.Morphosyntax
+      , NLP.Concraft.Polish.Format.Plain
+
+    ghc-options: -Wall -O2
+
+source-repository head
+    type: git
+    location: https://github.com/kawu/concraft-pl.git
+
+-- executable concraft-pl
+--     build-depends:
+--         cmdargs
+--     hs-source-dirs: src, tools
+--     main-is: concraft-pl.hs    
+--     ghc-options: -Wall -O2 -threaded -rtsopts
