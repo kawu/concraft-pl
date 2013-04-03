@@ -27,17 +27,17 @@ import           System.IO.Unsafe (unsafePerformIO)
 import qualified System.Process.Text.Lazy as Proc
 import qualified Data.Text.Lazy as L
 import qualified Data.Set as S
-import           Data.Tagset.Positional (Tag, parseTag, Tagset)
+import qualified Data.Tagset.Positional as P
 import qualified Numeric.SGD as SGD
 
-import           NLP.Concraft.Morphosyntax (mapSeg, Sent)
+import qualified NLP.Concraft.Morphosyntax as X
 import qualified NLP.Concraft.Schema as S
 import           NLP.Concraft.Schema (SchemaConf(..), entry, entryWith)
 import qualified NLP.Concraft.Guess as G
 import qualified NLP.Concraft.Disamb as D
 import qualified NLP.Concraft as C
 
-import qualified NLP.Concraft.Polish.Morphosyntax as X
+import qualified NLP.Concraft.Polish.Morphosyntax as PX
 import qualified NLP.Concraft.Polish.Format.Plain as Plain
 
 -- | Tag which indicates unknown words. 
@@ -51,16 +51,14 @@ ign = "ign"
 
 -- | Use Maca to analyse the input text.
 -- TODO: Is it even lazy?
-macalyse :: L.Text -> [[X.Sent X.Tag]]
+macalyse :: L.Text -> [[PX.Sent PX.Tag]]
 macalyse inp = unsafePerformIO $ do
     let args = ["-q", "morfeusz-nkjp-official", "-o", "plain", "-s"]
     (_exitCode, out, _) <- Proc.readProcessWithExitCode "maca-analyse" args inp
     return $ Plain.parsePlain ign out
 
--- macalyse' :: Tagset -> C.Analyse
--- macalyse' tagset ign =
---     let toSeg = mapSeg (parseTag tagset) . Plain.toSeg
---     in  map (map toSeg) . concat . macalyse
+macalyse' :: P.Tagset -> C.Analyse PX.Word P.Tag
+macalyse' tagset = map (PX.packSentTag tagset) . concat . macalyse
 
 -------------------------------------------------
 -- Default configuration
@@ -95,15 +93,22 @@ tiersDefault =
         [ "nmb", "gnd", "deg", "asp" , "ngt", "acm"
         , "acn", "ppr", "agg", "vlc", "dot" ]
 
--- -------------------------------------------------
--- -- Tagging
--- -------------------------------------------------
--- 
--- -- | Perform morphological tagging on the input text.
--- tag :: C.Concraft -> L.Text -> [Sent Tag]
--- tag concraft = map (C.tagSent concraft) . (macalyse $ C.tagset concraft)
--- 
--- -------------------------------------------------
+-------------------------------------------------
+-- Tagging
+-------------------------------------------------
+
+-- | Perform morphological tagging on the input text.
+tag :: C.Concraft -> L.Text -> [[PX.Sent PX.Tag]]
+tag concraft = (map.map) (tagSent concraft) . macalyse
+
+tagSent :: C.Concraft -> PX.Sent PX.Tag -> PX.Sent PX.Tag
+tagSent concraft inp =
+    let tagset = C.tagset concraft
+        packed = PX.packSentTag tagset inp
+        xs = C.tag concraft packed
+    in  PX.embedSent inp $ map (P.showTag tagset) xs
+
+-------------------------------------------------
 -- -- Training
 -- -------------------------------------------------
 -- 
@@ -112,7 +117,7 @@ tiersDefault =
 -- -- different SGD arguments.
 -- train
 --     :: SGD.SgdArgs      -- ^ SGD parameters
---     -> Tagset           -- ^ Tagset
+--     -> P.Tagset           -- ^ Tagset
 --     -> Int              -- ^ Numer of guessed tags for each word 
 --     -> [C.Elem]         -- ^ Training data
 --     -> Maybe [C.Elem]   -- ^ Maybe evaluation data
@@ -125,7 +130,7 @@ tiersDefault =
 -- -- | Train concraft model.
 -- trainNoAna
 --     :: SGD.SgdArgs      -- ^ SGD parameters
---     -> Tagset           -- ^ Tagset
+--     -> P.Tagset           -- ^ Tagset
 --     -> Int              -- ^ Numer of guessed tags for each word 
 --     -> [Sent Tag]       -- ^ Training data
 --     -> Maybe [Sent Tag] -- ^ Maybe evaluation data

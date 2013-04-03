@@ -35,26 +35,6 @@ import           NLP.Concraft.Polish.Morphosyntax
 noneBase :: T.Text
 noneBase = "None"
 
--- -- | Select interpretations.
--- select :: X.WMap Tag -> Token -> Token
--- select wMap tok =
---     tok { interps = newInterps }
---   where
---     wSet = M.fromList . map (first tag) . M.toList . interps
---     asDmb x = if x > 0
---         then True
---         else False
---     newInterps = M.fromList $
---         [ case M.lookup (tag interp) (X.unWMap wMap) of
---             Just x  -> (interp, asDmb x)
---             Nothing -> (interp, False)
---         | interp <- M.keys (interps tok) ]
---             ++ catMaybes
---         [ if tag `M.member` wSet tok
---             then Nothing
---             else Just (Interp Nothing tag, asDmb x)
---         | (tag, x) <- M.toList (X.unWMap wMap) ]
-
 -- | Parse the text in the plain format given the /oov/ tag.
 parsePlain :: Tag -> L.Text -> [[Sent Tag]]
 parsePlain ign = map (parsePar ign) . init . L.splitOn "\n\n\n"
@@ -72,9 +52,10 @@ parseSent ign
     cond = ("\t" `L.isPrefixOf`)
     ignL = L.fromStrict ign
 
-parseWord :: L.Text -> [L.Text] -> Token Tag
-parseWord ign xs =
-    (Token _orth _space _known _interps)
+parseWord :: L.Text -> [L.Text] -> Seg Tag
+parseWord ign xs = Seg
+    (Word _orth _space _known)
+    _interps
   where
     (_orth, _space) = parseHeader (head xs)
     ys          = map (parseInterp ign) (tail xs)
@@ -138,12 +119,13 @@ showSent ign xs = L.toLazyText $ buildSent ign xs
 buildSent :: Tag -> Sent Tag -> L.Builder
 buildSent ign = mconcat . map (buildWord ign)
 
-buildWord :: Tag -> Token Tag -> L.Builder
-buildWord ign tok
-    =  L.fromText (orth tok) <> "\t"
-    <> buildSpace (space tok) <> "\n"
-    <> buildKnown ign (known tok)
-    <> buildInterps (M.toList $ interps tok)
+buildWord :: Tag -> Seg Tag -> L.Builder
+buildWord ign Seg{..}
+    =  L.fromText orth  <> "\t"
+    <> buildSpace space <> "\n"
+    <> buildKnown ign known
+    <> buildInterps (M.toList interps)
+    where Word{..} = word
 
 buildInterps :: [(Interp Tag, Bool)] -> L.Builder
 buildInterps interps = mconcat
@@ -168,15 +150,3 @@ buildKnown :: Tag -> Bool -> L.Builder
 buildKnown _   True     = ""
 buildKnown ign False    =  "\t" <> L.fromText noneBase
                         <> "\t" <> L.fromText ign <> "\n"
-
--- -------------
--- -- Conversion
--- -------------
--- 
--- -- | Convert a list of tokens to a morphosyntax sentence.
--- toSent :: Ord a => Sent a -> X.Sent a
--- toSent = map toSeg
--- 
--- -- | Convert a list of tokens to a morphosyntax sentence.
--- fromSent :: Ord a => X.Sent a -> Sent a
--- fromSent = map fromSeg
