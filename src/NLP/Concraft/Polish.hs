@@ -24,6 +24,7 @@ module NLP.Concraft.Polish
 
 import           Control.Applicative ((<$>))
 import           System.IO.Unsafe (unsafePerformIO)
+import           System.Exit (ExitCode(..))
 import qualified System.Process.Text.Lazy as Proc
 import           Data.String (IsString)
 import qualified Data.Text.Lazy as L
@@ -54,8 +55,10 @@ ign = "ign"
 macalyse :: L.Text -> [[Sent Tag]]
 macalyse inp = unsafePerformIO $ do
     let args = ["-q", "morfeusz-nkjp-official", "-o", "plain", "-s"]
-    (_exitCode, out, _) <- Proc.readProcessWithExitCode "maca-analyse" args inp
-    return $ Plain.parsePlain ign out
+    (exitCode, out, err) <- Proc.readProcessWithExitCode "maca-analyse" args inp
+    if exitCode == ExitSuccess
+        then return $ Plain.parsePlain ign out
+        else error $ "maca-analyse failed with:\n\n" ++ L.unpack err
 
 -------------------------------------------------
 -- Default configuration

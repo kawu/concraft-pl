@@ -41,11 +41,13 @@ parsePlainO :: Tag -> L.Text -> [[SentO Tag]]
 parsePlainO ign = map (map withOrig) . parsePlain ign
 
 -- | Parse the text in the plain format given the /oov/ tag.
+-- TODO: Handling spaces between paragraphs and sentences has to be
+-- smarter than that.
 parsePlain :: Tag -> L.Text -> [[Sent Tag]]
-parsePlain ign = map (parsePar ign) . init . L.splitOn "\n\n\n"
+parsePlain ign = map (parsePar ign) . filter (not.L.null) . L.splitOn "\n\n\n"
 
 parsePar:: Tag -> L.Text -> [Sent Tag]
-parsePar ign = map (parseSent ign) . init . L.splitOn "\n\n"
+parsePar ign = map (parseSent ign) . filter (not.L.null) . L.splitOn "\n\n"
 
 -- | Parse the sentence in the plain format given the /oov/ tag.
 parseSent :: Tag -> L.Text -> Sent Tag
@@ -102,11 +104,6 @@ parseSpace xs        = error ("parseSpace: " ++ L.unpack xs)
 -- Printing
 -----------
 
--- | An infix synonym for 'mappend'.
-(<>) :: Monoid m => m -> m -> m
-(<>) = mappend
-{-# INLINE (<>) #-}
-
 -- | Show the plain data.
 showPlain :: Tag -> [[Sent Tag]] -> L.Text
 showPlain ign =
@@ -155,3 +152,12 @@ buildKnown :: Tag -> Bool -> L.Builder
 buildKnown _   True     = ""
 buildKnown ign False    =  "\t" <> L.fromText noneBase
                         <> "\t" <> L.fromText ign <> "\n"
+
+-----------
+-- Utils
+-----------
+
+-- | An infix synonym for 'mappend'.
+(<>) :: Monoid m => m -> m -> m
+(<>) = mappend
+{-# INLINE (<>) #-}
