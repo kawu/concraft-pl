@@ -25,24 +25,7 @@ library
       , process-extras >= 0.2 && < 0.3
       , containers >= 0.5 && < 0.6
       , text >= 0.11 && < 0.12
---       , text-binary >= 0.1 && < 0.2
-
---       , array
---       , binary
---       , vector
---       , vector-binary
---       , crf-chain1-constrained >= 0.1.2 && < 0.2
---       , monad-ox >= 0.2 && < 0.3
---       , sgd >= 0.2.2 && < 0.3
---       , tagset-positional >= 0.3 && < 0.4
---       , crf-chain2-generic >= 0.3 && < 0.4
---       , monad-codec >= 0.2 && < 0.3
---       , data-lens
---       , transformers
---       , comonad-transformers
---       , temporary
---       -- , pipes >= 3.2 && < 3.3
---       -- , errors >= 1.4 && < 1.5
+      , binary
 
     exposed-modules:
         NLP.Concraft.Polish
@@ -55,9 +38,9 @@ source-repository head
     type: git
     location: https://github.com/kawu/concraft-pl.git
 
--- executable concraft-pl
---     build-depends:
---         cmdargs
---     hs-source-dirs: src, tools
---     main-is: concraft-pl.hs    
---     ghc-options: -Wall -O2 -threaded -rtsopts
+executable concraft-pl
+    build-depends:
+        cmdargs
+    hs-source-dirs: src, tools
+    main-is: concraft-pl.hs    
+    ghc-options: -Wall -O2 -threaded -rtsopts

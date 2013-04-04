@@ -8,11 +8,9 @@
 
 module NLP.Concraft.Polish.Format.Plain
 (
--- * Types
-  Tag
-
 -- * Parsing
-, parsePlain
+  parsePlain
+, parsePlainO
 , parsePar
 , parseSent
 
@@ -34,6 +32,13 @@ import           NLP.Concraft.Polish.Morphosyntax
 
 noneBase :: T.Text
 noneBase = "None"
+
+-- | Parse the text in the plain format given the /oov/ tag.
+-- Original sentences will be restored using the `withOrig`
+-- function.  Plain format doesn't preserve original,
+-- textual representation of individual sentences.
+parsePlainO :: Tag -> L.Text -> [[SentO Tag]]
+parsePlainO ign = map (map withOrig) . parsePlain ign
 
 -- | Parse the text in the plain format given the /oov/ tag.
 parsePlain :: Tag -> L.Text -> [[Sent Tag]]
