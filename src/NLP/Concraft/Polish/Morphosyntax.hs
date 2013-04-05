@@ -32,8 +32,8 @@ module NLP.Concraft.Polish.Morphosyntax
 import           Control.Applicative ((<$>), (<*>))
 import           Control.Arrow (first)
 import           Data.Maybe (catMaybes)
-import           Data.Int (Int8)
-import           Data.Binary (Binary, put, get, Get)
+import           Data.Aeson
+import qualified Data.Aeson as Aeson
 import qualified Data.Map as M
 import qualified Data.Text as T
 import qualified Data.Text.Lazy as L
@@ -64,18 +64,22 @@ data Word = Word
     , known     :: Bool }
     deriving (Show, Eq, Ord)
 
-instance X.HasOrth Word where
+instance X.Word Word where
     orth = orth
-
-instance X.HasOOV Word where
     oov = not.known
 
-instance Binary Word where
-    put Word{..} = do
-        put orth
-        put space
-        put known
-    get = Word <$> get <*> get <*> get
+instance ToJSON Word where
+    toJSON Word{..} = object
+        [ "orth"  .= orth
+        , "space" .= space
+        , "known" .= known ]
+
+instance FromJSON Word where
+    parseJSON (Object v) = Word
+        <$> v .: "orth"
+        <*> v .: "space"
+        <*> v .: "known"
+    parseJSON _ = error "parseJSON [Word]"
     
 -- | An interpretation.
 -- TODO: Should we allow `base` to be `Nothing`?
@@ -92,17 +96,19 @@ data Space
     | NewLine
     deriving (Show, Eq, Ord)
 
-instance Binary Space where
-    put None = put (1 :: Int8)
-    put Space = put (2 :: Int8)
-    put NewLine = put (3 :: Int8)
-    get = do
-        i <- get :: Get Int8
-        return $ case i of
-            1 -> None
-            2 -> Space
-            3 -> NewLine
-            _ -> error "decode Space: unknown code"
+instance ToJSON Space where
+    toJSON x = Aeson.String $ case x of
+        None    -> "none"
+        Space   -> "space"
+        NewLine -> "newline"
+
+instance FromJSON Space where
+    parseJSON (Aeson.String x) = return $ case x of
+        "none"      -> None
+        "space"     -> Space
+        "newline"   -> NewLine
+        _           -> error "parseJSON [Space]"
+    parseJSON _ = error "parseJSON [Space]"
 
 --------------------------------
 -- Sentence

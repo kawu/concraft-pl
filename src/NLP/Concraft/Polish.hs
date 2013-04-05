@@ -11,7 +11,6 @@ module NLP.Concraft.Polish
 
 -- * Training
 , train
-, trainNoAna
 
 -- * Default schemas
 , guessConfDefault
@@ -51,7 +50,8 @@ ign = "ign"
 -------------------------------------------------
 
 -- | Use Maca to analyse the input text.
--- TODO: Is it even lazy?
+-- TODO: Is it even lazy?  No, its not, and it could be.
+-- We have a memory leak here!
 macalyse :: L.Text -> [[Sent Tag]]
 macalyse inp = unsafePerformIO $ do
     let args = ["-q", "morfeusz-nkjp-official", "-o", "plain", "-s"]
@@ -125,22 +125,22 @@ train
 train sgdArgs tagset guessNum train0 eval0 = do
     let guessConf  = G.TrainConf guessConfDefault sgdArgs
         disambConf = D.TrainConf tiersDefault disambConfDefault sgdArgs
-        maca = map (packSentTag tagset) . concat . macalyse
+        maca = packSentTag tagset . concat . concat . macalyse
     C.train tagset maca guessNum guessConf disambConf
         (map (packSentTagO tagset)     train0)
         (map (packSentTagO tagset) <$> eval0)
 
--- | Train concraft model.
-trainNoAna
-    :: SGD.SgdArgs      -- ^ SGD parameters
-    -> P.Tagset         -- ^ Tagset
-    -> Int              -- ^ Numer of guessed tags for each word 
-    -> [Sent Tag]       -- ^ Training data
-    -> Maybe [Sent Tag] -- ^ Maybe evaluation data
-    -> IO C.Concraft
-trainNoAna sgdArgs tagset guessNum train0 eval0 = do
-    let guessConf  = G.TrainConf guessConfDefault sgdArgs
-        disambConf = D.TrainConf tiersDefault disambConfDefault sgdArgs
-    C.trainNoAna tagset guessNum guessConf disambConf
-        (map (packSentTag tagset)     train0)
-        (map (packSentTag tagset) <$> eval0)
+-- -- | Train concraft model.
+-- trainNoAna
+--     :: SGD.SgdArgs      -- ^ SGD parameters
+--     -> P.Tagset         -- ^ Tagset
+--     -> Int              -- ^ Numer of guessed tags for each word 
+--     -> [Sent Tag]       -- ^ Training data
+--     -> Maybe [Sent Tag] -- ^ Maybe evaluation data
+--     -> IO C.Concraft
+-- trainNoAna sgdArgs tagset guessNum train0 eval0 = do
+--     let guessConf  = G.TrainConf guessConfDefault sgdArgs
+--         disambConf = D.TrainConf tiersDefault disambConfDefault sgdArgs
+--     C.trainNoAna tagset guessNum guessConf disambConf
+--         (map (packSentTag tagset)     train0)
+--         (map (packSentTag tagset) <$> eval0)
