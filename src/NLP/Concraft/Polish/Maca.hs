@@ -21,16 +21,20 @@ module NLP.Concraft.Polish.Maca
 
 
 import           Control.Applicative ((<$>))
-import           Control.Monad (void, forever)
+import           Control.Monad (void, forever, guard)
 import           Control.Concurrent
 import           Control.Exception
 import           System.Process
 import           System.IO
+import           Data.Function (on)
 import qualified Data.Char as C
 import qualified Data.Text as T
 import qualified Data.Text.IO as T
 import qualified Data.Text.Lazy as L
 import qualified Data.Text.Lazy.IO as L
+import qualified Control.Monad.State.Strict as S
+import qualified Control.Monad.Trans.Maybe as M
+import           Control.Monad.Trans.Class (lift)
 
 import           NLP.Concraft.Polish.Morphosyntax hiding (restore)
 import qualified NLP.Concraft.Polish.Format.Plain as Plain
@@ -95,11 +99,8 @@ runMaca inCh outCh = forkIO . mask $ \restore -> do
         -- TODO: Handle the "empty" case.
         T.hPutStr inh txt; hFlush inh
 
-        -- Number of non-space characters in the input.
-        let n = T.length $ T.filter (not . C.isSpace) txt
-
         -- Read maca response and put it in the output channel.
-        writeChan outCh =<< readMacaResponse outh n
+        writeChan outCh =<< readMacaResponse outh (textWeight txt)
 
 
 readMacaResponse :: Handle -> Int -> IO [Sent Tag]
@@ -107,7 +108,7 @@ readMacaResponse h n
     | n <= 0    = return []
     | otherwise = do
         x  <- readMacaSent h
-        xs <- readMacaResponse h (n - charNum x)
+        xs <- readMacaResponse h (n - sentWeight x)
         return (x : xs)
 
 
@@ -124,26 +125,81 @@ readMacaSent h =
                 return (x `L.append` "\n" `L.append` xs)
 
 
--- | A number of non-space characters in a sentence.
-charNum :: Sent t -> Int
-charNum =
-    let wordCharNum Word{..} = T.length $ T.filter (not . C.isSpace) orth
-    in  sum . map (wordCharNum . word)
-
-
 ----------------------------
 -- Client
 ----------------------------
 
 
--- TODO:
--- * Make certain, that input text is terminated with '\n'. 
--- * All '\n' characters should be changed to e.g. "  ".
--- * Info about newlines ('\n' characters) should be restored.
-
-
 -- | Analyse paragraph with Maca.
 macaPar :: Maca -> T.Text -> IO [Sent Tag]
-macaPar (Maca (inCh, outCh)) x = do
-    writeChan inCh x
-    readChan outCh
+macaPar (Maca (inCh, outCh)) par = do
+    let par' = T.intercalate "  " (T.lines par) `T.append` "\n"
+    writeChan inCh par'
+    restoreSpaces par <$> readChan outCh
+
+
+-- | Restore info abouts spaces from a text and insert them
+-- to a parsed paragraph.
+restoreSpaces :: T.Text -> [Sent Tag] -> [Sent Tag]
+restoreSpaces par sents =
+    S.evalState (mapM onSent sents) (0, chunks)
+  where
+    -- For each space chunk in the paragraph compute
+    -- total weight of earlier chunks.
+    parts   = T.groupBy ((==) `on` C.isSpace) par
+    weights = scanl1 (+) (map textWeight parts)
+    chunks  = filter (T.any C.isSpace . fst) (zip parts weights)
+
+    -- Stateful monadic computation which modifies spaces
+    -- assigned to individual segments.
+    onSent = mapM onWord
+    onWord seg = do
+        n <- addWeight seg
+        s <- popSpace n
+        let word' = (word seg) { space = s }
+        return $ seg { word = word' }
+
+    -- Add weight of the segment to the current weight.
+    addWeight seg = S.state $ \(n, xs) ->
+        let m = n + segWeight seg
+        in (m, (m, xs))
+
+    -- Pop space from the stack if its weight is lower than
+    -- the current one.
+    popSpace n = fmap (maybe None id) . M.runMaybeT $ do
+        spaces  <- lift $ S.gets snd
+        (sp, m) <- liftMaybe $ maybeHead spaces
+        guard $ m < n
+        lift $ S.modify $ \(n', xs) -> (n', tail xs)
+        return $ toSpace sp
+    liftMaybe = M.MaybeT . return
+    maybeHead xs = case xs of
+        (x:_)   -> Just x
+        []      -> Nothing
+
+    -- Parse strings representation of a Space.
+    toSpace x
+        | has '\n'  = NewLine 
+        | has ' '   = Space 
+        | otherwise = None
+        where has c = maybe False (const True) (T.find (==c) x)
+
+
+----------------------------
+-- Weight
+----------------------------
+
+
+-- | A number of non-space characters in a text.
+textWeight :: T.Text -> Int
+textWeight = T.length . T.filter (not . C.isSpace)
+
+
+-- | A number of non-space characters in a sentence.
+segWeight :: Seg t -> Int
+segWeight = textWeight . orth . word
+
+
+-- | A number of non-space characters in a sentence.
+sentWeight :: Sent t -> Int
+sentWeight = sum . map segWeight

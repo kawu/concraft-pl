@@ -28,6 +28,8 @@ library
       , aeson >= 0.6 && < 0.7
       , binary
       , process
+      , mtl
+      , transformers
 
 
     exposed-modules:
