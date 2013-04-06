@@ -83,8 +83,8 @@ runMaca inCh outCh = forkIO . mask $ \restore -> do
                                      , std_err = CreatePipe }
 
     let excHandler = do
-            err <- hGetContents errh
-            putStr "Error: " >> putStrLn err
+            -- err <- hGetContents errh
+            -- putStr "Error: " >> putStrLn err
             hClose inh; hClose outh; hClose errh
             terminateProcess pid
             waitForProcess pid

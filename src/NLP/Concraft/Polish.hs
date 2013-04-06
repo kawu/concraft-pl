@@ -8,6 +8,7 @@ module NLP.Concraft.Polish
 
 -- * Tagging
 , tag
+, tag'
 , tagSent
 
 -- * Training
@@ -15,6 +16,7 @@ module NLP.Concraft.Polish
 ) where
 
 
+import           System.IO.Unsafe (unsafeInterleaveIO)
 import           Control.Applicative ((<$>))
 import qualified Data.Text as T
 import qualified Data.Text.Lazy as L
@@ -75,8 +77,19 @@ tiersDefault =
 
 
 -- | Perform morphological tagging on the input text.
-tag :: C.Concraft -> Maca -> T.Text -> IO [Sent Tag]
-tag concraft maca inp = map (tagSent concraft) <$> macaPar maca inp
+tag :: Maca -> C.Concraft -> T.Text -> IO [Sent Tag]
+tag maca concraft inp = map (tagSent concraft) <$> macaPar maca inp
+
+
+-- | An alernative tagging function which recognizes
+-- each empty lines as a paragraph ending marker.
+-- The function uses lazy IO so it can be used to
+-- analyse large chunks of data.
+tag' :: Maca -> C.Concraft -> L.Text -> IO [[Sent Tag]]
+tag' maca concraft
+    = lazyMapM (tag maca concraft . L.toStrict)
+    . map L.strip
+    . L.splitOn "\n\n"
 
 
 tagSent :: C.Concraft -> Sent Tag -> Sent Tag
@@ -85,6 +98,14 @@ tagSent concraft inp =
         packed = packSentTag tagset inp
         xs = C.tag concraft packed
     in  embedSent inp $ map (P.showTag tagset) xs
+
+
+lazyMapM :: (a -> IO b) -> [a] -> IO [b]
+lazyMapM f (x:xs) = do
+    y <- f x
+    ys <- unsafeInterleaveIO $ lazyMapM f xs
+    return (y:ys)
+lazyMapM _ [] = return []
 
 
 -------------------------------------------------
