@@ -5,7 +5,6 @@
 
 import           Control.Applicative ((<$>))
 import           Control.Monad (unless)
-import           Data.Binary (encodeFile, decodeFile)
 import           System.Console.CmdArgs
 import qualified Numeric.SGD as SGD
 import qualified Data.Text.Lazy as L
@@ -93,7 +92,7 @@ exec Train{..} = do
     concraft <- C.train sgdArgs tagset guessNum train0 eval0 
     unless (null outModel) $ do
         putStrLn $ "\nSaving model in " ++ outModel ++ "..."
-        encodeFile outModel concraft
+        C.saveModel outModel concraft
   where
     sgdArgs = SGD.SgdArgs
         { SGD.batchSize = batchSize
@@ -103,7 +102,7 @@ exec Train{..} = do
         , SGD.tau = tau }
 
 exec Disamb{..} = do
-    concraft <- decodeFile inModel
+    concraft <- C.loadModel inModel
     maca <- newMacaServer
     out <- C.tag' maca concraft =<< L.getContents
     L.putStr $ showData format out

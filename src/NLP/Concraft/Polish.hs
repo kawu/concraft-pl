@@ -3,8 +3,10 @@
 
 module NLP.Concraft.Polish
 (
--- * Types
+-- * Model
   C.Concraft
+, C.saveModel
+, C.loadModel
 
 -- * Tagging
 , tag
@@ -81,8 +83,8 @@ tag :: Maca -> C.Concraft -> T.Text -> IO [Sent Tag]
 tag maca concraft inp = map (tagSent concraft) <$> macaPar maca inp
 
 
--- | An alernative tagging function which recognizes
--- each empty lines as a paragraph ending marker.
+-- | An alernative tagging function which interprets
+-- empty lines as paragraph ending markers.
 -- The function uses lazy IO so it can be used to
 -- analyse large chunks of data.
 tag' :: Maca -> C.Concraft -> L.Text -> IO [[Sent Tag]]

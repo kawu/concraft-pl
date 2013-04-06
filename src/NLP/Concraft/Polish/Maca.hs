@@ -94,6 +94,8 @@ runMaca inCh outCh = forkIO . mask $ \restore -> do
 
         -- Take element from the input channel.
         txt <- readChan inCh
+        -- putStr "REQUEST: "
+        -- print txt
 
         -- Write text to maca stdin.
         -- TODO: Handle the "empty" case.
