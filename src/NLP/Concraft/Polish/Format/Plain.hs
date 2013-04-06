@@ -18,11 +18,15 @@ module NLP.Concraft.Polish.Format.Plain
 , showPlain
 , showPar
 , showSent
+
+-- * Utis
+, ign
 ) where
 
-import Data.Monoid (Monoid, mappend, mconcat)
-import Data.Maybe (catMaybes)
-import Data.List (groupBy)
+import           Data.Monoid (Monoid, mappend, mconcat)
+import           Data.Maybe (catMaybes)
+import           Data.List (groupBy)
+import           Data.String (IsString)
 import qualified Data.Map as M
 import qualified Data.Text as T
 import qualified Data.Text.Lazy as L
@@ -153,11 +157,19 @@ buildKnown _   True     = ""
 buildKnown ign False    =  "\t" <> L.fromText noneBase
                         <> "\t" <> L.fromText ign <> "\n"
 
+
 -----------
 -- Utils
 -----------
+
 
 -- | An infix synonym for 'mappend'.
 (<>) :: Monoid m => m -> m -> m
 (<>) = mappend
 {-# INLINE (<>) #-}
+
+
+-- | Tag which indicates unknown words.
+ign :: IsString a => a
+ign = "ign"
+{-# INLINE ign #-}

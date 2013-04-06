@@ -175,7 +175,7 @@ parseData' format path = case path of
     Just pt -> Just <$> parseData format pt
 
 parseData :: Format -> FilePath -> IO [X.SentO X.Tag]
-parseData Plain path = concat . P.parsePlainO C.ign <$> L.readFile path
+parseData Plain path = concat . P.parsePlainO P.ign <$> L.readFile path
 
 showData :: Format -> [[X.Sent X.Tag]] -> L.Text
-showData Plain = P.showPlain C.ign
+showData Plain = P.showPlain P.ign
