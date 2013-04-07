@@ -37,8 +37,10 @@ library
         NLP.Concraft.Polish
       , NLP.Concraft.Polish.Maca
       , NLP.Concraft.Polish.Morphosyntax
-      , NLP.Concraft.Polish.Format.Plain
       , NLP.Concraft.Polish.Server
+
+    other-modules:
+        NLP.Concraft.Polish.Format.Plain
 
     ghc-options: -Wall -O2
 

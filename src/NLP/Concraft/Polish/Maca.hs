@@ -110,7 +110,7 @@ readMacaResponse h n
 
 readMacaSent :: Handle -> IO (Sent Tag)
 readMacaSent h =
-    Plain.parseSent Plain.ign <$> getTxt 
+    Plain.parseSent <$> getTxt 
   where
     getTxt = do
         x <- L.hGetLine h

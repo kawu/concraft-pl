@@ -15,7 +15,7 @@ module NLP.Concraft.Polish.Server
 import           Control.Applicative ((<$>))
 import           Control.Monad (forever, void)
 import           Control.Concurrent (forkIO)
-import           System.IO (Handle)
+import           System.IO (Handle, hFlush)
 import           System.IO.Unsafe (unsafeInterleaveIO)
 import qualified Network as N
 import qualified Data.Binary as B
@@ -98,6 +98,7 @@ sendMsg h msg = do
         n = fromIntegral $ BS.length x
     sendInt h n
     BS.hPut h x
+    hFlush h
 
 
 recvMsg :: B.Binary a => Handle -> IO a

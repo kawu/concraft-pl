@@ -18,9 +18,6 @@ module NLP.Concraft.Polish.Format.Plain
 , showPlain
 , showPar
 , showSent
-
--- * Utis
-, ign
 ) where
 
 import           Data.Monoid (Monoid, mappend, mconcat)
@@ -41,40 +38,39 @@ noneBase = "None"
 -- Original sentences will be restored using the `withOrig`
 -- function.  Plain format doesn't preserve original,
 -- textual representation of individual sentences.
-parsePlainO :: Tag -> L.Text -> [[SentO Tag]]
-parsePlainO ign = map (map withOrig) . parsePlain ign
+parsePlainO :: L.Text -> [[SentO Tag]]
+parsePlainO = map (map withOrig) . parsePlain
 
 -- | Parse the text in the plain format given the /oov/ tag.
 -- TODO: Handling spaces between paragraphs and sentences has to be
 -- smarter than that.
-parsePlain :: Tag -> L.Text -> [[Sent Tag]]
-parsePlain ign = map (parsePar ign) . filter (not.L.null) . L.splitOn "\n\n\n"
+parsePlain :: L.Text -> [[Sent Tag]]
+parsePlain = map parsePar . filter (not.L.null) . L.splitOn "\n\n\n"
 
-parsePar:: Tag -> L.Text -> [Sent Tag]
-parsePar ign = map (parseSent ign) . filter (not.L.null) . L.splitOn "\n\n"
+parsePar :: L.Text -> [Sent Tag]
+parsePar = map parseSent . filter (not.L.null) . L.splitOn "\n\n"
 
 -- | Parse the sentence in the plain format given the /oov/ tag.
-parseSent :: Tag -> L.Text -> Sent Tag
-parseSent ign
-    = map (parseWord ignL)
+parseSent :: L.Text -> Sent Tag
+parseSent
+    = map parseWord
     . groupBy (\_ x -> cond x)
     . L.lines
   where
     cond = ("\t" `L.isPrefixOf`)
-    ignL = L.fromStrict ign
 
-parseWord :: L.Text -> [L.Text] -> Seg Tag
-parseWord ign xs = Seg
+parseWord :: [L.Text] -> Seg Tag
+parseWord xs = Seg
     (Word _orth _space _known)
     _interps
   where
     (_orth, _space) = parseHeader (head xs)
-    ys          = map (parseInterp ign) (tail xs)
+    ys          = map parseInterp (tail xs)
     _known      = not (Nothing `elem` ys)
     _interps    = M.fromListWith max (catMaybes ys)
 
-parseInterp :: L.Text -> L.Text -> Maybe (Interp Tag, Bool)
-parseInterp ign =
+parseInterp :: L.Text -> Maybe (Interp Tag, Bool)
+parseInterp =
     doIt . tail . L.splitOn "\t"
   where
     doIt [form, tag]
@@ -109,27 +105,26 @@ parseSpace xs        = error ("parseSpace: " ++ L.unpack xs)
 -----------
 
 -- | Show the plain data.
-showPlain :: Tag -> [[Sent Tag]] -> L.Text
-showPlain ign =
-    L.intercalate "\n" . map (showPar ign)
+showPlain :: [[Sent Tag]] -> L.Text
+showPlain =
+    L.intercalate "\n" . map showPar
 
 -- | Show the paragraph.
-showPar :: Tag -> [Sent Tag] -> L.Text
-showPar ign =
-    L.toLazyText . mconcat  . map (\xs -> buildSent ign xs <> "\n")
+showPar :: [Sent Tag] -> L.Text
+showPar = L.toLazyText . mconcat  . map (\xs -> buildSent xs <> "\n")
 
 -- | Show the sentence.
-showSent :: Tag -> Sent Tag -> L.Text
-showSent ign xs = L.toLazyText $ buildSent ign xs
+showSent :: Sent Tag -> L.Text
+showSent xs = L.toLazyText $ buildSent xs
 
-buildSent :: Tag -> Sent Tag -> L.Builder
-buildSent ign = mconcat . map (buildWord ign)
+buildSent :: Sent Tag -> L.Builder
+buildSent = mconcat . map buildWord
 
-buildWord :: Tag -> Seg Tag -> L.Builder
-buildWord ign Seg{..}
+buildWord :: Seg Tag -> L.Builder
+buildWord Seg{..}
     =  L.fromText orth  <> "\t"
     <> buildSpace space <> "\n"
-    <> buildKnown ign known
+    <> buildKnown known
     <> buildInterps (M.toList interps)
     where Word{..} = word
 
@@ -152,10 +147,10 @@ buildSpace None     = "none"
 buildSpace Space    = "space"
 buildSpace NewLine  = "newline"
 
-buildKnown :: Tag -> Bool -> L.Builder
-buildKnown _   True     = ""
-buildKnown ign False    =  "\t" <> L.fromText noneBase
-                        <> "\t" <> L.fromText ign <> "\n"
+buildKnown :: Bool -> L.Builder
+buildKnown True  = ""
+buildKnown False =  "\t" <> L.fromText noneBase
+                         <> "\t" <> L.fromText ign <> "\n"
 
 
 -----------
