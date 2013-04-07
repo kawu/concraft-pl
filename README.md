@@ -31,7 +31,7 @@ just run:
 
     cabal install concraft-pl
 
-If you want to update Concraft-pl to a newer version you should
+If you want to upgrade Concraft-pl to a newer version you should
 update the package list first:
 
     cabal update 
@@ -48,8 +48,8 @@ Data format
 
 The current version of Concraft-pl works on a simple `plain` text format supported by
 the [Corpus2][corpus2] tools.  You will have to install these tools when you install
-[Maca][maca] anyway, so you can use them to convert the output results generated
-by Concraft-pl to one of the other formats supported by [Corpus2][corpus2].
+[Maca][maca] anyway, so you can use them to convert the output generated
+by Concraft-pl to one of other formats supported by [Corpus2][corpus2].
 
 Training
 ========
@@ -57,7 +57,7 @@ Training
 If you have the training material with disambiguation annotations (stored in the
 `plain` text format) you can train the Concraft-pl model yourself.
 
-    concraft-pl train config/nkjp-tagset.cfg train.plain -e eval.plain -o model.bin
+    concraft-pl train config/nkjp-tagset.cfg train.plain -e eval.plain -o model.gz
 
 The first program argument is a specification of the [NKJP][nkjp] morphosyntactic
 tagset.  It can be found in the `config` toplevel directory.
@@ -71,20 +71,51 @@ If the program is spending too much time collecting garbage, you can try to
 increase the allocation area size with the `-A` option.  For example, to train
 the model using four threads and 1GB allocation area size, run:
 
-    concraft-pl train config/nkjp-tagset.cfg train.plain -e eval.plain -o model.bin +RTS -N4 -A1G -s
+    concraft-pl train config/nkjp-tagset.cfg train.plain -e eval.plain -o model.gz +RTS -N4 -A1G -s
 
-Disambiguation
-==============
+Tagging
+=======
 
-Once you have the model you can use the following command to segment,
-analyse and tag the text file: 
+Once you have a Concraft-pl model you can use the following command tag `input.txt` file:
 
-    concraft-pl tag model.bin < input.txt > output.plain
+    concraft-pl tag model.gz < input.txt > output.plain
 
-Run `concraft tag --help` to learn more about the possible tagging options.
+The input file is first divided into paragraphs (the tool interprets empty lines
+as paragraph ending markers).  After that, [Maca][maca] is used to segment and analyse
+each paragraph.  Finally, [Concraft][concraft] module is used to disambiguate each
+sentence in the [Maca][maca] output.
 
-*Note: you should use the same version of [Maca][maca] for both training
-and tagging.*
+Run `concraft tag --help` to learn more about possible tagging options.
+
+*Note: the tool needs some time Concraft-pl model*
+
+Server
+======
+
+Concraft-pl provides also a client/server mode.  It is handy when, for example,
+you need to tag a large collection of small files.  Loading Concraft-pl model
+from a disk takes considerable amount of time which makes the tagging method
+described above very slow in such a setting.
+
+To start the Concraft-pl server, run:
+
+    concraft-pl server model.gz
+
+You can supply a custom port number using a `-p` option.  For example,
+to run the server on the `10101` port, use a following command:
+
+    concraft-pl server model.gz -p 10101
+
+Run `concraft server --help` to learn more about possible server-mode options.
+
+Concraft-pl in a client mode works just like in the tagging mode.  The only
+difference is that, instead of supplying your client with a model, you need
+to specify the port number (in case you used a custom one when starting the
+server; otherwise, the default port number will be used).
+
+    concraft-pl client -p 10101 < input.txt > output.plain
+
+Run `concraft client --help` to learn more about possible client-mode options.
 
 [concraft]: https://github.com/kawu/concraft "Concraft"
 [hackage-repo]: http://hackage.haskell.org/package/concraft-pl "Concraft-pl Hackage repository"
