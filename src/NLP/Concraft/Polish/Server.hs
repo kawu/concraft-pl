@@ -37,7 +37,6 @@ import qualified NLP.Concraft.Polish as C
 runConcraftServer :: MacaPool -> C.Concraft -> N.PortID -> IO ()
 runConcraftServer pool concraft port = N.withSocketsDo $ do
     sock <- N.listenOn port
-    putStrLn $ "Listening on " ++ show port
     forever $ sockHandler pool concraft sock
 
 

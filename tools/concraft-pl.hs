@@ -145,6 +145,7 @@ exec Server{..} = do
     putStrLn " done"
     pool <- Maca.newMacaPool numCapabilities
     let portNum = N.PortNumber $ fromIntegral port
+    putStrLn $ "Listening on port " ++ show port
     S.runConcraftServer pool concraft portNum
 
 
