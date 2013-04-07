@@ -105,9 +105,10 @@ to run the server on the `10101` port, use the following command:
     concraft-pl server model.gz -p 10101
 
 To use the server in a multi-threaded environment, you need to specify the
-`-N` [RTS][ghc-rts] option, for example:
+`-N` [RTS][ghc-rts] option.  A set of options which usually yield good
+server performance is presented in the following example:
 
-    concraft-pl server model.gz +RTS -N
+    concraft-pl server model.gz +RTS -N -A4M -qg1 -I0
 
 Run `concraft server --help` to learn more about possible server-mode options.
 
