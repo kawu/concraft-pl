@@ -12,8 +12,9 @@ import qualified Numeric.SGD as SGD
 import qualified Data.Text.Lazy as L
 import qualified Data.Text.Lazy.IO as L
 import           Data.Tagset.Positional (parseTagset)
+import           GHC.Conc (numCapabilities)
 
-import           NLP.Concraft.Polish.Maca (runMacaServer)
+import qualified NLP.Concraft.Polish.Maca as Maca
 import qualified NLP.Concraft.Polish as C
 import qualified NLP.Concraft.Polish.Server as S
 import qualified NLP.Concraft.Polish.Morphosyntax as X
@@ -133,8 +134,8 @@ exec Train{..} = do
 
 exec Tag{..} = do
     concraft <- C.loadModel inModel
-    maca <- runMacaServer
-    out <- C.tag' maca concraft =<< L.getContents
+    pool <- Maca.newMacaPool numCapabilities
+    out <- C.tag' pool concraft =<< L.getContents
     L.putStr $ showData format out
 
 
@@ -142,9 +143,9 @@ exec Server{..} = do
     putStr "Loading model..." >> hFlush stdout
     concraft <- C.loadModel inModel
     putStrLn " done"
-    maca <- runMacaServer
+    pool <- Maca.newMacaPool numCapabilities
     let portNum = N.PortNumber $ fromIntegral port
-    S.runConcraftServer maca concraft portNum
+    S.runConcraftServer pool concraft portNum
 
 
 exec Client{..} = do

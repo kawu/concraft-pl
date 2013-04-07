@@ -34,22 +34,22 @@ import qualified NLP.Concraft.Polish as C
 
 
 -- | Run a Concraft server on a given port.
-runConcraftServer :: Maca -> C.Concraft -> N.PortID -> IO ()
-runConcraftServer maca concraft port = N.withSocketsDo $ do
+runConcraftServer :: MacaPool -> C.Concraft -> N.PortID -> IO ()
+runConcraftServer pool concraft port = N.withSocketsDo $ do
     sock <- N.listenOn port
     putStrLn $ "Listening on " ++ show port
-    forever $ sockHandler maca concraft sock
+    forever $ sockHandler pool concraft sock
 
 
-sockHandler :: Maca -> C.Concraft -> N.Socket -> IO ()
-sockHandler maca concraft sock = do
+sockHandler :: MacaPool -> C.Concraft -> N.Socket -> IO ()
+sockHandler pool concraft sock = do
     (handle, _, _) <- N.accept sock
     -- putStrLn "Connection established"
     void $ forkIO $ do
         -- putStrLn "Waiting for input..."
         inp <- recvMsg handle
         -- putStr "> " >> T.putStrLn inp
-        out <- C.tag maca concraft inp
+        out <- C.tag pool concraft inp
         -- putStr "No. of sentences: " >> print (length out)
         sendMsg handle out
 

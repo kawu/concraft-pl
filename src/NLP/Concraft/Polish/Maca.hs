@@ -9,19 +9,14 @@
 
 module NLP.Concraft.Polish.Maca
 (
--- * Types
-  Maca
-
--- * Server
-, runMacaServer
-
--- * Client
+  MacaPool
+, newMacaPool
 , macaPar
 ) where
 
 
 import           Control.Applicative ((<$>))
-import           Control.Monad (void, forever, guard)
+import           Control.Monad (void, forever, guard, replicateM)
 import           Control.Concurrent
 import           Control.Exception
 import           System.Process
@@ -41,9 +36,13 @@ import qualified NLP.Concraft.Polish.Format.Plain as Plain
 
 
 ----------------------------
--- Types
+-- Maca instance
 ----------------------------
 
+
+-- TODO: We don't have to use channels here.  Maximum one element
+-- should be present in the input/output channel.
+    
 
 -- | Input channel.
 type In = Chan T.Text
@@ -57,14 +56,9 @@ type Out = Chan [Sent Tag]
 newtype Maca = Maca (In, Out)
 
 
-----------------------------
--- Server
-----------------------------
-
-
--- | Create Maca server with two communication channels.
-runMacaServer :: IO Maca
-runMacaServer = do
+-- | Run Maca instance.
+newMaca :: IO Maca
+newMaca = do
     inCh  <- newChan
     outCh <- newChan
     void $ runMacaOn inCh outCh
@@ -130,11 +124,11 @@ readMacaSent h =
 ----------------------------
 -- Client
 ----------------------------
-
+    
 
 -- | Analyse paragraph with Maca.
-macaPar :: Maca -> T.Text -> IO [Sent Tag]
-macaPar (Maca (inCh, outCh)) par = do
+doMacaPar :: Maca -> T.Text -> IO [Sent Tag]
+doMacaPar (Maca (inCh, outCh)) par = do
     let par' = T.intercalate "  " (T.lines par) `T.append` "\n"
     writeChan inCh par'
     restoreSpaces par <$> readChan outCh
@@ -185,6 +179,42 @@ restoreSpaces par sents =
         | has ' '   = Space 
         | otherwise = None
         where has c = maybe False (const True) (T.find (==c) x)
+
+
+----------------------------
+-- Pool
+----------------------------
+
+
+-- | A pool of Maca instances.
+newtype MacaPool = MacaPool (Chan Maca)
+
+
+-- | Run Maca server.
+newMacaPool
+    :: Int          -- ^ Number of Maca instances
+    -> IO MacaPool
+newMacaPool n = do
+    chan  <- newChan
+    macas <- replicateM n newMaca
+    writeList2Chan chan macas
+    return $ MacaPool chan
+
+
+popMaca :: MacaPool -> IO Maca
+popMaca (MacaPool c) = readChan c
+
+
+putMaca :: Maca -> MacaPool -> IO ()
+putMaca x (MacaPool c) = writeChan c x
+
+
+-- | Analyse paragraph with Maca.
+-- The function is thread-safe.
+macaPar :: MacaPool -> T.Text -> IO [Sent Tag]
+macaPar pool par = do
+    maca <- popMaca pool
+    doMacaPar maca par `finally` putMaca maca pool
 
 
 ----------------------------

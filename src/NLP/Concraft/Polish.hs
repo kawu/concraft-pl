@@ -79,17 +79,17 @@ tiersDefault =
 
 
 -- | Perform morphological tagging on the input text.
-tag :: Maca -> C.Concraft -> T.Text -> IO [Sent Tag]
-tag maca concraft inp = map (tagSent concraft) <$> macaPar maca inp
+tag :: MacaPool -> C.Concraft -> T.Text -> IO [Sent Tag]
+tag pool concraft inp = map (tagSent concraft) <$> macaPar pool inp
 
 
 -- | An alernative tagging function which interprets
 -- empty lines as paragraph ending markers.
 -- The function uses lazy IO so it can be used to
 -- analyse large chunks of data.
-tag' :: Maca -> C.Concraft -> L.Text -> IO [[Sent Tag]]
-tag' maca concraft
-    = lazyMapM (tag maca concraft . L.toStrict)
+tag' :: MacaPool -> C.Concraft -> L.Text -> IO [[Sent Tag]]
+tag' pool concraft
+    = lazyMapM (tag pool concraft . L.toStrict)
     . map L.strip
     . L.splitOn "\n\n"
 
@@ -127,10 +127,10 @@ train
     -> Maybe [SentO Tag] -- ^ Maybe evaluation data
     -> IO C.Concraft
 train sgdArgs tagset guessNum train0 eval0 = do
-    maca <- runMacaServer
+    pool <- newMacaPool 1
     let guessConf  = G.TrainConf guessConfDefault sgdArgs
         disambConf = D.TrainConf tiersDefault disambConfDefault sgdArgs
-        ana = fmap (packSentTag tagset . concat) . macaPar maca . L.toStrict
+        ana = fmap (packSentTag tagset . concat) . macaPar pool . L.toStrict
     C.train tagset ana guessNum guessConf disambConf
         (map (packSentTagO tagset)     train0)
         (map (packSentTagO tagset) <$> eval0)
