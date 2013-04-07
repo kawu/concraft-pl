@@ -40,7 +40,7 @@ data Concraft
     , tau           :: Double
     , outModel      :: FilePath
     , guessNum      :: Int }
-  | Disamb
+  | Tag
     { format        :: Format
     , inModel       :: FilePath }
     -- , guessNum      :: Int }
@@ -63,15 +63,15 @@ trainMode = Train
     , guessNum = 10 &= help "Number of guessed tags for each unknown word" }
 
 
-disambMode :: Concraft
-disambMode = Disamb
+tagMode :: Concraft
+tagMode = Tag
     { inModel = def &= argPos 0 &= typ "MODEL-FILE"
     , format = enum [Plain &= help "Plain format"] }
     -- , guessNum = 10 &= help "Number of guessed tags for each unknown word" }
 
 
 argModes :: Mode (CmdArgs Concraft)
-argModes = cmdArgsMode $ modes [trainMode, disambMode]
+argModes = cmdArgsMode $ modes [trainMode, tagMode]
 
 
 ---------------------------------------
@@ -101,7 +101,7 @@ exec Train{..} = do
         , SGD.gain0 = gain0
         , SGD.tau = tau }
 
-exec Disamb{..} = do
+exec Tag{..} = do
     concraft <- C.loadModel inModel
     maca <- newMacaServer
     out <- C.tag' maca concraft =<< L.getContents
