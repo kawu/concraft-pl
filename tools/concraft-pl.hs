@@ -75,7 +75,7 @@ trainMode = Train
 tagMode :: Concraft
 tagMode = Tag
     { inModel = def &= argPos 0 &= typ "MODEL-FILE"
-    , format  = enum [Plain &= help "Plain format"]  &= help "Output format" }
+    , format  = enum [Plain &= help "Use plain format for output"] }
     -- , guessNum = 10 &= help "Number of guessed tags for each unknown word" }
 
 
@@ -89,7 +89,7 @@ clientMode :: Concraft
 clientMode = Client
     { port   = def &= argPos 0 &= typ "PORT"
     , host   = "localhost" &= help "Server host name"
-    , format = enum [Plain &= help "Plain format"]  &= help "Output format" }
+    , format = enum [Plain &= help "Ues plain format for output"] }
 
 
 argModes :: Mode (CmdArgs Concraft)

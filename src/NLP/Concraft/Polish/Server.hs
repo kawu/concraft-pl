@@ -15,6 +15,7 @@ module NLP.Concraft.Polish.Server
 import           Control.Applicative ((<$>))
 import           Control.Monad (forever, void)
 import           Control.Concurrent (forkIO)
+import           System.IO (Handle, hFlush)
 import           System.IO.Unsafe (unsafeInterleaveIO)
 import qualified Network as N
 import qualified Data.Binary as B
@@ -44,12 +45,14 @@ runConcraftServer maca concraft port = N.withSocketsDo $ do
 sockHandler :: Maca -> C.Concraft -> N.Socket -> IO ()
 sockHandler maca concraft sock = do
     (handle, _, _) <- N.accept sock
-    -- BlockBuffering is a default buffering, according to docs.
-    -- hSetBuffering handle $ BlockBuffering Nothing
+    -- putStrLn "Connection established"
     void $ forkIO $ do
-        inp <- T.hGetContents handle
+        -- putStrLn "Waiting for input..."
+        inp <- recvMsg handle
+        putStr "> " >> T.putStrLn inp
         out <- C.tag maca concraft inp
-        BS.hPut handle $ B.encode out
+        -- putStr "No. of sentences: " >> print (length out)
+        sendMsg handle out
 
 
 -------------------------------------------------
@@ -61,8 +64,10 @@ sockHandler maca concraft sock = do
 tag :: N.HostName -> N.PortID -> T.Text -> IO [Sent Tag]
 tag host port inp = do
     handle <- N.connectTo host port
-    T.hPutStr handle inp
-    B.decode <$> BS.hGetContents handle
+    -- putStrLn "Connection established"
+    -- putStr "Send request: " >> T.putStrLn inp
+    sendMsg handle inp
+    recvMsg handle
 
 
 -- | An alernative tagging function which interprets
@@ -83,6 +88,33 @@ lazyMapM f (x:xs) = do
     return (y:ys)
 lazyMapM _ [] = return []
 
+
+-------------------------------------------------
+-- Messages
+-------------------------------------------------
+
+
+sendMsg :: B.Binary a => Handle -> a -> IO ()
+sendMsg h msg = do
+    let x = B.encode msg
+        n = fromIntegral $ BS.length x
+    sendInt h n
+    BS.hPut h x
+
+
+recvMsg :: B.Binary a => Handle -> IO a
+recvMsg h = do
+    n <- recvInt h
+    B.decode <$> BS.hGet h n
+
+
+sendInt :: Handle -> Int -> IO ()
+sendInt h x = BS.hPut h (B.encode x)
+
+
+recvInt :: Handle -> IO Int
+recvInt h = B.decode <$> BS.hGet h 8
+    
 
 -- -------------------------------------------------
 -- -- Stream binary encoding
