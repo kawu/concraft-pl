@@ -24,19 +24,21 @@ library
       , sgd >= 0.2.2 && < 0.3
       , process-extras >= 0.2 && < 0.3
       , containers
-      , text >= 0.11 && < 0.12
+      , bytestring
+      , text
       , aeson >= 0.6 && < 0.7
       , binary
       , process
       , mtl
       , transformers
-
+      , network
 
     exposed-modules:
         NLP.Concraft.Polish
       , NLP.Concraft.Polish.Maca
       , NLP.Concraft.Polish.Morphosyntax
       , NLP.Concraft.Polish.Format.Plain
+      , NLP.Concraft.Polish.Server
 
     ghc-options: -Wall -O2
 

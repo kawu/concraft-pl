@@ -33,6 +33,7 @@ import           Control.Applicative ((<$>), (<*>))
 import           Control.Arrow (first)
 import           Data.Maybe (catMaybes)
 import           Data.Aeson
+import           Data.Binary (Binary, put, get, putWord8, getWord8)
 import qualified Data.Aeson as Aeson
 import qualified Data.Map as M
 import qualified Data.Text as T
@@ -57,6 +58,10 @@ data Seg t = Seg
     , interps   :: M.Map (Interp t) Bool }
     deriving (Show, Eq, Ord)
 
+instance (Ord t, Binary t) => Binary (Seg t) where
+    put Seg{..} = put word >> put interps
+    get = Seg <$> get <*> get
+
 -- | A word.
 data Word = Word
     { orth      :: T.Text
@@ -80,6 +85,10 @@ instance FromJSON Word where
         <*> v .: "space"
         <*> v .: "known"
     parseJSON _ = error "parseJSON [Word]"
+
+instance Binary Word where
+    put Word{..} = put orth >> put space >> put known
+    get = Word <$> get <*> get <*> get
     
 -- | An interpretation.
 -- TODO: Should we allow `base` to be `Nothing`?
@@ -88,6 +97,10 @@ data Interp t = Interp
     , tag   :: t }
     deriving (Show, Eq, Ord)
 
+instance (Ord t, Binary t) => Binary (Interp t) where
+    put Interp{..} = put base >> put tag
+    get = Interp <$> get <*> get
+
 -- | No space, space or newline.
 -- TODO: Perhaps we should use a bit more informative data type.
 data Space
@@ -95,6 +108,16 @@ data Space
     | Space
     | NewLine
     deriving (Show, Eq, Ord)
+
+instance Binary Space where
+    put x = case x of
+        None    -> putWord8 1
+        Space   -> putWord8 2
+        NewLine -> putWord8 3
+    get = getWord8 >>= \x -> return $ case x of
+        1   -> None
+        2   -> Space
+        _   -> NewLine
 
 instance ToJSON Space where
     toJSON x = Aeson.String $ case x of

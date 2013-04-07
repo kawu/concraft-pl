@@ -6,13 +6,15 @@
 import           Control.Applicative ((<$>))
 import           Control.Monad (unless)
 import           System.Console.CmdArgs
+import qualified Network as N
 import qualified Numeric.SGD as SGD
 import qualified Data.Text.Lazy as L
 import qualified Data.Text.Lazy.IO as L
 import           Data.Tagset.Positional (parseTagset)
 
-import           NLP.Concraft.Polish.Maca (newMacaServer)
+import           NLP.Concraft.Polish.Maca (runMacaServer)
 import qualified NLP.Concraft.Polish as C
+import qualified NLP.Concraft.Polish.Server as S
 import qualified NLP.Concraft.Polish.Morphosyntax as X
 import qualified NLP.Concraft.Polish.Format.Plain as P
 
@@ -41,9 +43,16 @@ data Concraft
     , outModel      :: FilePath
     , guessNum      :: Int }
   | Tag
-    { format        :: Format
-    , inModel       :: FilePath }
+    { inModel       :: FilePath
+    , format        :: Format }
     -- , guessNum      :: Int }
+  | Server
+    { inModel       :: FilePath
+    , port          :: Int }
+  | Client
+    { format        :: Format
+    , host          :: String
+    , port          :: Int }
   deriving (Data, Typeable, Show)
 
 
@@ -66,12 +75,25 @@ trainMode = Train
 tagMode :: Concraft
 tagMode = Tag
     { inModel = def &= argPos 0 &= typ "MODEL-FILE"
-    , format = enum [Plain &= help "Plain format"] }
+    , format  = enum [Plain &= help "Plain format"]  &= help "Output format" }
     -- , guessNum = 10 &= help "Number of guessed tags for each unknown word" }
 
 
+serverMode :: Concraft
+serverMode = Server
+    { inModel = def &= argPos 0 &= typ "MODEL-FILE"
+    , port    = def &= argPos 1 &= typ "PORT" }
+
+
+clientMode :: Concraft
+clientMode = Client
+    { port   = def &= argPos 0 &= typ "PORT"
+    , host   = "localhost" &= help "Server host name"
+    , format = enum [Plain &= help "Plain format"]  &= help "Output format" }
+
+
 argModes :: Mode (CmdArgs Concraft)
-argModes = cmdArgsMode $ modes [trainMode, tagMode]
+argModes = cmdArgsMode $ modes [trainMode, tagMode, serverMode, clientMode]
 
 
 ---------------------------------------
@@ -84,6 +106,7 @@ main = exec =<< cmdArgsRun argModes
 
 
 exec :: Concraft -> IO ()
+
 
 exec Train{..} = do
     tagset <- parseTagset tagsetPath <$> readFile tagsetPath
@@ -101,10 +124,24 @@ exec Train{..} = do
         , SGD.gain0 = gain0
         , SGD.tau = tau }
 
+
 exec Tag{..} = do
     concraft <- C.loadModel inModel
-    maca <- newMacaServer
+    maca <- runMacaServer
     out <- C.tag' maca concraft =<< L.getContents
+    L.putStr $ showData format out
+
+
+exec Server{..} = do
+    concraft <- C.loadModel inModel
+    maca <- runMacaServer
+    let portNum = N.PortNumber $ fromIntegral port
+    S.runConcraftServer maca concraft portNum
+
+
+exec Client{..} = do
+    let portNum = N.PortNumber $ fromIntegral port
+    out <- S.tag' host portNum =<< L.getContents
     L.putStr $ showData format out
 
 

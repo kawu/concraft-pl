@@ -94,6 +94,7 @@ tag' maca concraft
     . L.splitOn "\n\n"
 
 
+-- | Tag an already analysed sentence.
 tagSent :: C.Concraft -> Sent Tag -> Sent Tag
 tagSent concraft inp =
     let tagset = C.tagset concraft
@@ -126,7 +127,7 @@ train
     -> Maybe [SentO Tag] -- ^ Maybe evaluation data
     -> IO C.Concraft
 train sgdArgs tagset guessNum train0 eval0 = do
-    maca <- newMacaServer
+    maca <- runMacaServer
     let guessConf  = G.TrainConf guessConfDefault sgdArgs
         disambConf = D.TrainConf tiersDefault disambConfDefault sgdArgs
         ana = fmap (packSentTag tagset . concat) . macaPar maca . L.toStrict

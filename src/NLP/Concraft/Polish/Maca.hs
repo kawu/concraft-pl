@@ -13,7 +13,7 @@ module NLP.Concraft.Polish.Maca
   Maca
 
 -- * Server
-, newMacaServer
+, runMacaServer
 
 -- * Client
 , macaPar
@@ -63,18 +63,18 @@ newtype Maca = Maca (In, Out)
 
 
 -- | Create Maca server with two communication channels.
-newMacaServer :: IO Maca
-newMacaServer = do
+runMacaServer :: IO Maca
+runMacaServer = do
     inCh  <- newChan
     outCh <- newChan
-    void $ runMaca inCh outCh
+    void $ runMacaOn inCh outCh
     return $ Maca (inCh, outCh)
 
 
 -- | Run Maca server on given channels.
 -- TODO: Should check, if maca works.  In particular, if morfeusz is available.
-runMaca :: In -> Out -> IO ThreadId
-runMaca inCh outCh = forkIO . mask $ \restore -> do
+runMacaOn :: In -> Out -> IO ThreadId
+runMacaOn inCh outCh = forkIO . mask $ \restore -> do
     let cmd  = "maca-analyse"
         args = ["-q", "morfeusz-nkjp-official", "-o", "plain", "-l"]
     (Just inh, Just outh, Just errh, pid) <-
