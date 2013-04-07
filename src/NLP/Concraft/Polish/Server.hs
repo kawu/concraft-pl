@@ -15,13 +15,12 @@ module NLP.Concraft.Polish.Server
 import           Control.Applicative ((<$>))
 import           Control.Monad (forever, void)
 import           Control.Concurrent (forkIO)
-import           System.IO (Handle, hFlush)
+import           System.IO (Handle)
 import           System.IO.Unsafe (unsafeInterleaveIO)
 import qualified Network as N
 import qualified Data.Binary as B
 import qualified Data.ByteString.Lazy as BS
 import qualified Data.Text as T
-import qualified Data.Text.IO as T
 import qualified Data.Text.Lazy as L
 
 import           NLP.Concraft.Polish.Morphosyntax hiding (tag)
@@ -49,7 +48,7 @@ sockHandler maca concraft sock = do
     void $ forkIO $ do
         -- putStrLn "Waiting for input..."
         inp <- recvMsg handle
-        putStr "> " >> T.putStrLn inp
+        -- putStr "> " >> T.putStrLn inp
         out <- C.tag maca concraft inp
         -- putStr "No. of sentences: " >> print (length out)
         sendMsg handle out

@@ -6,6 +6,7 @@
 import           Control.Applicative ((<$>))
 import           Control.Monad (unless)
 import           System.Console.CmdArgs
+import           System.IO (hFlush, stdout)
 import qualified Network as N
 import qualified Numeric.SGD as SGD
 import qualified Data.Text.Lazy as L
@@ -17,6 +18,11 @@ import qualified NLP.Concraft.Polish as C
 import qualified NLP.Concraft.Polish.Server as S
 import qualified NLP.Concraft.Polish.Morphosyntax as X
 import qualified NLP.Concraft.Polish.Format.Plain as P
+
+
+-- | Default port number.
+portDefault :: Int
+portDefault = 10089
 
 
 ---------------------------------------
@@ -82,14 +88,14 @@ tagMode = Tag
 serverMode :: Concraft
 serverMode = Server
     { inModel = def &= argPos 0 &= typ "MODEL-FILE"
-    , port    = def &= argPos 1 &= typ "PORT" }
+    , port    = portDefault &= help "Port number" }
 
 
 clientMode :: Concraft
 clientMode = Client
-    { port   = def &= argPos 0 &= typ "PORT"
+    { port   = portDefault &= help "Port number"
     , host   = "localhost" &= help "Server host name"
-    , format = enum [Plain &= help "Ues plain format for output"] }
+    , format = enum [Plain &= help "Use plain format for output"] }
 
 
 argModes :: Mode (CmdArgs Concraft)
@@ -133,7 +139,9 @@ exec Tag{..} = do
 
 
 exec Server{..} = do
+    putStr "Loading model..." >> hFlush stdout
     concraft <- C.loadModel inModel
+    putStrLn " done"
     maca <- runMacaServer
     let portNum = N.PortNumber $ fromIntegral port
     S.runConcraftServer maca concraft portNum
