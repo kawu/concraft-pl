@@ -87,8 +87,6 @@ sentence in the [Maca][maca] output.
 
 Run `concraft tag --help` to learn more about possible tagging options.
 
-*Note: the tool needs some time Concraft-pl model*
-
 Server
 ======
 
@@ -102,16 +100,21 @@ To start the Concraft-pl server, run:
     concraft-pl server model.gz
 
 You can supply a custom port number using a `-p` option.  For example,
-to run the server on the `10101` port, use a following command:
+to run the server on the `10101` port, use the following command:
 
     concraft-pl server model.gz -p 10101
 
+To use the server in a multi-threaded environment, you need to specify the
+`-N` [RTS][ghc-rts] option, for example:
+
+    concraft-pl server model.gz +RTS -N
+
 Run `concraft server --help` to learn more about possible server-mode options.
 
-Concraft-pl in a client mode works just like in the tagging mode.  The only
-difference is that, instead of supplying your client with a model, you need
-to specify the port number (in case you used a custom one when starting the
-server; otherwise, the default port number will be used).
+The client mode works just like the tagging model.  The only difference is that,
+instead of supplying your client with a model, you need to specify the port number
+(in case you used a custom one when starting the server; otherwise, the default
+port number will be used).
 
     concraft-pl client -p 10101 < input.txt > output.plain
 
