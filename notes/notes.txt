@@ -1,0 +1,52 @@
+Plany i pomysły na dalszy rozwój Concrafta.
+
+
+[HIGH]
+
+
+* Umożliwienie użytkownikowi określenia dodatkowych
+  cech schematu obserwacji, spoza zestawu oferowanego
+  przez bibliotekę podstawową. [HARD]
+
+
+[MEDIUM]
+
+
+* Trenowanie modelu bezpośrednio na korpusie NKJP. [EASY]
+
+
+* Cześć konfiguracji należałoby przenieść do plików konfiguracyjnych.
+  Dotyczy to np. konfiguracji trenowania -- parametry SGD bez większych
+  problemów mogłyby być zdefiniowane w postaci plików konfiguracyjnych. 
+  [MEDIUM]
+
+
+* Powyższy pomysł jest w bardziej ogólny.  Chcielibyśmy dać użytkownikowi
+  możliwość konfigurowania nie tylko parametrów SGD, ale również
+  - schematu obserwacji 
+  - podziału na warstwy
+  W szczególności, użytkownik powinien mieć możliwość zdefiniowania
+  osobnego schematu obserwacji dla różnych warstw.
+
+  PYTANIE: Czy obecnie tworzona jest jeden kodek dla wszystkich typów
+  obserwacji?  Zdecydowanie powinno tak być! 
+
+
+* Fajnie byłoby użyć na poziomie kodeka biblioteki DAWG, dzięki czemu
+  model byłby bardziej skompresowany. [MEDIUM/HARD]
+
+  ALE: W postaci binarnej kodek zajmuje jedyne 15MB, w porównaniu do
+  tego pamięć zajmowana przez inne części modelu jest ogromna!
+
+
+* Zmiana interfejsu biblioteki podstawowej: zamiast klasy
+  Word można dodać np. "środowisko zdania". [HARD]
+
+
+[LOW]
+
+
+* Obsługa dodatkowych formatów. [MEDIUM]
+  <- Mało ważne chociażby dlatego, że jeśli już Maca jest dostępna,
+     to może być też wykorzystana do konwersji danych wyjściowych
+     do innego formatu.

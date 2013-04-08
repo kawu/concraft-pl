@@ -1,0 +1,29 @@
+Pamięć zajmowana przez poszczególne elementy binarnej reprezentacji modelu:
+
+15M     ./codec.bin
+305M    ./actualModel.bin
+202M        ./featMap.bin
+130M            ./featMap-otherMap.bin
+73M             ./featMap-transMaps.bin
+104M        ./valuesVect.bin
+
+Sortując zgodnie z rozmiarami (tylko elemety najniższego poziomu): 
+
+130M    ./featMap-otherMap.bin
+104M    ./valuesVect.bin
+73M     ./featMap-transMaps.bin
+15M     ./codec.bin
+
+Trzeba wziąć pod uwagę, jakie są różnice pomiędzy rozmiarami
+zwykłej oraz binarnej reprezentacji poszczególnych struktur danych.
+Przykładowo, w przypadku wektora różnica ta prawdopodobnie jest
+niewielka.  W przypadku map różnica jest prawdopodobnie duża.
+
+Rozmiar mapy `otherMap` to 3390538 par (klucz, wartość).
+Będziemy go oznaczali przez N.  Zgodnie z
+http://blog.johantibell.com/2011/06/memory-footprints-of-some-common-data.html
+rozmiar takie mapy w pamięci można szacować jako:
+
+    6N words + size of keys & values
+
+CDN.

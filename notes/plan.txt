@@ -1,0 +1,11 @@
+Kroki prowadzące do opublikowania nowej wersji Concrafta w sieci.
+
+1. Zmergować gałąź 0.5 z gałęzią master w repozytorium https://github.com/kawu/concraft.    DONE
+
+2. Zaktualizować opis na stronie http://zil.ipipan.waw.pl/Concraft.                         DONE
+   W szczególności, należy umieścić tam nowy model.                                         DONE
+
+[Dodatki]
+
+A. Obecny model 0.5 wytrenowany jest na 90% korpusu milionowego NKJP.
+   Kiedyś później należałoby wytrenować model na całym korpusie.
