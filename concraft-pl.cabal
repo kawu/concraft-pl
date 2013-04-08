@@ -22,7 +22,6 @@ library
       , concraft >= 0.5 && < 0.6
       , tagset-positional >= 0.3 && < 0.4
       , sgd >= 0.2.2 && < 0.3
-      , process-extras >= 0.2 && < 0.3
       , containers
       , bytestring
       , text
