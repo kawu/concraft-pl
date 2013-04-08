@@ -77,12 +77,15 @@ runMacaOn inCh outCh = forkIO . mask $ \restore -> do
                                      , std_err = CreatePipe }
 
     let excHandler = do
-            -- err <- hGetContents errh
-            -- putStr "Error: " >> putStrLn err
+            -- TODO: Is it possible, that `errh` handle is closed?
+            -- If so, appropriate exception should be handled.
+            err <- hGetContents errh
+            putStr "Maca error: " >> putStrLn err
             hClose inh; hClose outh; hClose errh
             terminateProcess pid
             waitForProcess pid
 
+    -- TODO: Document, why LineBuffering is needed here.
     hSetBuffering outh LineBuffering
     flip onException excHandler $ restore $ forever $ do
 
@@ -92,7 +95,7 @@ runMacaOn inCh outCh = forkIO . mask $ \restore -> do
         -- print txt
 
         -- Write text to maca stdin.
-        -- TODO: Handle the "empty" case.
+        -- TODO: Handle the "empty" case?
         T.hPutStr inh txt; hFlush inh
 
         -- Read maca response and put it in the output channel.
