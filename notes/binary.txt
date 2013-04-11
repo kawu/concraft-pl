@@ -22,8 +22,12 @@ niewielka.  W przypadku map różnica jest prawdopodobnie duża.
 Rozmiar mapy `otherMap` to 3390538 par (klucz, wartość).
 Będziemy go oznaczali przez N.  Zgodnie z
 http://blog.johantibell.com/2011/06/memory-footprints-of-some-common-data.html
-rozmiar takie mapy w pamięci można szacować jako:
+rozmiar takie mapy w pamięci można szacować jako (na systemie 64-bitowym):
 
     6N words + size of keys & values
 
-CDN.
+    6N words = ~163 MB
+    size of keys = N * 4 words = ~108 MB
+    size of vals = N words = ~27 MB
+
+    W sumie = ~300MB !
