@@ -21,7 +21,7 @@ library
         base >= 4 && < 5
       , concraft >= 0.6 && < 0.7
       , tagset-positional >= 0.3 && < 0.4
-      , sgd >= 0.2.2 && < 0.3
+      , sgd >= 0.3 && < 0.4
       , containers
       , bytestring
       , text

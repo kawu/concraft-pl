@@ -121,15 +121,16 @@ lazyMapM _ [] = return []
 -- different SGD arguments.
 train
     :: SGD.SgdArgs      -- ^ SGD parameters
+    -> Bool             -- ^ Store SGD dataset on disk
     -> P.Tagset         -- ^ Tagset
     -> Int              -- ^ Numer of guessed tags for each word 
     -> [SentO Tag]      -- ^ Training data
     -> Maybe [SentO Tag] -- ^ Maybe evaluation data
     -> IO C.Concraft
-train sgdArgs tagset guessNum train0 eval0 = do
+train sgdArgs onDisk tagset guessNum train0 eval0 = do
     pool <- newMacaPool 1
-    let guessConf  = G.TrainConf guessConfDefault sgdArgs
-        disambConf = D.TrainConf tiersDefault disambConfDefault sgdArgs
+    let guessConf  = G.TrainConf guessConfDefault sgdArgs onDisk
+        disambConf = D.TrainConf tiersDefault disambConfDefault sgdArgs onDisk
         ana = fmap (packSentTag tagset . concat) . macaPar pool . L.toStrict
     C.train tagset ana guessNum guessConf disambConf
         (map (packSentTagO tagset)     train0)

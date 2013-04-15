@@ -47,6 +47,7 @@ data Concraft
     , regVar        :: Double
     , gain0         :: Double
     , tau           :: Double
+    , onDisk        :: Bool
     , outModel      :: FilePath
     , guessNum      :: Int }
   | Tag
@@ -75,6 +76,7 @@ trainMode = Train
     , regVar = 10.0 &= help "Regularization variance"
     , gain0 = 1.0 &= help "Initial gain parameter"
     , tau = 5.0 &= help "Initial tau parameter"
+    , onDisk = False &= help "Store SGD dataset on disk"
     , outModel = def &= typFile &= help "Output Model file"
     , guessNum = 10 &= help "Number of guessed tags for each unknown word" }
 
@@ -119,7 +121,7 @@ exec Train{..} = do
     tagset <- parseTagset tagsetPath <$> readFile tagsetPath
     train0 <- parseData  format trainPath
     eval0  <- parseData' format evalPath
-    concraft <- C.train sgdArgs tagset guessNum train0 eval0 
+    concraft <- C.train sgdArgs onDisk tagset guessNum train0 eval0
     unless (null outModel) $ do
         putStrLn $ "\nSaving model in " ++ outModel ++ "..."
         C.saveModel outModel concraft
