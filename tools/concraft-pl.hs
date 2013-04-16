@@ -14,6 +14,8 @@ import qualified Data.Text.Lazy.IO as L
 import           Data.Tagset.Positional (parseTagset)
 import           GHC.Conc (numCapabilities)
 
+import qualified NLP.Concraft.Morphosyntax.Accuracy as Acc
+
 import qualified NLP.Concraft.Polish.Maca as Maca
 import qualified NLP.Concraft.Polish as C
 import qualified NLP.Concraft.Polish.Server as S
@@ -62,6 +64,11 @@ data Concraft
     { format        :: Format
     , host          :: String
     , port          :: Int }
+  | Compare
+    { tagsetPath    :: FilePath
+    , refPath       :: FilePath
+    , otherPath     :: FilePath
+    , format        :: Format }
   deriving (Data, Typeable, Show)
 
 
@@ -103,8 +110,17 @@ clientMode = Client
     , format = enum [Plain &= help "Use plain format for output"] }
 
 
+compareMode :: Concraft
+compareMode = Compare
+    { tagsetPath = def &= argPos 0 &= typ "TAGSET-PATH"
+    , refPath   = def &= argPos 1 &= typ "REFERENCE-FILE"
+    , otherPath = def &= argPos 2 &= typ "OTHER-FILE"
+    , format  = enum [Plain &= help "Use plain format for output"] }
+
+
 argModes :: Mode (CmdArgs Concraft)
-argModes = cmdArgsMode $ modes [trainMode, tagMode, serverMode, clientMode]
+argModes = cmdArgsMode $ modes
+    [trainMode, tagMode, serverMode, clientMode, compareMode]
 
 
 ---------------------------------------
@@ -157,6 +173,17 @@ exec Client{..} = do
     let portNum = N.PortNumber $ fromIntegral port
     out <- S.tag' host portNum =<< L.getContents
     L.putStr $ showData format out
+
+
+exec Compare{..} = do
+    tagset <- parseTagset tagsetPath <$> readFile tagsetPath
+    let convert = map (X.packSegTag tagset) . concatMap X.segs
+    xs <- convert <$> parseData format refPath
+    ys <- convert <$> parseData format otherPath
+    let s = Acc.weakLB tagset xs ys
+    putStrLn $ "Number of segments in reference file: " ++ show (Acc.gold s)
+    putStrLn $ "Number of correct tags: " ++ show (Acc.good s)
+    putStrLn $ "Weak accuracy lower bound: " ++ show (Acc.accuracy s)
 
 
 ---------------------------------------
