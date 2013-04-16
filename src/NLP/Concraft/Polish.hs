@@ -42,8 +42,8 @@ import           NLP.Concraft.Polish.Maca
 
 
 -- | Default configuration for the guessing observation schema.
-guessConfDefault :: SchemaConf
-guessConfDefault = S.nullConf
+guessSchemaDefault :: SchemaConf
+guessSchemaDefault = S.nullConf
     { lowPrefixesC  = entryWith [1, 2]      [0]
     , lowSuffixesC  = entryWith [1, 2]      [0]
     , knownC        = entry                 [0]
@@ -51,8 +51,8 @@ guessConfDefault = S.nullConf
 
 
 -- | Default configuration for the guessing observation schema.
-disambConfDefault :: SchemaConf
-disambConfDefault = S.nullConf
+disambSchemaDefault :: SchemaConf
+disambSchemaDefault = S.nullConf
     { lowOrthC      = entry                         [-1, 0, 1]
     , lowPrefixesC  = oov $ entryWith [1, 2, 3]     [0]
     , lowSuffixesC  = oov $ entryWith [1, 2, 3]     [0]
@@ -124,13 +124,15 @@ train
     -> Bool             -- ^ Store SGD dataset on disk
     -> P.Tagset         -- ^ Tagset
     -> Int              -- ^ Numer of guessed tags for each word 
+    -> Maybe Double     -- ^ Disamb model pruning parameter
     -> [SentO Tag]      -- ^ Training data
     -> [SentO Tag]      -- ^ Evaluation data
     -> IO C.Concraft
-train sgdArgs onDisk tagset guessNum train0 eval0 = do
+train sgdArgs onDisk tagset guessNum prune train0 eval0 = do
     pool <- newMacaPool 1
-    let guessConf  = G.TrainConf guessConfDefault sgdArgs onDisk
-        disambConf = D.TrainConf tiersDefault disambConfDefault sgdArgs onDisk
+    let guessConf  = G.TrainConf guessSchemaDefault sgdArgs onDisk
+        disambConf = D.TrainConf tiersDefault disambSchemaDefault
+                         sgdArgs onDisk prune
         ana = fmap (packSentTag tagset . concat) . macaPar pool . L.toStrict
     C.train tagset ana guessNum guessConf disambConf
         (map (packSentTagO tagset) train0)
