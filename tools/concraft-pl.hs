@@ -162,10 +162,10 @@ exec Client{..} = do
 ---------------------------------------
 
 
-parseData' :: Format -> Maybe FilePath -> IO (Maybe [X.SentO X.Tag])
+parseData' :: Format -> Maybe FilePath -> IO [X.SentO X.Tag]
 parseData' format path = case path of
-    Nothing -> return Nothing
-    Just pt -> Just <$> parseData format pt
+    Nothing -> return []
+    Just pt -> parseData format pt
 
 
 parseData :: Format -> FilePath -> IO [X.SentO X.Tag]
