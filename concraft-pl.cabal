@@ -51,5 +51,5 @@ executable concraft-pl
     build-depends:
         cmdargs >= 0.10 && < 0.11
     hs-source-dirs: src, tools
-    main-is: concraft-pl.hs    
+    main-is: concraft-pl.hs
     ghc-options: -Wall -O2 -threaded -rtsopts

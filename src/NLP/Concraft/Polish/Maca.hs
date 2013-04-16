@@ -77,10 +77,10 @@ runMacaOn inCh outCh = forkIO . mask $ \restore -> do
                                      , std_err = CreatePipe }
 
     let excHandler = do
-            -- TODO: Is it possible, that `errh` handle is closed?
-            -- If so, appropriate exception should be handled.
-            err <- hGetContents errh
-            putStr "Maca error: " >> putStrLn err
+            let tryIO = try :: IO a -> IO (Either IOException a)
+            void $ tryIO $ do
+                err <- hGetContents errh
+                putStr "Maca error: " >> putStrLn err
             hClose inh; hClose outh; hClose errh
             terminateProcess pid
             waitForProcess pid
