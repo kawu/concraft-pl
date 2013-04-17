@@ -1,14 +1,20 @@
-# Cross-validation template.
+# Cross-validation script.
 
 
 # Root data directory
-data=...
+data=$1
 
 # NKJP tagset configuration
-nkjp_tagset=.../nkjp-tagset.cfg
+nkjp_tagset=$2
 
-# Number of cores to use
-N=4
+
+echo ""
+echo "Data directory: "$1
+echo "Tagset file: "$2
+shift
+shift
+echo "Training arguments: ""$@"
+echo ""
 
 
 for i in "01" "02" "03" "04" "05" "06" "07" "08" "09" "10"
@@ -26,7 +32,7 @@ do
     done
 
     # Train tagger and tag eval file.
-    concraft-pl train $nkjp_tagset $data/train/train$i.plain -i 15 -b 50 --prune 0.1 --ondisk --outmodel $data/concraft/model$i.gz +RTS -N$N -A256M
+    concraft-pl train $nkjp_tagset $data/train/train$i.plain --outmodel $data/concraft/model$i.gz "$@"
     concraft-pl tag $data/concraft/model$i.gz < $data/text/test$i.txt > $data/tagged/test$i.plain
 
     echo -e "\nSTATS\n"

@@ -80,6 +80,7 @@ runMacaOn inCh outCh = forkIO . mask $ \restore -> do
             let tryIO = try :: IO a -> IO (Either IOException a)
             void $ tryIO $ do
                 err <- hGetContents errh
+                -- TODO: Do not print info when err empty.
                 putStr "Maca error: " >> putStrLn err
             hClose inh; hClose outh; hClose errh
             terminateProcess pid
