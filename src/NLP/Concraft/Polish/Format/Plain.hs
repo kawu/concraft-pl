@@ -35,20 +35,21 @@ noneBase :: T.Text
 noneBase = "None"
 
 -- | Parse the text in the plain format.
--- TODO: Handling spaces between paragraphs should be smarter.
--- Right now, if a paragraph is very long, the underlying sentences
--- will not be read until the entire paragraph bytestring is read
--- into the program memory.
 parsePlain :: L.Text -> [[Sent Tag]]
-parsePlain
-    = map (parsePara . L.strip)
-    . filter (not.isEmpty) . L.splitOn "\n\n\n"
+parsePlain =
+    map parsePara' . groupBy f . L.splitOn "\n\n"
+  where
+    f _ xs = case L.uncons xs of
+        Nothing     -> False
+        Just (x, _) -> not (C.isSpace x)
 
 -- | Parse the paragraph in the plain format.
 parsePara :: L.Text -> [Sent Tag]
-parsePara
-    = map (parseSent . L.strip)
-    . filter (not.isEmpty) . L.splitOn "\n\n"
+parsePara = parsePara' . L.splitOn "\n\n"
+
+-- | Parse paragraph already divided into sentence chunks.
+parsePara' :: [L.Text] -> [Sent Tag]
+parsePara' = map (parseSent . L.strip) . filter (not.isEmpty)
 
 -- | Identify empty chunks of text.
 isEmpty :: L.Text -> Bool

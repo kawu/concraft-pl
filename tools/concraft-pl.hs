@@ -171,7 +171,7 @@ exec Tag{..} = do
         then C.tag' pool cnft inp
         else return $
            let out = parseText format inp
-           in  map (map (C.tagSent cnft)) out 
+           in  map (map (C.tagSent cnft)) out
     L.putStr $ showData format out
 
 
