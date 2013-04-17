@@ -46,7 +46,7 @@ parsePlain
 
 -- | Parse the paragraph in the plain format.
 parsePara :: L.Text -> [Sent Tag]
-parsePara =
+parsePara
     = map (parseSent . L.strip)
     . filter (not.isEmpty) . L.splitOn "\n\n"
 

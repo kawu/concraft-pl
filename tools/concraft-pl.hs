@@ -43,6 +43,7 @@ data Concraft
     , evalPath      :: Maybe FilePath
     , format        :: Format
     , tagsetPath    :: FilePath
+    , noAna         :: Bool
     -- , discardHidden :: Bool
     , iterNum       :: Double
     , batchSize     :: Int
@@ -51,14 +52,15 @@ data Concraft
     , tau           :: Double
     , onDisk        :: Bool
     , prune         :: Maybe Double
-    , outModel      :: FilePath
+    , model         :: FilePath
     , guessNum      :: Int }
   | Tag
-    { inModel       :: FilePath
+    { model         :: FilePath
+    , noAna         :: Bool
     , format        :: Format }
     -- , guessNum      :: Int }
   | Server
-    { inModel       :: FilePath
+    { model         :: FilePath
     , port          :: Int }
   | Client
     { format        :: Format
@@ -78,6 +80,7 @@ trainMode = Train
     , trainPath = def &= argPos 1 &= typ "TRAIN-FILE"
     , evalPath = def &= typFile &= help "Evaluation file"
     , format = enum [Plain &= help "Plain format"]
+    , noAna = False &= help "Do not perform reanalysis"
     -- , discardHidden = False &= help "Discard hidden features"
     , iterNum = 10 &= help "Number of SGD iterations"
     , batchSize = 30 &= help "Batch size"
@@ -86,20 +89,21 @@ trainMode = Train
     , tau = 5.0 &= help "Initial tau parameter"
     , onDisk = False &= help "Store SGD dataset on disk"
     , prune = Nothing &= help "Disamb model pruning parameter"
-    , outModel = def &= typFile &= help "Output Model file"
+    , model = def &= typFile &= help "Output Model file"
     , guessNum = 10 &= help "Number of guessed tags for each unknown word" }
 
 
 tagMode :: Concraft
 tagMode = Tag
-    { inModel = def &= argPos 0 &= typ "MODEL-FILE"
-    , format  = enum [Plain &= help "Use plain format for output"] }
+    { model     = def &= argPos 0 &= typ "MODEL-FILE"
+    , noAna     = False &= help "Do not analyse input text"
+    , format    = enum [Plain &= help "Plain input format"] }
     -- , guessNum = 10 &= help "Number of guessed tags for each unknown word" }
 
 
 serverMode :: Concraft
 serverMode = Server
-    { inModel = def &= argPos 0 &= typ "MODEL-FILE"
+    { model   = def &= argPos 0 &= typ "MODEL-FILE"
     , port    = portDefault &= help "Port number" }
 
 
@@ -107,7 +111,7 @@ clientMode :: Concraft
 clientMode = Client
     { port   = portDefault &= help "Port number"
     , host   = "localhost" &= help "Server host name"
-    , format = enum [Plain &= help "Use plain format for output"] }
+    , format = enum [Plain &= help "Plain output format"] }
 
 
 compareMode :: Concraft
@@ -115,7 +119,7 @@ compareMode = Compare
     { tagsetPath = def &= argPos 0 &= typ "TAGSET-PATH"
     , refPath   = def &= argPos 1 &= typ "REFERENCE-FILE"
     , otherPath = def &= argPos 2 &= typ "OTHER-FILE"
-    , format  = enum [Plain &= help "Use plain format for output"] }
+    , format  = enum [Plain &= help "Plain input format"] }
 
 
 argModes :: Mode (CmdArgs Concraft)
@@ -137,12 +141,12 @@ exec :: Concraft -> IO ()
 
 exec Train{..} = do
     tagset <- parseTagset tagsetPath <$> readFile tagsetPath
-    train0 <- parseData  format trainPath
-    eval0  <- parseData' format evalPath
-    concraft <- C.train sgdArgs onDisk tagset guessNum prune train0 eval0
-    unless (null outModel) $ do
-        putStrLn $ "\nSaving model in " ++ outModel ++ "..."
-        C.saveModel outModel concraft
+    let train0 = parseFileO  format trainPath
+    let eval0  = parseFileO' format evalPath
+    concraft <- C.train (trainConf tagset) train0 eval0
+    unless (null model) $ do
+        putStrLn $ "\nSaving model in " ++ model ++ "..."
+        C.saveModel model concraft
   where
     sgdArgs = SGD.SgdArgs
         { SGD.batchSize = batchSize
@@ -150,18 +154,30 @@ exec Train{..} = do
         , SGD.iterNum = iterNum
         , SGD.gain0 = gain0
         , SGD.tau = tau }
+    trainConf tagset = C.TrainConf
+        { tagset    = tagset 
+        , sgdArgs   = sgdArgs
+        , reana     = not noAna
+        , onDisk    = onDisk
+        , guessNum  = guessNum
+        , prune     = prune }
 
 
 exec Tag{..} = do
-    concraft <- C.loadModel inModel
+    cnft <- C.loadModel model
     pool <- Maca.newMacaPool numCapabilities
-    out <- C.tag' pool concraft =<< L.getContents
+    inp  <- L.getContents
+    out  <- if not noAna
+        then C.tag' pool cnft inp
+        else return $
+           let out = parseText format inp
+           in  map (map (C.tagSent cnft)) out 
     L.putStr $ showData format out
 
 
 exec Server{..} = do
     putStr "Loading model..." >> hFlush stdout
-    concraft <- C.loadModel inModel
+    concraft <- C.loadModel model
     putStrLn " done"
     pool <- Maca.newMacaPool numCapabilities
     let portNum = N.PortNumber $ fromIntegral port
@@ -177,9 +193,9 @@ exec Client{..} = do
 
 exec Compare{..} = do
     tagset <- parseTagset tagsetPath <$> readFile tagsetPath
-    let convert = map (X.packSegTag tagset) . concatMap X.segs
-    xs <- convert <$> parseData format refPath
-    ys <- convert <$> parseData format otherPath
+    let convert = map (X.packSegTag tagset) . concat
+    xs <- convert <$> parseFile format refPath
+    ys <- convert <$> parseFile format otherPath
     let s = Acc.weakLB tagset xs ys
     putStrLn $ "Number of segments in reference file: " ++ show (Acc.gold s)
     putStrLn $ "Number of correct tags: " ++ show (Acc.good s)
@@ -187,18 +203,53 @@ exec Compare{..} = do
 
 
 ---------------------------------------
--- Parsing and showing
+-- Reading files
 ---------------------------------------
 
 
-parseData' :: Format -> Maybe FilePath -> IO [X.SentO X.Tag]
-parseData' format path = case path of
+parseFileO' :: Format -> Maybe FilePath -> IO [X.SentO X.Tag]
+parseFileO' format path = case path of
     Nothing -> return []
-    Just pt -> parseData format pt
+    Just pt -> parseFileO format pt
 
 
-parseData :: Format -> FilePath -> IO [X.SentO X.Tag]
-parseData Plain path = map X.withOrig . P.parsePara <$> L.readFile path
+parseFileO :: Format -> FilePath -> IO [X.SentO X.Tag]
+parseFileO format path = parseParaO format <$> L.readFile path
+
+
+parseFile :: Format -> FilePath -> IO [X.Sent X.Tag]
+parseFile format path = parsePara format <$> L.readFile path
+
+
+---------------------------------------
+-- Parsing text
+---------------------------------------
+
+
+-- parseTextO :: Format -> L.Text -> [[X.SentO X.Tag]]
+-- parseTextO format = map (map X.withOrig) . parseText format
+
+
+parseParaO :: Format -> L.Text -> [X.SentO X.Tag]
+parseParaO format = map X.withOrig . parsePara format
+
+
+---------------------------------------
+-- Parsing (format dependent functions)
+---------------------------------------
+
+
+parseText :: Format -> L.Text -> [[X.Sent X.Tag]]
+parseText Plain = P.parsePlain
+
+
+parsePara :: Format -> L.Text -> [X.Sent X.Tag]
+parsePara Plain = P.parsePara
+
+
+---------------------------------------
+-- Showing data
+---------------------------------------
 
 
 showData :: Format -> [[X.Sent X.Tag]] -> L.Text

@@ -19,7 +19,7 @@ library
 
     build-depends:
         base >= 4 && < 5
-      , concraft >= 0.7.1 && < 0.8
+      , concraft >= 0.7.2 && < 0.8
       , tagset-positional >= 0.3 && < 0.4
       , sgd >= 0.3.2 && < 0.4
       , containers

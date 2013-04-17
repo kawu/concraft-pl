@@ -1,4 +1,5 @@
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE RecordWildCards #-}
 
 
 module NLP.Concraft.Polish
@@ -14,6 +15,7 @@ module NLP.Concraft.Polish
 , tagSent
 
 -- * Training
+, TrainConf (..)
 , train
 ) where
 
@@ -26,6 +28,7 @@ import qualified Data.Set as S
 import qualified Data.Tagset.Positional as P
 import qualified Numeric.SGD as SGD
 
+import qualified NLP.Concraft.Morphosyntax as X
 import qualified NLP.Concraft.Schema as S
 import           NLP.Concraft.Schema (SchemaConf(..), entry, entryWith)
 import qualified NLP.Concraft.Guess as G
@@ -108,24 +111,46 @@ tagSent concraft inp =
 -------------------------------------------------
 
 
+data TrainConf = TrainConf {
+    -- | Tagset.
+      tagset    :: P.Tagset
+    -- | SGD parameters.
+    , sgdArgs   :: SGD.SgdArgs
+    -- | Perform reanalysis.
+    , reana     :: Bool
+    -- | Store SGD dataset on disk.
+    , onDisk    :: Bool
+    -- | Numer of guessed tags for each word.
+    , guessNum  :: Int
+    -- | Disamb model pruning parameter.
+    , prune     :: Maybe Double }
+
+
 -- | Train concraft model.
 -- TODO: It should be possible to supply the two training procedures with
 -- different SGD arguments.
 train
-    :: SGD.SgdArgs      -- ^ SGD parameters
-    -> Bool             -- ^ Store SGD dataset on disk
-    -> P.Tagset         -- ^ Tagset
-    -> Int              -- ^ Numer of guessed tags for each word 
-    -> Maybe Double     -- ^ Disamb model pruning parameter
-    -> [SentO Tag]      -- ^ Training data
-    -> [SentO Tag]      -- ^ Evaluation data
+    :: TrainConf
+    -> IO [SentO Tag]      -- ^ Training data
+    -> IO [SentO Tag]      -- ^ Evaluation data
     -> IO C.Concraft
-train sgdArgs onDisk tagset guessNum prune train0 eval0 = do
+train TrainConf{..} train0 eval0 = do
+
     pool <- newMacaPool 1
-    let guessConf  = G.TrainConf guessSchemaDefault sgdArgs onDisk
-        disambConf = D.TrainConf tiersDefault disambSchemaDefault
-                         sgdArgs onDisk prune
-        ana = fmap (packSentTag tagset . concat) . macaPar pool . L.toStrict
-    C.train tagset ana guessNum guessConf disambConf
-        (map (packSentTagO tagset) train0)
-        (map (packSentTagO tagset) eval0)
+    let ana = fmap (packSentTag tagset . concat) . macaPar pool . L.toStrict
+        train1 = map (packSentTagO tagset) <$> train0
+        eval1  = map (packSentTagO tagset) <$> eval0
+
+    if reana
+        then doReana ana train1 eval1
+        else noReana     train1 eval1
+
+  where
+
+    guessConf  = G.TrainConf guessSchemaDefault sgdArgs onDisk
+    disambConf = D.TrainConf tiersDefault disambSchemaDefault
+        sgdArgs onDisk prune
+
+    doReana ana   = C.reAnaTrain tagset ana guessNum guessConf disambConf
+    noReana tr ev = C.train tagset guessNum guessConf disambConf 
+        (map X.segs <$> tr) (map X.segs <$> ev)
