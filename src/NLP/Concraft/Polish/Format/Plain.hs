@@ -23,6 +23,7 @@ import           Data.Monoid (Monoid, mappend, mconcat)
 import           Data.Maybe (catMaybes)
 import           Data.List (groupBy)
 import           Data.String (IsString)
+import qualified Data.Char as C
 import qualified Data.Map as M
 import qualified Data.Text as T
 import qualified Data.Text.Lazy as L
@@ -34,16 +35,24 @@ noneBase :: T.Text
 noneBase = "None"
 
 -- | Parse the text in the plain format.
--- TODO: Handling spaces between paragraphs
--- and sentences should be smarter.
+-- TODO: Handling spaces between paragraphs should be smarter.
+-- Right now, if a paragraph is very long, the underlying sentences
+-- will not be read until the entire paragraph bytestring is read
+-- into the program memory.
 parsePlain :: L.Text -> [[Sent Tag]]
-parsePlain = map parsePara . filter (not.L.null) . L.splitOn "\n\n\n"
+parsePlain
+    = map (parsePara . L.strip)
+    . filter (not.isEmpty) . L.splitOn "\n\n\n"
 
 -- | Parse the paragraph in the plain format.
--- TODO: Handling spaces between sentences
--- should be smarter.
 parsePara :: L.Text -> [Sent Tag]
-parsePara = map parseSent . filter (not.L.null) . L.splitOn "\n\n"
+parsePara =
+    = map (parseSent . L.strip)
+    . filter (not.isEmpty) . L.splitOn "\n\n"
+
+-- | Identify empty chunks of text.
+isEmpty :: L.Text -> Bool
+isEmpty = L.all C.isSpace
 
 -- | Parse the sentence in the plain format.
 parseSent :: L.Text -> Sent Tag
