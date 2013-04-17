@@ -10,13 +10,12 @@ module NLP.Concraft.Polish.Format.Plain
 (
 -- * Parsing
   parsePlain
-, parsePlainO
-, parsePar
+, parsePara
 , parseSent
 
 -- * Printing
 , showPlain
-, showPar
+, showPara
 , showSent
 ) where
 
@@ -34,23 +33,19 @@ import           NLP.Concraft.Polish.Morphosyntax
 noneBase :: T.Text
 noneBase = "None"
 
--- | Parse the text in the plain format given the /oov/ tag.
--- Original sentences will be restored using the `withOrig`
--- function.  Plain format doesn't preserve original,
--- textual representation of individual sentences.
-parsePlainO :: L.Text -> [[SentO Tag]]
-parsePlainO = map (map withOrig) . parsePlain
-
--- | Parse the text in the plain format given the /oov/ tag.
--- TODO: Handling spaces between paragraphs and sentences has to be
--- smarter than that.
+-- | Parse the text in the plain format.
+-- TODO: Handling spaces between paragraphs
+-- and sentences should be smarter.
 parsePlain :: L.Text -> [[Sent Tag]]
-parsePlain = map parsePar . filter (not.L.null) . L.splitOn "\n\n\n"
+parsePlain = map parsePara . filter (not.L.null) . L.splitOn "\n\n\n"
 
-parsePar :: L.Text -> [Sent Tag]
-parsePar = map parseSent . filter (not.L.null) . L.splitOn "\n\n"
+-- | Parse the paragraph in the plain format.
+-- TODO: Handling spaces between sentences
+-- should be smarter.
+parsePara :: L.Text -> [Sent Tag]
+parsePara = map parseSent . filter (not.L.null) . L.splitOn "\n\n"
 
--- | Parse the sentence in the plain format given the /oov/ tag.
+-- | Parse the sentence in the plain format.
 parseSent :: L.Text -> Sent Tag
 parseSent
     = map parseWord
@@ -107,11 +102,11 @@ parseSpace xs        = error ("parseSpace: " ++ L.unpack xs)
 -- | Show the plain data.
 showPlain :: [[Sent Tag]] -> L.Text
 showPlain =
-    L.intercalate "\n" . map showPar
+    L.intercalate "\n" . map showPara
 
 -- | Show the paragraph.
-showPar :: [Sent Tag] -> L.Text
-showPar = L.toLazyText . mconcat  . map (\xs -> buildSent xs <> "\n")
+showPara :: [Sent Tag] -> L.Text
+showPara = L.toLazyText . mconcat  . map (\xs -> buildSent xs <> "\n")
 
 -- | Show the sentence.
 showSent :: Sent Tag -> L.Text

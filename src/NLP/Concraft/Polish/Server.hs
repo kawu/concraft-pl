@@ -16,7 +16,7 @@ import           Control.Applicative ((<$>))
 import           Control.Monad (forever, void)
 import           Control.Concurrent (forkIO)
 import           System.IO (Handle, hFlush)
-import           System.IO.Unsafe (unsafeInterleaveIO)
+import qualified Control.Monad.LazyIO as LazyIO
 import qualified Network as N
 import qualified Data.Binary as B
 import qualified Data.ByteString.Lazy as BS
@@ -74,17 +74,9 @@ tag host port inp = do
 -- analyse large chunks of data.
 tag' :: N.HostName -> N.PortID -> L.Text -> IO [[Sent Tag]]
 tag' host port
-    = lazyMapM (tag host port . L.toStrict)
+    = LazyIO.mapM (tag host port . L.toStrict)
     . map L.strip
     . L.splitOn "\n\n"
-
-
-lazyMapM :: (a -> IO b) -> [a] -> IO [b]
-lazyMapM f (x:xs) = do
-    y <- f x
-    ys <- unsafeInterleaveIO $ lazyMapM f xs
-    return (y:ys)
-lazyMapM _ [] = return []
 
 
 -------------------------------------------------

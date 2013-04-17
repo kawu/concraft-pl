@@ -16,7 +16,7 @@ module NLP.Concraft.Polish.Maca
 
 
 import           Control.Applicative ((<$>))
-import           Control.Monad (void, forever, guard, replicateM)
+import           Control.Monad (void, forever, guard, replicateM, unless)
 import           Control.Concurrent
 import           Control.Exception
 import           System.Process
@@ -80,8 +80,9 @@ runMacaOn inCh outCh = forkIO . mask $ \restore -> do
             let tryIO = try :: IO a -> IO (Either IOException a)
             void $ tryIO $ do
                 err <- hGetContents errh
-                -- TODO: Do not print info when err empty.
-                putStr "Maca error: " >> putStrLn err
+                unless (all C.isSpace err) $ do
+                    putStr "Maca error: "
+                    putStrLn err
             hClose inh; hClose outh; hClose errh
             terminateProcess pid
             waitForProcess pid

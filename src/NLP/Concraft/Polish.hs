@@ -18,7 +18,7 @@ module NLP.Concraft.Polish
 ) where
 
 
-import           System.IO.Unsafe (unsafeInterleaveIO)
+import qualified Control.Monad.LazyIO as LazyIO
 import           Control.Applicative ((<$>))
 import qualified Data.Text as T
 import qualified Data.Text.Lazy as L
@@ -89,7 +89,7 @@ tag pool concraft inp = map (tagSent concraft) <$> macaPar pool inp
 -- analyse large chunks of data.
 tag' :: MacaPool -> C.Concraft -> L.Text -> IO [[Sent Tag]]
 tag' pool concraft
-    = lazyMapM (tag pool concraft . L.toStrict)
+    = LazyIO.mapM (tag pool concraft . L.toStrict)
     . map L.strip
     . L.splitOn "\n\n"
 
@@ -101,14 +101,6 @@ tagSent concraft inp =
         packed = packSentTag tagset inp
         xs = C.tag concraft packed
     in  embedSent inp $ map (P.showTag tagset) xs
-
-
-lazyMapM :: (a -> IO b) -> [a] -> IO [b]
-lazyMapM f (x:xs) = do
-    y <- f x
-    ys <- unsafeInterleaveIO $ lazyMapM f xs
-    return (y:ys)
-lazyMapM _ [] = return []
 
 
 -------------------------------------------------
