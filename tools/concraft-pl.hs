@@ -22,6 +22,9 @@ import qualified NLP.Concraft.Polish.Server as S
 import qualified NLP.Concraft.Polish.Morphosyntax as X
 import qualified NLP.Concraft.Polish.Format.Plain as P
 
+import           Paths_concraft_pl (version)
+import           Data.Version (showVersion)
+
 
 -- | Default port number.
 portDefault :: Int
@@ -35,6 +38,11 @@ portDefault = 10089
 
 -- | Data formats. 
 data Format = Plain deriving (Data, Typeable, Show)
+
+
+-- | A description of the Concraft-pl tool
+concraftDesc :: String
+concraftDesc = "Concraft-pl " ++ showVersion version
 
 
 data Concraft
@@ -125,6 +133,8 @@ compareMode = Compare
 argModes :: Mode (CmdArgs Concraft)
 argModes = cmdArgsMode $ modes
     [trainMode, tagMode, serverMode, clientMode, compareMode]
+    &= summary concraftDesc
+    &= program "concraft-pl"
 
 
 ---------------------------------------
