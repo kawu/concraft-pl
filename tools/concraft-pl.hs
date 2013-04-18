@@ -61,7 +61,8 @@ data Concraft
     , disk          :: Bool
     , prune         :: Maybe Double
     , outModel      :: FilePath
-    , guessNum      :: Int }
+    , guessNum      :: Int
+    , r0            :: Int }
   | Tag
     { inModel       :: FilePath
     , noAna         :: Bool
@@ -98,7 +99,8 @@ trainMode = Train
     , disk = False &= help "Store SGD dataset on disk"
     , prune = Nothing &= help "Disambiguation model pruning parameter"
     , outModel = def &= typFile &= help "Output Model file"
-    , guessNum = 10 &= help "Number of guessed tags for each unknown word" }
+    , guessNum = 10 &= help "Number of guessed tags for each unknown word"
+    , r0 = 2 &= help "R0 construction method" }
 
 
 tagMode :: Concraft
@@ -170,7 +172,8 @@ exec Train{..} = do
         , reana     = not noAna
         , onDisk    = disk
         , guessNum  = guessNum
-        , prune     = prune }
+        , prune     = prune
+        , r0        = r0 }
 
 
 exec Tag{..} = do
@@ -203,7 +206,7 @@ exec Client{..} = do
 
 exec Compare{..} = do
     tagset <- parseTagset tagsetPath <$> readFile tagsetPath
-    let convert = map (X.packSegTag tagset) . concat
+    let convert = map (X.packSeg tagset) . concat
     xs <- convert <$> parseFile format refPath
     ys <- convert <$> parseFile format otherPath
     let s = Acc.weakLB tagset xs ys
@@ -245,7 +248,7 @@ parseParaO format = map X.withOrig . parsePara format
 
 
 ---------------------------------------
--- Parsing (format dependent functions)
+-- Parsing (format dependent)
 ---------------------------------------
 
 
@@ -258,7 +261,7 @@ parsePara Plain = P.parsePara
 
 
 ---------------------------------------
--- Showing data
+-- Showing (format dependent)
 ---------------------------------------
 
 

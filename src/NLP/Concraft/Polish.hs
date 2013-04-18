@@ -99,11 +99,11 @@ tag' pool concraft
 
 -- | Tag an already analysed sentence.
 tagSent :: C.Concraft -> Sent Tag -> Sent Tag
-tagSent concraft inp =
+tagSent concraft sent =
     let tagset = C.tagset concraft
-        packed = packSentTag tagset inp
-        xs = C.tag concraft packed
-    in  embedSent inp $ map (P.showTag tagset) xs
+        packed = packSent tagset sent
+        tags   = map (P.showTag tagset) (C.tag concraft packed)
+    in  map (uncurry select) (zip tags sent)
 
 
 -------------------------------------------------
@@ -123,8 +123,9 @@ data TrainConf = TrainConf {
     -- | Numer of guessed tags for each word.
     , guessNum  :: Int
     -- | Disamb model pruning parameter.
-    , prune     :: Maybe Double }
-
+    , prune     :: Maybe Double
+    -- | `G.r0T` parameter.
+    , r0        :: Int }
 
 -- | Train concraft model.
 -- TODO: It should be possible to supply the two training procedures with
@@ -137,9 +138,9 @@ train
 train TrainConf{..} train0 eval0 = do
 
     pool <- newMacaPool 1
-    let ana = fmap (packSentTag tagset . concat) . macaPar pool . L.toStrict
-        train1 = map (packSentTagO tagset) <$> train0
-        eval1  = map (packSentTagO tagset) <$> eval0
+    let ana = fmap (packSent tagset . concat) . macaPar pool . L.toStrict
+        train1 = map (packSentO tagset) <$> train0
+        eval1  = map (packSentO tagset) <$> eval0
 
     if reana
         then doReana ana train1 eval1
@@ -147,7 +148,7 @@ train TrainConf{..} train0 eval0 = do
 
   where
 
-    guessConf  = G.TrainConf guessSchemaDefault sgdArgs onDisk
+    guessConf  = G.TrainConf guessSchemaDefault sgdArgs onDisk r0
     disambConf = D.TrainConf tiersDefault disambSchemaDefault
         sgdArgs onDisk prune
 

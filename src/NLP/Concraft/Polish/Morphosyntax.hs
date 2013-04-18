@@ -1,7 +1,9 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RecordWildCards #-}
 
+
 -- | Morphosyntax data layer in Polish.
+
 
 module NLP.Concraft.Polish.Morphosyntax
 ( 
@@ -13,6 +15,7 @@ module NLP.Concraft.Polish.Morphosyntax
 , Word (..)
 , Interp (..)
 , Space (..)
+, select
 
 -- * Sentence
 , Sent
@@ -21,13 +24,11 @@ module NLP.Concraft.Polish.Morphosyntax
 , withOrig
 
 -- * Conversion
-, packSegTag
 , packSeg
-, packSentTag
-, packSentTagO
 , packSent
-, embedSent
+, packSentO
 ) where
+
 
 import           Control.Applicative ((<$>), (<*>))
 import           Control.Arrow (first)
@@ -42,14 +43,17 @@ import qualified Data.Tagset.Positional as P
 
 import qualified NLP.Concraft.Morphosyntax as X
 
+
 -- | A textual representation of a morphosyntactic tag.
 type Tag = T.Text
+
 
 --------------------------------
 -- Segment
 --------------------------------
 
--- | A segment.
+
+-- | A segment consists of a word and a set of morphosyntactic interpretations.
 data Seg t = Seg 
     { word      :: Word
     -- | Interpretations of the token, each interpretation annotated
@@ -58,9 +62,11 @@ data Seg t = Seg
     , interps   :: M.Map (Interp t) Bool }
     deriving (Show, Eq, Ord)
 
+
 instance (Ord t, Binary t) => Binary (Seg t) where
     put Seg{..} = put word >> put interps
     get = Seg <$> get <*> get
+    
 
 -- | A word.
 data Word = Word
@@ -69,15 +75,19 @@ data Word = Word
     , known     :: Bool }
     deriving (Show, Eq, Ord)
 
+
+
 instance X.Word Word where
     orth = orth
     oov = not.known
+
 
 instance ToJSON Word where
     toJSON Word{..} = object
         [ "orth"  .= orth
         , "space" .= space
         , "known" .= known ]
+
 
 instance FromJSON Word where
     parseJSON (Object v) = Word
@@ -86,20 +96,24 @@ instance FromJSON Word where
         <*> v .: "known"
     parseJSON _ = error "parseJSON [Word]"
 
+
 instance Binary Word where
     put Word{..} = put orth >> put space >> put known
     get = Word <$> get <*> get <*> get
     
--- | An interpretation.
+
+-- | A morphosyntactic interpretation.
 -- TODO: Should we allow `base` to be `Nothing`?
 data Interp t = Interp
     { base  :: Maybe T.Text
     , tag   :: t }
     deriving (Show, Eq, Ord)
 
+
 instance (Ord t, Binary t) => Binary (Interp t) where
     put Interp{..} = put base >> put tag
     get = Interp <$> get <*> get
+
 
 -- | No space, space or newline.
 -- TODO: Perhaps we should use a bit more informative data type.
@@ -108,6 +122,7 @@ data Space
     | Space
     | NewLine
     deriving (Show, Eq, Ord)
+
 
 instance Binary Space where
     put x = case x of
@@ -119,11 +134,13 @@ instance Binary Space where
         2   -> Space
         _   -> NewLine
 
+
 instance ToJSON Space where
     toJSON x = Aeson.String $ case x of
         None    -> "none"
         Space   -> "space"
         NewLine -> "newline"
+
 
 instance FromJSON Space where
     parseJSON (Aeson.String x) = return $ case x of
@@ -133,74 +150,15 @@ instance FromJSON Space where
         _           -> error "parseJSON [Space]"
     parseJSON _ = error "parseJSON [Space]"
 
---------------------------------
--- Sentence
---------------------------------
-
--- | A sentence.
-type Sent t = [Seg t]
-
--- | A sentence.
-data SentO t = SentO
-    { segs  :: [Seg t]
-    , orig  :: L.Text }
-
--- | Restore textual representation of a sentence.
--- The function is not very accurate, it could be improved
--- if we enrich representation of a space.
-restore :: Sent t -> L.Text
-restore =
-    let wordStr Word{..} = [spaceStr space, orth] 
-        spaceStr None       = ""
-        spaceStr Space      = " "
-        spaceStr NewLine    = "\n"
-    in  L.fromChunks . concatMap (wordStr . word)
-
--- | Use `restore` to translate `Sent` to a `SentO`.
-withOrig :: Sent t -> SentO t
-withOrig s = SentO
-    { segs = s
-    , orig = restore s }
-
----------------------------
--- Conversion
----------------------------
-
--- | Convert a segment to a segment from a core library.
-packSegTag :: P.Tagset -> Seg Tag -> X.Seg Word P.Tag
-packSegTag tagset = X.mapSeg (P.parseTag tagset) . packSeg
-
--- | Convert a segment to a segment from a core library.
-packSeg :: Ord a => Seg a -> X.Seg Word a
-packSeg Seg{..} = X.Seg word $ X.mkWMap
-    [ (tag x, if disamb then 1 else 0)
-    | (x, disamb) <- M.toList interps ]
-
--- | Convert a sentence to a sentence from a core library.
-packSentTag :: P.Tagset -> Sent Tag -> X.Sent Word P.Tag
-packSentTag = map . packSegTag
-
--- | Convert a sentence to a sentence from a core library.
-packSentTagO :: P.Tagset -> SentO Tag -> X.SentO Word P.Tag
-packSentTagO tagset s = X.SentO
-    { segs = packSentTag tagset (segs s)
-    , orig = orig s }
-
--- | Convert a sentence to a sentence from a core library.
-packSent :: Ord a => Sent a -> X.Sent Word a
-packSent = map packSeg
-
--- | Embed tags in a sentence.
-embedSent :: Ord a => Sent a -> [a] -> Sent a
-embedSent sent xs = [selectOne x seg | (x, seg) <- zip xs sent]
 
 -- | Select one interpretation.
-selectOne :: Ord a => a -> Seg a -> Seg a
-selectOne x = select (X.mkWMap [(x, 1)])
+select :: Ord a => a -> Seg a -> Seg a
+select x = selectWMap (X.mkWMap [(x, 1)])
+
 
 -- | Select interpretations.
-select :: Ord a => X.WMap a -> Seg a -> Seg a
-select wMap seg =
+selectWMap :: Ord a => X.WMap a -> Seg a -> Seg a
+selectWMap wMap seg =
     seg { interps = newInterps }
   where
     wSet = M.fromList . map (first tag) . M.toList . interps
@@ -217,3 +175,66 @@ select wMap seg =
             then Nothing
             else Just (Interp Nothing tag, asDmb x)
         | (tag, x) <- M.toList (X.unWMap wMap) ]
+
+
+--------------------------------
+-- Sentence
+--------------------------------
+
+
+-- | A sentence.
+type Sent t = [Seg t]
+
+
+-- | A sentence.
+data SentO t = SentO
+    { segs  :: [Seg t]
+    , orig  :: L.Text }
+
+
+-- | Restore textual representation of a sentence.
+-- The function is not very accurate, it could be improved
+-- if we enrich representation of a space.
+restore :: Sent t -> L.Text
+restore =
+    let wordStr Word{..} = [spaceStr space, orth] 
+        spaceStr None       = ""
+        spaceStr Space      = " "
+        spaceStr NewLine    = "\n"
+    in  L.fromChunks . concatMap (wordStr . word)
+
+
+-- | Use `restore` to translate `Sent` to a `SentO`.
+withOrig :: Sent t -> SentO t
+withOrig s = SentO
+    { segs = s
+    , orig = restore s }
+
+
+---------------------------
+-- Conversion
+---------------------------
+
+
+-- | Convert a segment to a segment from a core library.
+packSeg_ :: Ord a => Seg a -> X.Seg Word a
+packSeg_ Seg{..} = X.Seg word $ X.mkWMap
+    [ (tag x, if disamb then 1 else 0)
+    | (x, disamb) <- M.toList interps ]
+
+
+-- | Convert a segment to a segment from a core library.
+packSeg :: P.Tagset -> Seg Tag -> X.Seg Word P.Tag
+packSeg tagset = X.mapSeg (P.parseTag tagset) . packSeg_
+
+
+-- | Convert a sentence to a sentence from a core library.
+packSent :: P.Tagset -> Sent Tag -> X.Sent Word P.Tag
+packSent = map . packSeg
+
+
+-- | Convert a sentence to a sentence from a core library.
+packSentO :: P.Tagset -> SentO Tag -> X.SentO Word P.Tag
+packSentO tagset s = X.SentO
+    { segs = packSent tagset (segs s)
+    , orig = orig s }
