@@ -60,7 +60,7 @@ Training
 If you have the training material with disambiguation annotations (stored in the
 `plain` text format) you can train the Concraft-pl model yourself.
 
-    concraft-pl train config/nkjp-tagset.cfg train.plain -e eval.plain -m model.gz
+    concraft-pl train config/nkjp-tagset.cfg train.plain -e eval.plain -o model.gz
 
 The first program argument is a specification of the [NKJP][nkjp] morphosyntactic
 tagset.  It can be found in the `config` toplevel directory.
@@ -70,11 +70,11 @@ by making use of multiple cores by using the `-N` option.  The `-s` option will
 produce the runtime statistics, such as the time spent in the garbage collector.
 If the program is spending too much time collecting garbage, you can try to
 increase the allocation area size with the `-A` option.  If you have a big
-dataset and it doesn't fit in the computer memory, use the `--ondisk` flag.
+dataset and it doesn't fit in the computer memory, use the `--disk` flag.
 For example, to train the model using four threads and 256M allocation area
 size, run:
 
-    concraft-pl train config/nkjp-tagset.cfg train.plain -e eval.plain -m model.gz +RTS -N4 -A256M -s
+    concraft-pl train config/nkjp-tagset.cfg train.plain -e eval.plain -o model.gz +RTS -N4 -A256M -s
 
 Run `concraft-pl train --help` to learn more about the program arguments and
 possible training options.
@@ -107,10 +107,10 @@ To start the Concraft-pl server, run:
 
     concraft-pl server model.gz
 
-You can supply a custom port number using a `-p` option.  For example,
+You can supply a custom port number using a `--port` option.  For example,
 to run the server on the `10101` port, use the following command:
 
-    concraft-pl server model.gz -p 10101
+    concraft-pl server model.gz --port 10101
 
 To use the server in a multi-threaded environment, you need to specify the
 `-N` [RTS][ghc-rts] option.  A set of options which usually yield good
@@ -125,7 +125,7 @@ instead of supplying your client with a model, you need to specify the port numb
 (in case you used a custom one when starting the server; otherwise, the default
 port number will be used).
 
-    concraft-pl client -p 10101 < input.txt > output.plain
+    concraft-pl client --port 10101 < input.txt > output.plain
 
 Run `concraft client --help` to learn more about possible client-mode options.
 
@@ -140,9 +140,9 @@ preprocessing pipeline.
 
 If you want to use a preprocessing pipeline significantly different from
 the standard one (Maca), you should first train your own Concraft model.
-To train the model on analysed data use the `--noana` training option.
+To train the model on analysed data use the `--noana` training flag.
 
-Use the same `--noana` option when you want to tag analysed data.
+Use the same `--noana` flag when you want to tag analysed data.
 Input format should be the same as the output format.
 This option is currently not supported in the client/server mode.
 

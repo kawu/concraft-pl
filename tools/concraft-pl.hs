@@ -58,17 +58,17 @@ data Concraft
     , regVar        :: Double
     , gain0         :: Double
     , tau           :: Double
-    , onDisk        :: Bool
+    , disk          :: Bool
     , prune         :: Maybe Double
-    , model         :: FilePath
+    , outModel      :: FilePath
     , guessNum      :: Int }
   | Tag
-    { model         :: FilePath
+    { inModel       :: FilePath
     , noAna         :: Bool
     , format        :: Format }
     -- , guessNum      :: Int }
   | Server
-    { model         :: FilePath
+    { inModel       :: FilePath
     , port          :: Int }
   | Client
     { format        :: Format
@@ -95,15 +95,15 @@ trainMode = Train
     , regVar = 10.0 &= help "Regularization variance"
     , gain0 = 1.0 &= help "Initial gain parameter"
     , tau = 5.0 &= help "Initial tau parameter"
-    , onDisk = False &= help "Store SGD dataset on disk"
-    , prune = Nothing &= help "Disamb model pruning parameter"
-    , model = def &= typFile &= help "Output Model file"
+    , disk = False &= help "Store SGD dataset on disk"
+    , prune = Nothing &= help "Disambiguation model pruning parameter"
+    , outModel = def &= typFile &= help "Output Model file"
     , guessNum = 10 &= help "Number of guessed tags for each unknown word" }
 
 
 tagMode :: Concraft
 tagMode = Tag
-    { model     = def &= argPos 0 &= typ "MODEL-FILE"
+    { inModel   = def &= argPos 0 &= typ "MODEL-FILE"
     , noAna     = False &= help "Do not analyse input text"
     , format    = enum [Plain &= help "Plain input format"] }
     -- , guessNum = 10 &= help "Number of guessed tags for each unknown word" }
@@ -111,7 +111,7 @@ tagMode = Tag
 
 serverMode :: Concraft
 serverMode = Server
-    { model   = def &= argPos 0 &= typ "MODEL-FILE"
+    { inModel = def &= argPos 0 &= typ "MODEL-FILE"
     , port    = portDefault &= help "Port number" }
 
 
@@ -154,9 +154,9 @@ exec Train{..} = do
     let train0 = parseFileO  format trainPath
     let eval0  = parseFileO' format evalPath
     concraft <- C.train (trainConf tagset) train0 eval0
-    unless (null model) $ do
-        putStrLn $ "\nSaving model in " ++ model ++ "..."
-        C.saveModel model concraft
+    unless (null outModel) $ do
+        putStrLn $ "\nSaving model in " ++ outModel ++ "..."
+        C.saveModel outModel concraft
   where
     sgdArgs = SGD.SgdArgs
         { SGD.batchSize = batchSize
@@ -168,13 +168,13 @@ exec Train{..} = do
         { tagset    = tagset 
         , sgdArgs   = sgdArgs
         , reana     = not noAna
-        , onDisk    = onDisk
+        , onDisk    = disk
         , guessNum  = guessNum
         , prune     = prune }
 
 
 exec Tag{..} = do
-    cnft <- C.loadModel model
+    cnft <- C.loadModel inModel
     pool <- Maca.newMacaPool numCapabilities
     inp  <- L.getContents
     out  <- if not noAna
@@ -187,7 +187,7 @@ exec Tag{..} = do
 
 exec Server{..} = do
     putStr "Loading model..." >> hFlush stdout
-    concraft <- C.loadModel model
+    concraft <- C.loadModel inModel
     putStrLn " done"
     pool <- Maca.newMacaPool numCapabilities
     let portNum = N.PortNumber $ fromIntegral port
