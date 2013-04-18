@@ -7,6 +7,7 @@ The tool combines the following components into a pipeline:
 * A morphosyntactic disambiguation library [Concraft][concraft],
 * A simple frequency-driven lemmatiser (TODO).
 
+
 Installation
 ============
 
@@ -43,6 +44,7 @@ To install the latest development version from github just run
 
 from the `concraft-pl` toplevel directory.
 
+
 Data format
 ===========
 
@@ -50,6 +52,7 @@ The current version of Concraft-pl works on a simple `plain` text format support
 the [Corpus2][corpus2] tools.  You will have to install these tools when you install
 [Maca][maca] anyway, so you can use them to convert the output generated
 by Concraft-pl to one of other formats supported by [Corpus2][corpus2].
+
 
 Training
 ========
@@ -61,17 +64,21 @@ If you have the training material with disambiguation annotations (stored in the
 
 The first program argument is a specification of the [NKJP][nkjp] morphosyntactic
 tagset.  It can be found in the `config` toplevel directory.
-Run `concraft-pl train --help` to learn more about the program arguments and
-possible training options.
 
 Consider using [runtime system options][ghc-rts].  You can speed up processing
 by making use of multiple cores by using the `-N` option.  The `-s` option will
 produce the runtime statistics, such as the time spent in the garbage collector.
 If the program is spending too much time collecting garbage, you can try to
-increase the allocation area size with the `-A` option.  For example, to train
-the model using four threads and 1GB allocation area size, run:
+increase the allocation area size with the `-A` option.  If you have a big
+dataset and it doesn't fit in the computer memory, use the `--ondisk` flag.
+For example, to train the model using four threads and 256M allocation area
+size, run:
 
-    concraft-pl train config/nkjp-tagset.cfg train.plain -e eval.plain -o model.gz +RTS -N4 -A1G -s
+    concraft-pl train config/nkjp-tagset.cfg train.plain -e eval.plain -m model.gz +RTS -N4 -A256M -s
+
+Run `concraft-pl train --help` to learn more about the program arguments and
+possible training options.
+
 
 Tagging
 =======
@@ -86,6 +93,7 @@ each paragraph.  Finally, [Concraft][concraft] module is used to disambiguate ea
 sentence in the [Maca][maca] output.
 
 Run `concraft tag --help` to learn more about possible tagging options.
+
 
 Server
 ======
@@ -120,6 +128,28 @@ port number will be used).
     concraft-pl client -p 10101 < input.txt > output.plain
 
 Run `concraft client --help` to learn more about possible client-mode options.
+
+
+Tagging analysed data
+=====================
+
+In some situations you might want to feed Concraft-pl with a previously
+analysed data.  Perhaps your Maca instance is installed on a different
+machine, or maybe you want to use Concraft-pl with a custom
+preprocessing pipeline.
+
+If you want to use a preprocessing pipeline significantly different from
+the standard one (Maca), you should first train your own Concraft model.
+To train the model on analysed data use the `--noana` training option.
+
+Use the same `--noana` option when you want to tag analysed data.
+Input format should be the same as the output format.
+This option is currently not supported in the client/server mode.
+
+*Remember to use the same preprocessing pipeline (segmentation + analysis) for both
+training and disambiguation.  Inconsistencies between training material and input
+data may severely harm the quality of disambiguation.*
+
 
 [concraft]: https://github.com/kawu/concraft "Concraft"
 [hackage-repo]: http://hackage.haskell.org/package/concraft-pl "Concraft-pl Hackage repository"
