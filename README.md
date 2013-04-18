@@ -60,7 +60,7 @@ Training
 If you have the training material with disambiguation annotations (stored in the
 `plain` text format) you can train the Concraft-pl model yourself.
 
-    concraft-pl train config/nkjp-tagset.cfg train.plain -e eval.plain -o model.gz
+    concraft-pl train config/nkjp-tagset.cfg train.plain -e eval.plain -m model.gz
 
 The first program argument is a specification of the [NKJP][nkjp] morphosyntactic
 tagset.  It can be found in the `config` toplevel directory.
