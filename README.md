@@ -36,7 +36,7 @@ Maca
 ----
 
 Unless you plan to use a custom preprocessing pipeline or run [Maca][maca] on a
-different machine (see section [Tagging analysed data][#tagging-analysed-data]),
+different machine (see section [Tagging analysed data](#tagging-analysed-data)),
 you should also install the [Maca][maca] tool.
 A detailed [installation guide][maca-install] can be found on the
 [Maca][maca] homepage.
