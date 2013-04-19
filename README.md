@@ -11,18 +11,6 @@ The tool combines the following components into a pipeline:
 Installation
 ============
 
-First you need to install the [Maca][maca] tool.  The other dependencies will be
-installed automatically when you install the `concraft-pl` package.
-
-Maca
-----
-
-A detailed [installation guide][maca-install] can be found on the
-[Maca][maca] homepage.
-
-Concraft-pl
------------
-
 You will need [Glasgow Haskell Compiler (GHC)][ghc] and the [Cabal][cabal] tool
 to build Concraft-pl.  The easiest way to get both [GHC][ghc] and [Cabal][cabal]
 is to install the latest [Haskell Platform][haskell-platform].
@@ -43,6 +31,16 @@ To install the latest development version from github just run
     cabal install
 
 from the `concraft-pl` toplevel directory.
+
+Maca
+----
+
+Unless you plan to use a custom preprocessing pipeline or run [Maca][maca] on a
+different machine (see section [Tagging analysed data][#tagging-analysed-data]),
+you should also install the [Maca][maca] tool.
+A detailed [installation guide][maca-install] can be found on the
+[Maca][maca] homepage.
+
 
 
 Data format
