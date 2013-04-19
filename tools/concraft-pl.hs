@@ -90,8 +90,8 @@ trainMode = Train
     , format = enum [Plain &= help "Plain format"]
     , noAna = False &= help "Do not perform reanalysis"
     -- , discardHidden = False &= help "Discard hidden features"
-    , iterNum = 10 &= help "Number of SGD iterations"
-    , batchSize = 30 &= help "Batch size"
+    , iterNum = 20 &= help "Number of SGD iterations"
+    , batchSize = 50 &= help "Batch size"
     , regVar = 10.0 &= help "Regularization variance"
     , gain0 = 1.0 &= help "Initial gain parameter"
     , tau = 5.0 &= help "Initial tau parameter"
