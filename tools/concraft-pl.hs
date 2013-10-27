@@ -15,6 +15,7 @@ import           Data.Tagset.Positional (parseTagset)
 import           GHC.Conc (numCapabilities)
 
 import qualified NLP.Concraft.Morphosyntax.Accuracy as Acc
+import qualified NLP.Concraft.Guess as Guess
 
 import qualified NLP.Concraft.Polish.Maca as Maca
 import qualified NLP.Concraft.Polish as C
@@ -62,7 +63,7 @@ data Concraft
     , prune         :: Maybe Double
     , outModel      :: FilePath
     , guessNum      :: Int
-    , r0            :: Int }
+    , r0            :: Guess.R0T }
   | Tag
     { inModel       :: FilePath
     , noAna         :: Bool
@@ -100,7 +101,7 @@ trainMode = Train
     , prune = Nothing &= help "Disambiguation model pruning parameter"
     , outModel = def &= typFile &= help "Output Model file"
     , guessNum = 10 &= help "Number of guessed tags for each unknown word"
-    , r0 = 2 &= help "R0 construction method" }
+    , r0 = Guess.OovChosen &= help "R0 construction method" }
 
 
 tagMode :: Concraft

@@ -125,7 +125,7 @@ data TrainConf = TrainConf {
     -- | Disamb model pruning parameter.
     , prune     :: Maybe Double
     -- | `G.r0T` parameter.
-    , r0        :: Int }
+    , r0        :: G.R0T }
 
 -- | Train concraft model.
 -- TODO: It should be possible to supply the two training procedures with
