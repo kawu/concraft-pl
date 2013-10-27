@@ -7,6 +7,9 @@ The tool combines the following components into a pipeline:
 * A morphosyntactic disambiguation library [Concraft][concraft],
 * A simple frequency-driven lemmatiser (TODO).
 
+See the [homepage][homepage] if you wish to download a pre-trained
+model for the Polish language.
+
 
 Installation
 ============
@@ -145,6 +148,7 @@ training and disambiguation.  Inconsistencies between training material and inpu
 data may severely harm the quality of disambiguation.*
 
 
+[homepage]: http://zil.ipipan.waw.pl/Concraft "Homepage"
 [concraft]: https://github.com/kawu/concraft "Concraft"
 [hackage-repo]: http://hackage.haskell.org/package/concraft-pl "Concraft-pl Hackage repository"
 [maca]: http://nlp.pwr.wroc.pl/redmine/projects/libpltagger/wiki "Maca"
