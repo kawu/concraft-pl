@@ -16,7 +16,13 @@ Installation
 
 You will need [Glasgow Haskell Compiler (GHC)][ghc] and the [Cabal][cabal] tool
 to build Concraft-pl.  The easiest way to get both [GHC][ghc] and [Cabal][cabal]
-is to install the latest [Haskell Platform][haskell-platform].
+is to install the latest [Haskell Platform][haskell-platform].  
+
+Unless you plan to use a custom preprocessing pipeline or run [Maca][maca] on a
+different machine (see section [Tagging analysed data](#tagging-analysed-data)),
+you will also need the [Maca][maca] tool. 
+A detailed [installation guide][maca-install] can be found on the [Maca][maca]
+homepage.
 
 To install Concraft-pl from the official [Hackage repository][hackage-repo]
 just run:
@@ -34,16 +40,6 @@ To install the latest development version from github just run
     cabal install
 
 from the `concraft-pl` toplevel directory.
-
-Maca
-----
-
-Unless you plan to use a custom preprocessing pipeline or run [Maca][maca] on a
-different machine (see section [Tagging analysed data](#tagging-analysed-data)),
-you should also install the [Maca][maca] tool.
-A detailed [installation guide][maca-install] can be found on the
-[Maca][maca] homepage.
-
 
 
 Data format
@@ -93,7 +89,7 @@ as paragraph ending markers).  After that, [Maca][maca] is used to segment and a
 each paragraph.  Finally, [Concraft][concraft] module is used to disambiguate each
 sentence in the [Maca][maca] output.
 
-Run `concraft tag --help` to learn more about possible tagging options.
+Run `concraft-pl tag --help` to learn more about possible tagging options.
 
 
 Server
@@ -119,16 +115,16 @@ server performance is presented in the following example:
 
     concraft-pl server model.gz +RTS -N -A4M -qg1 -I0
 
-Run `concraft server --help` to learn more about possible server-mode options.
+Run `concraft-pl server --help` to learn more about possible server-mode options.
 
-The client mode works just like the tagging model.  The only difference is that,
+The client mode works just like the tagging mode.  The only difference is that,
 instead of supplying your client with a model, you need to specify the port number
 (in case you used a custom one when starting the server; otherwise, the default
 port number will be used).
 
     concraft-pl client --port 10101 < input.txt > output.plain
 
-Run `concraft client --help` to learn more about possible client-mode options.
+Run `concraft-pl client --help` to learn more about possible client-mode options.
 
 
 Tagging analysed data
