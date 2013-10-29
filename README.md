@@ -75,6 +75,9 @@ size, run:
 
     concraft-pl train config/nkjp-tagset.cfg train.plain -e eval.plain -o model.gz +RTS -N4 -A256M -s
 
+Keep in mind, that Concraft-pl will reanalyse the input data before training.
+You can suppress this behaviour by using the `--noana` option.
+
 Run `concraft-pl train --help` to learn more about the program arguments and
 possible training options.
 
