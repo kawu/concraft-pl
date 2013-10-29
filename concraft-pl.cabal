@@ -14,6 +14,8 @@ category:           Natural Language Processing
 homepage:           http://zil.ipipan.waw.pl/Concraft
 build-type:         Simple
 
+data-files: config/nkjp-tagset.cfg
+
 library
     hs-source-dirs: src
 

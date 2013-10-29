@@ -23,7 +23,7 @@ import qualified NLP.Concraft.Polish.Server as S
 import qualified NLP.Concraft.Polish.Morphosyntax as X
 import qualified NLP.Concraft.Polish.Format.Plain as P
 
-import           Paths_concraft_pl (version)
+import           Paths_concraft_pl (version, getDataFileName)
 import           Data.Version (showVersion)
 
 
@@ -51,7 +51,7 @@ data Concraft
     { trainPath	    :: FilePath
     , evalPath      :: Maybe FilePath
     , format        :: Format
-    , tagsetPath    :: FilePath
+    , tagsetPath    :: Maybe FilePath
     , noAna         :: Bool
     -- , discardHidden :: Bool
     , iterNum       :: Double
@@ -77,7 +77,7 @@ data Concraft
     , host          :: String
     , port          :: Int }
   | Compare
-    { tagsetPath    :: FilePath
+    { tagsetPath    :: Maybe FilePath
     , refPath       :: FilePath
     , otherPath     :: FilePath
     , format        :: Format }
@@ -86,9 +86,9 @@ data Concraft
 
 trainMode :: Concraft
 trainMode = Train
-    { tagsetPath = def &= argPos 0 &= typ "TAGSET-PATH"
-    , trainPath = def &= argPos 1 &= typ "TRAIN-FILE"
+    { trainPath = def &= argPos 1 &= typ "TRAIN-FILE"
     , evalPath = def &= typFile &= help "Evaluation file"
+    , tagsetPath = def &= typFile &= help "Tagset definition file"
     , format = enum [Plain &= help "Plain format"]
     , noAna = False &= help "Do not perform reanalysis"
     -- , discardHidden = False &= help "Discard hidden features"
@@ -127,9 +127,9 @@ clientMode = Client
 
 compareMode :: Concraft
 compareMode = Compare
-    { tagsetPath = def &= argPos 0 &= typ "TAGSET-PATH"
-    , refPath   = def &= argPos 1 &= typ "REFERENCE-FILE"
+    { refPath   = def &= argPos 1 &= typ "REFERENCE-FILE"
     , otherPath = def &= argPos 2 &= typ "OTHER-FILE"
+    , tagsetPath = def &= typFile &= help "Tagset definition file"
     , format  = enum [Plain &= help "Plain input format"] }
 
 
@@ -153,7 +153,10 @@ exec :: Concraft -> IO ()
 
 
 exec Train{..} = do
-    tagset <- parseTagset tagsetPath <$> readFile tagsetPath
+    tagsetPath' <- case tagsetPath of
+        Nothing -> getDataFileName "config/nkjp-tagset.cfg"
+        Just x  -> return x
+    tagset <- parseTagset tagsetPath' <$> readFile tagsetPath'
     let train0 = parseFileO  format trainPath
     let eval0  = parseFileO' format evalPath
     concraft <- C.train (trainConf tagset) train0 eval0
@@ -206,7 +209,10 @@ exec Client{..} = do
 
 
 exec Compare{..} = do
-    tagset <- parseTagset tagsetPath <$> readFile tagsetPath
+    tagsetPath' <- case tagsetPath of
+        Nothing -> getDataFileName "config/nkjp-tagset.cfg" 
+        Just x  -> return x
+    tagset <- parseTagset tagsetPath' <$> readFile tagsetPath'
     let convert = map (X.packSeg tagset) . concat
     xs <- convert <$> parseFile format refPath
     ys <- convert <$> parseFile format otherPath

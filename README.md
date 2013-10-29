@@ -59,10 +59,11 @@ Training
 If you have the training material with disambiguation annotations (stored in the
 `plain` text format) you can train the Concraft-pl model yourself.
 
-    concraft-pl train config/nkjp-tagset.cfg train.plain -e eval.plain -o model.gz
+    concraft-pl train train.plain -e eval.plain -o model.gz
 
-The first program argument is a specification of the [NKJP][nkjp] morphosyntactic
-tagset.  It can be found in the `config` toplevel directory.
+Concraft-pl uses the [NKJP][nkjp] morphosyntactic tagset by default.  It will also 
+reanalyse the input data before the actual training.  If you want to change this
+behaviour, use the `--tagset` and `--noana` command-line options.
 
 Consider using [runtime system options][ghc-rts].  You can speed up processing
 by making use of multiple cores by using the `-N` option.  The `-s` option will
@@ -73,10 +74,7 @@ dataset and it doesn't fit in the computer memory, use the `--disk` flag.
 For example, to train the model using four threads and 256M allocation area
 size, run:
 
-    concraft-pl train config/nkjp-tagset.cfg train.plain -e eval.plain -o model.gz +RTS -N4 -A256M -s
-
-Keep in mind, that Concraft-pl will reanalyse the input data before training.
-You can suppress this behaviour by using the `--noana` option.
+    concraft-pl train train.plain -e eval.plain -o model.gz +RTS -N4 -A256M -s
 
 Run `concraft-pl train --help` to learn more about the program arguments and
 possible training options.
