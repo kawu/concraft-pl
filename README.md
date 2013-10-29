@@ -31,6 +31,9 @@ just run:
 
     cabal install concraft-pl
 
+The `concraft-pl` tool will be installed in the `~/.cabal/bin` directory
+by default.  
+
 If you want to upgrade Concraft-pl to a newer version you should
 update the package list first:
 
