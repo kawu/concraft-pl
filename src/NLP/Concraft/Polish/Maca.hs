@@ -115,15 +115,13 @@ readMacaResponse h n
 
 readMacaSent :: Handle -> IO (Sent Tag)
 readMacaSent h =
-    Plain.parseSent <$> getTxt 
+    Plain.parseSent . L.unlines <$> getTxt
   where
     getTxt = do
         x <- L.hGetLine h
         if L.null x
-            then return x
-            else do   
-                xs <- getTxt
-                return (x `L.append` "\n" `L.append` xs)
+            then return []
+            else (x:) <$> getTxt
 
 
 ----------------------------
