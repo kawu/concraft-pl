@@ -1,5 +1,5 @@
 name:               concraft-pl
-version:            0.3.1
+version:            0.4.0
 synopsis:           Morphological tagger for Polish
 description:
     A morphological tagger for Polish based on the concraft library.
@@ -32,6 +32,7 @@ library
       , transformers
       , network
       , lazy-io
+      , split                   >= 0.2      && < 0.3
 
     exposed-modules:
         NLP.Concraft.Polish

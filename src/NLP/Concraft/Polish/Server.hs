@@ -18,6 +18,8 @@ import           Control.Concurrent (forkIO)
 import           System.IO (Handle, hFlush)
 import qualified Control.Monad.LazyIO as LazyIO
 import qualified Network as N
+import qualified Data.Char as Char
+import qualified Data.List.Split as Split
 import qualified Data.Binary as B
 import qualified Data.ByteString.Lazy as BS
 import qualified Data.Text as T
@@ -75,8 +77,10 @@ tag host port inp = do
 tag' :: N.HostName -> N.PortID -> L.Text -> IO [[Sent Tag]]
 tag' host port
     = LazyIO.mapM (tag host port . L.toStrict)
-    . map L.strip
-    . L.splitOn "\n\n"
+    . map L.unlines
+    . Split.splitWhen
+        (L.all Char.isSpace)
+    . L.lines
 
 
 -------------------------------------------------

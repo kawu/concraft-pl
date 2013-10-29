@@ -22,6 +22,8 @@ module NLP.Concraft.Polish
 
 import qualified Control.Monad.LazyIO as LazyIO
 import           Control.Applicative ((<$>))
+import qualified Data.List.Split as Split
+import qualified Data.Char as Char
 import qualified Data.Text as T
 import qualified Data.Text.Lazy as L
 import qualified Data.Set as S
@@ -93,8 +95,10 @@ tag pool concraft inp = map (tagSent concraft) <$> macaPar pool inp
 tag' :: MacaPool -> C.Concraft -> L.Text -> IO [[Sent Tag]]
 tag' pool concraft
     = LazyIO.mapM (tag pool concraft . L.toStrict)
-    . map L.strip
-    . L.splitOn "\n\n"
+    . map L.unlines
+    . Split.splitWhen
+        (L.all Char.isSpace)
+    . L.lines
 
 
 -- | Tag an already analysed sentence.
