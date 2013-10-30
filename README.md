@@ -64,7 +64,7 @@ If you have the training material with disambiguation annotations (stored in the
 
     concraft-pl train train.plain -e eval.plain -o model.gz
 
-Concraft-pl uses the [NKJP][nkjp] [morphosyntactic tagset definition][config/nkjp-tagset.cfg]
+Concraft-pl uses the [NKJP][nkjp] [morphosyntactic tagset definition](config/nkjp-tagset.cfg)
 by default.  It will also reanalyse the input data before the actual training.  If you want
 to change this behaviour, use the `--tagset` and `--noana` command-line options.
 
