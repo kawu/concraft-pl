@@ -1,5 +1,5 @@
 name:               concraft-pl
-version:            0.4.0
+version:            0.4.1
 synopsis:           Morphological tagger for Polish
 description:
     A morphological tagger for Polish based on the concraft library.
@@ -21,19 +21,19 @@ library
 
     build-depends:
         base >= 4 && < 5
-      , concraft                >= 0.8.1    && < 0.9
+      , concraft                >= 0.8.2    && < 0.9
       , tagset-positional       >= 0.3      && < 0.4
-      , sgd                     >= 0.3.2    && < 0.4
-      , containers
-      , bytestring
-      , text
+      , sgd                     >= 0.3.3    && < 0.4
+      , containers              >= 0.4      && < 0.6
+      , bytestring              >= 0.9      && < 0.11
+      , text                    >= 0.11     && < 0.12
       , aeson                   >= 0.6      && < 0.7
-      , binary
-      , process
-      , mtl
-      , transformers
-      , network
-      , lazy-io
+      , binary                  >= 0.5      && < 0.6
+      , process                 >= 1.1      && < 1.2
+      , mtl                     >= 2.1      && < 2.2
+      , transformers            >= 0.3      && < 0.4
+      , network                 >= 2.3      && < 2.4
+      , lazy-io                 >= 0.1      && < 0.2
       , split                   >= 0.2      && < 0.3
 
     exposed-modules:
@@ -53,7 +53,7 @@ source-repository head
 
 executable concraft-pl
     build-depends:
-        cmdargs >= 0.10 && < 0.11
+        cmdargs                 >= 0.10     && < 0.11
     hs-source-dirs: src, tools
     main-is: concraft-pl.hs
     ghc-options: -Wall -O2 -threaded -rtsopts
