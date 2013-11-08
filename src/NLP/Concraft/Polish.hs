@@ -58,7 +58,7 @@ guessSchemaDefault = S.nullConf
 -- | Default configuration for the guessing observation schema.
 disambSchemaDefault :: SchemaConf
 disambSchemaDefault = S.nullConf
-    { lowOrthC      = entry                         [-1, 0, 1]
+    { lowOrthC      = entry                         [-2, -1, 0, 1]
     , lowPrefixesC  = oov $ entryWith [1, 2, 3]     [0]
     , lowSuffixesC  = oov $ entryWith [1, 2, 3]     [0]
     , begPackedC    = oov $ entry                   [0] }

@@ -1,0 +1,4 @@
+-*-change-log-*-
+
+0.5.0	Nov 2013
+	* Restore the orth[-2] feature in the observation schema

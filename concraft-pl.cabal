@@ -1,5 +1,5 @@
 name:               concraft-pl
-version:            0.4.3
+version:            0.5.0
 synopsis:           Morphological tagger for Polish
 description:
     A morphological tagger for Polish based on the concraft library.
@@ -13,6 +13,8 @@ stability:          experimental
 category:           Natural Language Processing
 homepage:           http://zil.ipipan.waw.pl/Concraft
 build-type:         Simple
+
+extra-source-files: changelog
 
 data-files: config/nkjp-tagset.cfg
 
