@@ -31,9 +31,6 @@ import qualified Data.Text.Lazy.Builder as L
 
 import           NLP.Concraft.Polish.Morphosyntax
 
-noneBase :: T.Text
-noneBase = "None"
-
 -- | Parse the text in the plain format.
 parsePlain :: L.Text -> [[Sent Tag]]
 parsePlain =
@@ -85,24 +82,20 @@ parseInterp =
     doIt [form, tag, "disamb"] = Just $
         (mkInterp form tag, True)
     doIt xs = error $ "parseInterp: " ++ show xs
-    mkInterp form tag
-        | formS == noneBase = Interp Nothing tagS
-        | otherwise         = Interp (Just formS) tagS
-      where
-        formS   = L.toStrict form
-        tagS    = L.toStrict tag
+    mkInterp form tag = Interp (L.toStrict form) (L.toStrict tag)
 
 parseHeader :: L.Text -> (T.Text, Space)
 parseHeader xs =
     let [_orth, space] = L.splitOn "\t" xs
     in  (L.toStrict _orth, parseSpace space)
 
+-- TODO: Should we represent newlines and spaces in the `Space` data type?
 parseSpace :: L.Text -> Space
 parseSpace "none"    = None
 parseSpace "space"   = Space
-parseSpace "spaces"  = Space	-- Is it not a Maca bug?
+parseSpace "spaces"  = Space	-- Multiple spaces
 parseSpace "newline" = NewLine
-parseSpace "newlines" = NewLine -- TODO: Remove this temporary fix
+parseSpace "newlines" = NewLine -- Multiple newlines
 parseSpace xs        = error ("parseSpace: " ++ L.unpack xs)
 
 -----------
@@ -129,7 +122,7 @@ buildWord :: Seg Tag -> L.Builder
 buildWord Seg{..}
     =  L.fromText orth  <> "\t"
     <> buildSpace space <> "\n"
-    <> buildKnown known
+    <> buildKnown orth known
     <> buildInterps (M.toList interps)
     where Word{..} = word
 
@@ -142,20 +135,20 @@ buildInterps interps = mconcat
         else "\n"
     | (interp, dmb) <- interps ]
   where
-    buildTag    = L.fromText . tag
-    buildBase x = case base x of
-        Just b  -> L.fromText b
-        Nothing -> L.fromText noneBase
+    buildTag  = L.fromText . tag
+    buildBase = L.fromText . base
 
 buildSpace :: Space -> L.Builder
 buildSpace None     = "none"
 buildSpace Space    = "space"
 buildSpace NewLine  = "newline"
 
-buildKnown :: Bool -> L.Builder
-buildKnown True  = ""
-buildKnown False =  "\t" <> L.fromText noneBase
-                         <> "\t" <> L.fromText ign <> "\n"
+buildKnown :: T.Text -> Bool -> L.Builder
+buildKnown _ True = ""
+buildKnown lemma False
+    =  "\t" <> L.fromText lemma
+    <> "\t" <> L.fromText ign
+    <> "\n"
 
 
 -----------

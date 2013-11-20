@@ -103,9 +103,8 @@ instance Binary Word where
     
 
 -- | A morphosyntactic interpretation.
--- TODO: Should we allow `base` to be `Nothing`?
 data Interp t = Interp
-    { base  :: Maybe T.Text
+    { base  :: T.Text
     , tag   :: t }
     deriving (Show, Eq, Ord)
 
@@ -173,8 +172,9 @@ selectWMap wMap seg =
             ++ catMaybes
         [ if tag `M.member` wSet seg
             then Nothing
-            else Just (Interp Nothing tag, asDmb x)
-        | (tag, x) <- M.toList (X.unWMap wMap) ]
+            else Just (Interp lemma tag, asDmb x)
+        | let lemma = orth $ word seg   -- Default base form
+        , (tag, x) <- M.toList (X.unWMap wMap) ]
 
 
 --------------------------------
