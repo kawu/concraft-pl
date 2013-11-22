@@ -1,5 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RecordWildCards #-}
+{-# LANGUAGE TupleSections #-}
 
 
 -- | Morphosyntax data layer in Polish.
@@ -16,6 +17,7 @@ module NLP.Concraft.Polish.Morphosyntax
 , Interp (..)
 , Space (..)
 , select
+, select'
 
 -- * Sentence
 , Sent
@@ -150,9 +152,14 @@ instance FromJSON Space where
     parseJSON _ = error "parseJSON [Space]"
 
 
--- | Select one interpretation.
+-- | Select one chosen interpretation.
 select :: Ord a => a -> Seg a -> Seg a
-select x = selectWMap (X.mkWMap [(x, 1)])
+select = select' []
+
+
+-- | Select multiple interpretations and one chosen interpretation.
+select' :: Ord a => [a] -> a -> Seg a -> Seg a
+select' ys x = selectWMap . X.mkWMap $ (x, 1) : map (,0) ys
 
 
 -- | Select interpretations.

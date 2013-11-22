@@ -20,6 +20,10 @@ module NLP.Concraft.Polish
 
 -- * Pruning
 , C.prune
+
+-- -- * Analysis
+-- , anaSent
+-- , reAnaPar
 ) where
 
 
@@ -39,6 +43,7 @@ import           NLP.Concraft.Schema (SchemaConf(..), entry, entryWith)
 import qualified NLP.Concraft.Guess as G
 import qualified NLP.Concraft.Disamb as D
 import qualified NLP.Concraft as C
+-- import qualified NLP.Concraft.Analysis as A
 
 import           NLP.Concraft.Polish.Morphosyntax hiding (tag)
 import           NLP.Concraft.Polish.Maca
@@ -107,10 +112,15 @@ tag' pool concraft
 -- | Tag an already analysed sentence.
 tagSent :: C.Concraft -> Sent Tag -> Sent Tag
 tagSent concraft sent =
-    let tagset = C.tagset concraft
-        packed = packSent tagset sent
-        tags   = map (P.showTag tagset) (C.tag concraft packed)
-    in  map (uncurry select) (zip tags sent)
+    [ select' gs t seg
+    | (seg, gs, t) <- zip3 sent gss ts ]
+  where
+    tagset = C.tagset concraft
+    packed = packSent tagset sent
+    tagged = C.tag concraft packed
+    gss    = map (map showTag . fst) tagged
+    ts     = map (showTag . snd) tagged
+    showTag = P.showTag tagset
 
 
 -------------------------------------------------
@@ -144,7 +154,7 @@ train
 train TrainConf{..} train0 eval0 = do
 
     pool <- newMacaPool 1
-    let ana = fmap (packSent tagset . concat) . macaPar pool . L.toStrict
+    let ana = anaSent tagset pool
         train1 = map (packSentO tagset) <$> train0
         eval1  = map (packSentO tagset) <$> eval0
 
@@ -154,9 +164,29 @@ train TrainConf{..} train0 eval0 = do
 
   where
 
-    guessConf  = G.TrainConf guessSchemaDefault sgdArgs onDisk r0
-    disambConf = D.TrainConf tiersDefault disambSchemaDefault sgdArgs onDisk
-
     doReana ana   = C.reAnaTrain tagset ana guessNum guessConf disambConf
     noReana tr ev = C.train tagset guessNum guessConf disambConf 
         (map X.segs <$> tr) (map X.segs <$> ev)
+
+    guessConf  = G.TrainConf guessSchemaDefault sgdArgs onDisk r0
+    disambConf = D.TrainConf tiersDefault disambSchemaDefault sgdArgs onDisk
+
+
+-------------------------------------------------
+-- Re-analysis
+-------------------------------------------------
+
+
+-- | Analyse the given sentence with Maca.
+-- anaSent :: MacaPool -> L.Text -> IO (Sent Tag)
+anaSent :: P.Tagset -> MacaPool -> L.Text -> IO (X.Sent Word P.Tag)
+anaSent tagset pool
+    = fmap (packSent tagset . concat)
+    . macaPar pool . L.toStrict
+
+
+-- -- | Reanalyse the input paragraph (lazy IO).
+-- reAnaPar :: P.Tagset -> [SentO Tag] -> IO [Sent Tag]
+-- reAnaPar tagset inp = do
+--     pool <- newMacaPool 1
+--     A.reAnaPar tagset (anaSent pool) inp

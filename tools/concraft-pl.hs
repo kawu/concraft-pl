@@ -84,6 +84,8 @@ data Concraft
     { inModel       :: FilePath
     , outModel      :: FilePath
     , threshold     :: Double }
+--   | ReAna
+--     { format	    :: Format }
   deriving (Data, Typeable, Show)
 
 
@@ -141,6 +143,11 @@ pruneMode = Prune
     , outModel  = def &= argPos 1 &= typ "OUTPUT-MODEL"
     , threshold = 0.05 &=
         help "Remove disambiguation features below the threshold" }
+
+
+-- reAnaMode :: Concraft
+-- reAnaMode = ReAna
+--     { format    = enum [Plain &= help "Plain input format"] }
 
 
 argModes :: Mode (CmdArgs Concraft)
@@ -234,6 +241,11 @@ exec Compare{..} = do
 exec Prune{..} = do
     cft <- C.loadModel inModel
     C.saveModel outModel $ C.prune threshold cft
+
+
+-- exec ReAna{..} = do
+--     inp  <- parseText format <$> L.getContents
+--     out  <- showData format <$> 
 
 
 ---------------------------------------
