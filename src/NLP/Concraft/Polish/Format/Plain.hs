@@ -14,6 +14,7 @@ module NLP.Concraft.Polish.Format.Plain
 , parseSent
 
 -- * Printing
+, PrintCfg (..)
 , showPlain
 , showPara
 , showSent
@@ -28,7 +29,9 @@ import qualified Data.Map as M
 import qualified Data.Text as T
 import qualified Data.Text.Lazy as L
 import qualified Data.Text.Lazy.Builder as L
+import qualified Data.Text.Lazy.Read as R
 
+import qualified NLP.Concraft.Morphosyntax as X
 import           NLP.Concraft.Polish.Morphosyntax
 
 -- | Parse the text in the plain format.
@@ -69,18 +72,22 @@ parseWord xs = Seg
     (_orth, _space) = parseHeader (head xs)
     ys          = map parseInterp (tail xs)
     _known      = not (Nothing `elem` ys)
-    _interps    = M.fromListWith max (catMaybes ys)
+    -- _interps    = M.fromListWith max (catMaybes ys)
+    _interps    = X.mkWMap $ catMaybes ys
 
-parseInterp :: L.Text -> Maybe (Interp Tag, Bool)
+parseInterp :: L.Text -> Maybe (Interp Tag, Double)
 parseInterp =
     doIt . tail . L.splitOn "\t"
   where
     doIt [form, tag]
         | tag == ign    = Nothing
         | otherwise     = Just $
-            (mkInterp form tag, False)
-    doIt [form, tag, "disamb"] = Just $
-        (mkInterp form tag, True)
+            (mkInterp form tag, 0)
+    doIt [form, tag, "disamb"] =
+        Just (mkInterp form tag, 1)
+    doIt [form, tag, weight] = case R.double weight of
+        Left er -> error $ "parseInterp (weight):" ++ show er
+        Right w -> Just (mkInterp form tag, fst w)
     doIt xs = error $ "parseInterp: " ++ show xs
     mkInterp form tag = Interp (L.toStrict form) (L.toStrict tag)
 
@@ -102,41 +109,48 @@ parseSpace xs        = error ("parseSpace: " ++ L.unpack xs)
 -- Printing
 -----------
 
+-- | Printing configuration.
+data PrintCfg = PrintCfg {
+    -- | Print weights instead of 'disamb' tags.
+      printWeights  :: Bool }
+
 -- | Show the plain data.
-showPlain :: [[Sent Tag]] -> L.Text
-showPlain =
-    L.intercalate "\n" . map showPara
+showPlain :: PrintCfg ->[[Sent Tag]] -> L.Text
+showPlain cfg =
+    L.intercalate "\n" . map (showPara cfg)
 
 -- | Show the paragraph.
-showPara :: [Sent Tag] -> L.Text
-showPara = L.toLazyText . mconcat  . map (\xs -> buildSent xs <> "\n")
+showPara :: PrintCfg -> [Sent Tag] -> L.Text
+showPara cfg = L.toLazyText . mconcat . map (\xs -> buildSent cfg xs <> "\n")
 
 -- | Show the sentence.
-showSent :: Sent Tag -> L.Text
-showSent xs = L.toLazyText $ buildSent xs
+showSent :: PrintCfg -> Sent Tag -> L.Text
+showSent cfg xs = L.toLazyText $ buildSent cfg xs
 
-buildSent :: Sent Tag -> L.Builder
-buildSent = mconcat . map buildWord
+buildSent :: PrintCfg -> Sent Tag -> L.Builder
+buildSent cfg = mconcat . map (buildWord cfg)
 
-buildWord :: Seg Tag -> L.Builder
-buildWord Seg{..}
+buildWord :: PrintCfg -> Seg Tag -> L.Builder
+buildWord cfg Seg{..}
     =  L.fromText orth  <> "\t"
     <> buildSpace space <> "\n"
     <> buildKnown orth known
-    <> buildInterps (M.toList interps)
+    <> buildInterps cfg interps
     where Word{..} = word
 
-buildInterps :: [(Interp Tag, Bool)] -> L.Builder
-buildInterps interps = mconcat
+buildInterps :: PrintCfg -> X.WMap (Interp Tag) -> L.Builder
+buildInterps PrintCfg{..} interps = mconcat
     [ "\t" <> buildBase interp <>
-      "\t" <> buildTag  interp <>
-      if dmb
-        then "\tdisamb\n"
-        else "\n"
-    | (interp, dmb) <- interps ]
+      "\t" <> buildTag interp  <> buildDmb dmb
+    | (interp, dmb) <- M.toList (X.unWMap interps) ]
   where
     buildTag  = L.fromText . tag
     buildBase = L.fromText . base
+    buildDmb  = case printWeights of
+        True    -> \x -> "\t" <> L.fromString (show x) <> "\n"
+        False   -> \x -> if x > 0
+            then "\tdisamb\n"
+            else "\n"
 
 buildSpace :: Space -> L.Builder
 buildSpace None     = "none"

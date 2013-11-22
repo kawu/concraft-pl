@@ -38,7 +38,10 @@ portDefault = 10089
 
 
 -- | Data formats. 
-data Format = Plain deriving (Data, Typeable, Show)
+data Format
+    = Plain
+    -- | Weighted
+    deriving (Data, Typeable, Show)
 
 
 -- | A description of the Concraft-pl tool
@@ -299,4 +302,4 @@ parsePara Plain = P.parsePara
 
 
 showData :: Format -> [[X.Sent X.Tag]] -> L.Text
-showData Plain = P.showPlain
+showData Plain = P.showPlain (P.PrintCfg { printWeights = False})

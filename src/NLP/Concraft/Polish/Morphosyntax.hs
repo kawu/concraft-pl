@@ -38,6 +38,7 @@ import           Data.Maybe (catMaybes)
 import           Data.Aeson
 import           Data.Binary (Binary, put, get, putWord8, getWord8)
 import qualified Data.Aeson as Aeson
+import qualified Data.Set as S
 import qualified Data.Map as M
 import qualified Data.Text as T
 import qualified Data.Text.Lazy as L
@@ -61,7 +62,7 @@ data Seg t = Seg
     -- | Interpretations of the token, each interpretation annotated
     -- with a /disamb/ Boolean value (if 'True', the interpretation
     -- is correct within the context).
-    , interps   :: M.Map (Interp t) Bool }
+    , interps   :: X.WMap (Interp t) }
     deriving (Show, Eq, Ord)
 
 
@@ -76,7 +77,6 @@ data Word = Word
     , space     :: Space
     , known     :: Bool }
     deriving (Show, Eq, Ord)
-
 
 
 instance X.Word Word where
@@ -167,19 +167,16 @@ selectWMap :: Ord a => X.WMap a -> Seg a -> Seg a
 selectWMap wMap seg =
     seg { interps = newInterps }
   where
-    wSet = M.fromList . map (first tag) . M.toList . interps
-    asDmb x = if x > 0
-        then True
-        else False
-    newInterps = M.fromList $
+    wSet = S.fromList . map tag . M.keys . X.unWMap . interps $ seg
+    newInterps = X.mkWMap $
         [ case M.lookup (tag interp) (X.unWMap wMap) of
-            Just x  -> (interp, asDmb x)
-            Nothing -> (interp, False)
-        | interp <- M.keys (interps seg) ]
+            Just x  -> (interp, x)
+            Nothing -> (interp, 0)
+        | interp <- (M.keys . X.unWMap) (interps seg) ]
             ++ catMaybes
-        [ if tag `M.member` wSet seg
+        [ if tag `S.member` wSet
             then Nothing
-            else Just (Interp lemma tag, asDmb x)
+            else Just (Interp lemma tag, x)
         | let lemma = orth $ word seg   -- Default base form
         , (tag, x) <- M.toList (X.unWMap wMap) ]
 
@@ -225,9 +222,12 @@ withOrig s = SentO
 
 -- | Convert a segment to a segment from a core library.
 packSeg_ :: Ord a => Seg a -> X.Seg Word a
-packSeg_ Seg{..} = X.Seg word $ X.mkWMap
-    [ (tag x, if disamb then 1 else 0)
-    | (x, disamb) <- M.toList interps ]
+packSeg_ Seg{..}
+    = X.Seg word
+    $ X.mkWMap
+    $ map (first tag)
+    $ M.toList
+    $ X.unWMap interps
 
 
 -- | Convert a segment to a segment from a core library.
