@@ -17,6 +17,9 @@ module NLP.Concraft.Polish
 -- * Training
 , TrainConf (..)
 , train
+
+-- * Pruning
+, C.prune
 ) where
 
 
@@ -115,6 +118,7 @@ tagSent concraft sent =
 -------------------------------------------------
 
 
+-- | Training configuration.
 data TrainConf = TrainConf {
     -- | Tagset.
       tagset    :: P.Tagset
@@ -126,8 +130,6 @@ data TrainConf = TrainConf {
     , onDisk    :: Bool
     -- | Numer of guessed tags for each word.
     , guessNum  :: Int
-    -- | Disamb model pruning parameter.
-    , prune     :: Maybe Double
     -- | `G.r0T` parameter.
     , r0        :: G.R0T }
 
@@ -153,8 +155,7 @@ train TrainConf{..} train0 eval0 = do
   where
 
     guessConf  = G.TrainConf guessSchemaDefault sgdArgs onDisk r0
-    disambConf = D.TrainConf tiersDefault disambSchemaDefault
-        sgdArgs onDisk prune
+    disambConf = D.TrainConf tiersDefault disambSchemaDefault sgdArgs onDisk
 
     doReana ana   = C.reAnaTrain tagset ana guessNum guessConf disambConf
     noReana tr ev = C.train tagset guessNum guessConf disambConf 

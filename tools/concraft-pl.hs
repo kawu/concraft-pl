@@ -60,7 +60,6 @@ data Concraft
     , gain0         :: Double
     , tau           :: Double
     , disk          :: Bool
-    , prune         :: Maybe Double
     , outModel      :: FilePath
     , guessNum      :: Int
     , r0            :: Guess.R0T }
@@ -81,6 +80,10 @@ data Concraft
     , refPath       :: FilePath
     , otherPath     :: FilePath
     , format        :: Format }
+  | Prune
+    { inModel       :: FilePath
+    , outModel      :: FilePath
+    , threshold     :: Double }
   deriving (Data, Typeable, Show)
 
 
@@ -98,7 +101,6 @@ trainMode = Train
     , gain0 = 1.0 &= help "Initial gain parameter"
     , tau = 5.0 &= help "Initial tau parameter"
     , disk = False &= help "Store SGD dataset on disk"
-    , prune = Nothing &= help "Disambiguation model pruning parameter"
     , outModel = def &= typFile &= help "Output Model file"
     , guessNum = 10 &= help "Number of guessed tags for each unknown word"
     , r0 = Guess.OovChosen &= help "R0 construction method" }
@@ -133,9 +135,17 @@ compareMode = Compare
     , format  = enum [Plain &= help "Plain input format"] }
 
 
+pruneMode :: Concraft
+pruneMode = Prune
+    { inModel   = def &= argPos 0 &= typ "INPUT-MODEL"
+    , outModel  = def &= argPos 1 &= typ "OUTPUT-MODEL"
+    , threshold = 0.05 &=
+        help "Remove disambiguation features below the threshold" }
+
+
 argModes :: Mode (CmdArgs Concraft)
 argModes = cmdArgsMode $ modes
-    [trainMode, tagMode, serverMode, clientMode, compareMode]
+    [trainMode, tagMode, serverMode, clientMode, compareMode, pruneMode]
     &= summary concraftDesc
     &= program "concraft-pl"
 
@@ -176,7 +186,6 @@ exec Train{..} = do
         , reana     = not noAna
         , onDisk    = disk
         , guessNum  = guessNum
-        , prune     = prune
         , r0        = r0 }
 
 
@@ -220,6 +229,11 @@ exec Compare{..} = do
     putStrLn $ "Number of segments in reference file: " ++ show (Acc.gold s)
     putStrLn $ "Number of correct tags: " ++ show (Acc.good s)
     putStrLn $ "Weak accuracy lower bound: " ++ show (Acc.accuracy s)
+
+
+exec Prune{..} = do
+    cft <- C.loadModel inModel
+    C.saveModel outModel $ C.prune threshold cft
 
 
 ---------------------------------------
