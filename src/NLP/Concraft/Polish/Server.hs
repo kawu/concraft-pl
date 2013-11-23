@@ -83,6 +83,10 @@ tag' host port
     . L.lines
 
 
+-- -- | Like `tag` but assignes probabilities.
+-- probs' :: 
+
+
 -------------------------------------------------
 -- Messages
 -------------------------------------------------

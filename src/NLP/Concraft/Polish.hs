@@ -10,9 +10,14 @@ module NLP.Concraft.Polish
 , C.loadModel
 
 -- * Tagging
+-- ** Plain
 , tag
 , tag'
 , tagSent
+-- ** Probabilities
+, probs
+, probs'
+, probsSent
 
 -- * Training
 , TrainConf (..)
@@ -96,10 +101,9 @@ tag :: MacaPool -> C.Concraft -> T.Text -> IO [Sent Tag]
 tag pool concraft inp = map (tagSent concraft) <$> macaPar pool inp
 
 
--- | An alernative tagging function which interprets
--- empty lines as paragraph ending markers.
--- The function uses lazy IO so it can be used to
--- analyse large chunks of data.
+-- | An alernative to `tag` which interprets empty lines as
+-- paragraph ending markers.  The function uses lazy IO so it
+-- can be used to analyse large chunks of data.
 tag' :: MacaPool -> C.Concraft -> L.Text -> IO [[Sent Tag]]
 tag' pool concraft
     = LazyIO.mapM (tag pool concraft . L.toStrict)
@@ -109,7 +113,7 @@ tag' pool concraft
     . L.lines
 
 
--- | Tag an already analysed sentence.
+-- | Tag the analysed sentence.
 tagSent :: C.Concraft -> Sent Tag -> Sent Tag
 tagSent concraft sent =
     [ select' gs t seg
@@ -118,8 +122,45 @@ tagSent concraft sent =
     tagset = C.tagset concraft
     packed = packSent tagset sent
     tagged = C.tag concraft packed
-    gss    = map (map showTag . fst) tagged
+    gss    = map (map showTag . S.toList . fst) tagged
     ts     = map (showTag . snd) tagged
+    showTag = P.showTag tagset
+
+
+-------------------------------------------------
+-- Tagging with probabilities
+-------------------------------------------------
+
+
+-- | Tag the input text with morphosyntactic tags and corresponding
+-- probabilities.
+probs :: MacaPool -> C.Concraft -> T.Text -> IO [Sent Tag]
+probs pool concraft inp = map (probsSent concraft) <$> macaPar pool inp
+
+
+-- | An alernative to `probs` which interprets empty lines as
+-- paragraph ending markers.  The function uses lazy IO so it
+-- can be used to analyse large chunks of data.
+probs' :: MacaPool -> C.Concraft -> L.Text -> IO [[Sent Tag]]
+probs' pool concraft
+    = LazyIO.mapM (probs pool concraft . L.toStrict)
+    . map L.unlines
+    . Split.splitWhen
+        (L.all Char.isSpace)
+    . L.lines
+
+
+-- | Tag the analysed sentence with probabilities.
+probsSent :: C.Concraft -> Sent Tag -> Sent Tag
+probsSent concraft sent
+    = map (uncurry selectWMap)
+    $ zip wmaps sent
+  where
+    tagset = C.tagset concraft
+    packed = packSent tagset sent
+    wmaps  = map
+        (X.mapWMap showTag)
+        (C.probs concraft packed)
     showTag = P.showTag tagset
 
 

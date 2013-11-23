@@ -37,11 +37,8 @@ portDefault = 10089
 ---------------------------------------
 
 
--- | Data formats. 
-data Format
-    = Plain
-    -- | Weighted
-    deriving (Data, Typeable, Show)
+-- | Data formats.
+data Format = Plain deriving (Data, Typeable, Show)
 
 
 -- | A description of the Concraft-pl tool
@@ -69,13 +66,15 @@ data Concraft
   | Tag
     { inModel       :: FilePath
     , noAna         :: Bool
-    , format        :: Format }
+    , format        :: Format
+    , weights       :: Bool }
     -- , guessNum      :: Int }
   | Server
     { inModel       :: FilePath
     , port          :: Int }
   | Client
     { format        :: Format
+    , weights       :: Bool
     , host          :: String
     , port          :: Int }
   | Compare
@@ -113,9 +112,10 @@ trainMode = Train
 
 tagMode :: Concraft
 tagMode = Tag
-    { inModel   = def &= argPos 0 &= typ "MODEL-FILE"
-    , noAna     = False &= help "Do not analyse input text"
-    , format    = enum [Plain &= help "Plain input format"] }
+    { inModel = def &= argPos 0 &= typ "MODEL-FILE"
+    , noAna   = False &= help "Do not analyse input text"
+    , format  = enum [Plain &= help "Plain input format"]
+    , weights = False &= help "Show weights instead of disamb tags" }
     -- , guessNum = 10 &= help "Number of guessed tags for each unknown word" }
 
 
@@ -127,9 +127,10 @@ serverMode = Server
 
 clientMode :: Concraft
 clientMode = Client
-    { port   = portDefault &= help "Port number"
-    , host   = "localhost" &= help "Server host name"
-    , format = enum [Plain &= help "Plain output format"] }
+    { port    = portDefault &= help "Port number"
+    , host    = "localhost" &= help "Server host name"
+    , format  = enum [Plain &= help "Plain output format"]
+    , weights = False &= help "Show weights instead of disamb tags" }
 
 
 compareMode :: Concraft
@@ -200,15 +201,26 @@ exec Train{..} = do
 
 
 exec Tag{..} = do
-    cnft <- C.loadModel inModel
+    cft  <- C.loadModel inModel
     pool <- Maca.newMacaPool numCapabilities
     inp  <- L.getContents
     out  <- if not noAna
-        then C.tag' pool cnft inp
+        then tag pool cft inp
         else return $
            let out = parseText format inp
-           in  map (map (C.tagSent cnft)) out
-    L.putStr $ showData format out
+           in  map (map (tagSent cft)) out
+    L.putStr $ showData showCfg out
+  where
+    tag = if weights
+        then C.probs'
+        else C.tag'
+    tagSent = if weights
+        then C.probsSent
+        else C.tagSent
+    showCfg = ShowCfg
+        { formatCfg = format
+        , showWsCfg = weights }
+    
 
 
 exec Server{..} = do
@@ -223,8 +235,15 @@ exec Server{..} = do
 
 exec Client{..} = do
     let portNum = N.PortNumber $ fromIntegral port
-    out <- S.tag' host portNum =<< L.getContents
-    L.putStr $ showData format out
+    out <- tag host portNum =<< L.getContents
+    L.putStr $ showData showCfg out
+  where
+    tag = if weights
+        then S.tag'
+        else S.tag'
+    showCfg = ShowCfg
+        { formatCfg = format
+        , showWsCfg = weights }
 
 
 exec Compare{..} = do
@@ -301,5 +320,12 @@ parsePara Plain = P.parsePara
 ---------------------------------------
 
 
-showData :: Format -> [[X.Sent X.Tag]] -> L.Text
-showData Plain = P.showPlain (P.PrintCfg { printWeights = False})
+data ShowCfg = ShowCfg {
+    -- | The format used.
+      formatCfg :: Format
+    -- | Show weights?
+    , showWsCfg :: Bool }
+
+
+showData :: ShowCfg -> [[X.Sent X.Tag]] -> L.Text
+showData ShowCfg{..} = P.showPlain (P.ShowCfg {P.showWsCfg = showWsCfg})

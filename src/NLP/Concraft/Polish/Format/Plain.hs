@@ -14,7 +14,7 @@ module NLP.Concraft.Polish.Format.Plain
 , parseSent
 
 -- * Printing
-, PrintCfg (..)
+, ShowCfg (..)
 , showPlain
 , showPara
 , showSent
@@ -110,27 +110,27 @@ parseSpace xs        = error ("parseSpace: " ++ L.unpack xs)
 -----------
 
 -- | Printing configuration.
-data PrintCfg = PrintCfg {
+data ShowCfg = ShowCfg {
     -- | Print weights instead of 'disamb' tags.
-      printWeights  :: Bool }
+      showWsCfg :: Bool }
 
 -- | Show the plain data.
-showPlain :: PrintCfg ->[[Sent Tag]] -> L.Text
+showPlain :: ShowCfg ->[[Sent Tag]] -> L.Text
 showPlain cfg =
     L.intercalate "\n" . map (showPara cfg)
 
 -- | Show the paragraph.
-showPara :: PrintCfg -> [Sent Tag] -> L.Text
+showPara :: ShowCfg -> [Sent Tag] -> L.Text
 showPara cfg = L.toLazyText . mconcat . map (\xs -> buildSent cfg xs <> "\n")
 
 -- | Show the sentence.
-showSent :: PrintCfg -> Sent Tag -> L.Text
+showSent :: ShowCfg -> Sent Tag -> L.Text
 showSent cfg xs = L.toLazyText $ buildSent cfg xs
 
-buildSent :: PrintCfg -> Sent Tag -> L.Builder
+buildSent :: ShowCfg -> Sent Tag -> L.Builder
 buildSent cfg = mconcat . map (buildWord cfg)
 
-buildWord :: PrintCfg -> Seg Tag -> L.Builder
+buildWord :: ShowCfg -> Seg Tag -> L.Builder
 buildWord cfg Seg{..}
     =  L.fromText orth  <> "\t"
     <> buildSpace space <> "\n"
@@ -138,15 +138,15 @@ buildWord cfg Seg{..}
     <> buildInterps cfg interps
     where Word{..} = word
 
-buildInterps :: PrintCfg -> X.WMap (Interp Tag) -> L.Builder
-buildInterps PrintCfg{..} interps = mconcat
+buildInterps :: ShowCfg -> X.WMap (Interp Tag) -> L.Builder
+buildInterps ShowCfg{..} interps = mconcat
     [ "\t" <> buildBase interp <>
       "\t" <> buildTag interp  <> buildDmb dmb
     | (interp, dmb) <- M.toList (X.unWMap interps) ]
   where
     buildTag  = L.fromText . tag
     buildBase = L.fromText . base
-    buildDmb  = case printWeights of
+    buildDmb  = case showWsCfg of
         True    -> \x -> "\t" <> L.fromString (show x) <> "\n"
         False   -> \x -> if x > 0
             then "\tdisamb\n"

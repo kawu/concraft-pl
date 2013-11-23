@@ -18,6 +18,7 @@ module NLP.Concraft.Polish.Morphosyntax
 , Space (..)
 , select
 , select'
+, selectWMap
 
 -- * Sentence
 , Sent
