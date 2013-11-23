@@ -15,9 +15,9 @@ module NLP.Concraft.Polish
 , tag'
 , tagSent
 -- ** Probabilities
-, probs
-, probs'
-, probsSent
+, marginals
+, marginals'
+, marginalsSent
 
 -- * Training
 , TrainConf (..)
@@ -133,26 +133,26 @@ tagSent concraft sent =
 
 
 -- | Tag the input text with morphosyntactic tags and corresponding
--- probabilities.
-probs :: MacaPool -> C.Concraft -> T.Text -> IO [Sent Tag]
-probs pool concraft inp = map (probsSent concraft) <$> macaPar pool inp
+-- marginal probabilities.
+marginals :: MacaPool -> C.Concraft -> T.Text -> IO [Sent Tag]
+marginals pool concraft inp = map (marginalsSent concraft) <$> macaPar pool inp
 
 
--- | An alernative to `probs` which interprets empty lines as
+-- | An alernative to `marginals` which interprets empty lines as
 -- paragraph ending markers.  The function uses lazy IO so it
 -- can be used to analyse large chunks of data.
-probs' :: MacaPool -> C.Concraft -> L.Text -> IO [[Sent Tag]]
-probs' pool concraft
-    = LazyIO.mapM (probs pool concraft . L.toStrict)
+marginals' :: MacaPool -> C.Concraft -> L.Text -> IO [[Sent Tag]]
+marginals' pool concraft
+    = LazyIO.mapM (marginals pool concraft . L.toStrict)
     . map L.unlines
     . Split.splitWhen
         (L.all Char.isSpace)
     . L.lines
 
 
--- | Tag the analysed sentence with probabilities.
-probsSent :: C.Concraft -> Sent Tag -> Sent Tag
-probsSent concraft sent
+-- | Tag the sentence with marginal probabilities.
+marginalsSent :: C.Concraft -> Sent Tag -> Sent Tag
+marginalsSent concraft sent
     = map (uncurry selectWMap)
     $ zip wmaps sent
   where
@@ -160,7 +160,7 @@ probsSent concraft sent
     packed = packSent tagset sent
     wmaps  = map
         (X.mapWMap showTag)
-        (C.probs concraft packed)
+        (C.marginals concraft packed)
     showTag = P.showTag tagset
 
 

@@ -30,6 +30,7 @@ import qualified Data.Text as T
 import qualified Data.Text.Lazy as L
 import qualified Data.Text.Lazy.Builder as L
 import qualified Data.Text.Lazy.Read as R
+import           Text.Printf (printf)
 
 import qualified NLP.Concraft.Morphosyntax as X
 import           NLP.Concraft.Polish.Morphosyntax
@@ -147,10 +148,13 @@ buildInterps ShowCfg{..} interps = mconcat
     buildTag  = L.fromText . tag
     buildBase = L.fromText . base
     buildDmb  = case showWsCfg of
-        True    -> \x -> "\t" <> L.fromString (show x) <> "\n"
+        True    -> \x -> between "\t" "\n"
+            $ L.fromString
+            $ printf "%.3f" x
         False   -> \x -> if x > 0
             then "\tdisamb\n"
             else "\n"
+    between x y z = x <> z <> y
 
 buildSpace :: Space -> L.Builder
 buildSpace None     = "none"

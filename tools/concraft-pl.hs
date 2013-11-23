@@ -212,10 +212,10 @@ exec Tag{..} = do
     L.putStr $ showData showCfg out
   where
     tag = if weights
-        then C.probs'
+        then C.marginals'
         else C.tag'
     tagSent = if weights
-        then C.probsSent
+        then C.marginalsSent
         else C.tagSent
     showCfg = ShowCfg
         { formatCfg = format
