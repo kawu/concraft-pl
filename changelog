@@ -1,5 +1,11 @@
 -*-change-log-*-
 
+0.7.0	Nov 2013
+	* Output guessing results for unknown words 
+	* Allow "--noana" option in the client/server mode
+	* Add option to output marginal probabilities
+	* Add separate mode for model pruning
+
 0.6.0	Nov 2013
 	* Output wordform instead of "None" as a lemma for unknown words
 

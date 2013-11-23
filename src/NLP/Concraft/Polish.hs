@@ -11,22 +11,28 @@ module NLP.Concraft.Polish
 
 -- * Tagging
 , tag
-, tag'
-, tagSent
+, marginals
+
+-- * Analysis
+, macaPar
 
 -- * Training
 , TrainConf (..)
 , train
+
+-- * Pruning
+, C.prune
+
+-- -- * Analysis
+-- , anaSent
+-- , reAnaPar
 ) where
 
 
-import qualified Control.Monad.LazyIO as LazyIO
 import           Control.Applicative ((<$>))
-import qualified Data.List.Split as Split
-import qualified Data.Char as Char
-import qualified Data.Text as T
 import qualified Data.Text.Lazy as L
 import qualified Data.Set as S
+
 import qualified Data.Tagset.Positional as P
 import qualified Numeric.SGD as SGD
 
@@ -36,6 +42,7 @@ import           NLP.Concraft.Schema (SchemaConf(..), entry, entryWith)
 import qualified NLP.Concraft.Guess as G
 import qualified NLP.Concraft.Disamb as D
 import qualified NLP.Concraft as C
+-- import qualified NLP.Concraft.Analysis as A
 
 import           NLP.Concraft.Polish.Morphosyntax hiding (tag)
 import           NLP.Concraft.Polish.Maca
@@ -83,31 +90,32 @@ tiersDefault =
 -------------------------------------------------
 
 
--- | Perform morphological tagging on the input text.
-tag :: MacaPool -> C.Concraft -> T.Text -> IO [Sent Tag]
-tag pool concraft inp = map (tagSent concraft) <$> macaPar pool inp
+-- | Tag the analysed sentence.
+tag :: C.Concraft -> Sent Tag -> Sent Tag
+tag concraft sent =
+    [ select' gs t seg
+    | (seg, gs, t) <- zip3 sent gss ts ]
+  where
+    tagset = C.tagset concraft
+    packed = packSent tagset sent
+    tagged = C.tag concraft packed
+    gss    = map (map showTag . S.toList . fst) tagged
+    ts     = map (showTag . snd) tagged
+    showTag = P.showTag tagset
 
 
--- | An alernative tagging function which interprets
--- empty lines as paragraph ending markers.
--- The function uses lazy IO so it can be used to
--- analyse large chunks of data.
-tag' :: MacaPool -> C.Concraft -> L.Text -> IO [[Sent Tag]]
-tag' pool concraft
-    = LazyIO.mapM (tag pool concraft . L.toStrict)
-    . map L.unlines
-    . Split.splitWhen
-        (L.all Char.isSpace)
-    . L.lines
-
-
--- | Tag an already analysed sentence.
-tagSent :: C.Concraft -> Sent Tag -> Sent Tag
-tagSent concraft sent =
-    let tagset = C.tagset concraft
-        packed = packSent tagset sent
-        tags   = map (P.showTag tagset) (C.tag concraft packed)
-    in  map (uncurry select) (zip tags sent)
+-- | Tag the sentence with marginal probabilities.
+marginals :: C.Concraft -> Sent Tag -> Sent Tag
+marginals concraft sent
+    = map (uncurry selectWMap)
+    $ zip wmaps sent
+  where
+    tagset = C.tagset concraft
+    packed = packSent tagset sent
+    wmaps  = map
+        (X.mapWMap showTag)
+        (C.marginals concraft packed)
+    showTag = P.showTag tagset
 
 
 -------------------------------------------------
@@ -115,6 +123,7 @@ tagSent concraft sent =
 -------------------------------------------------
 
 
+-- | Training configuration.
 data TrainConf = TrainConf {
     -- | Tagset.
       tagset    :: P.Tagset
@@ -126,8 +135,6 @@ data TrainConf = TrainConf {
     , onDisk    :: Bool
     -- | Numer of guessed tags for each word.
     , guessNum  :: Int
-    -- | Disamb model pruning parameter.
-    , prune     :: Maybe Double
     -- | `G.r0T` parameter.
     , r0        :: G.R0T }
 
@@ -142,7 +149,7 @@ train
 train TrainConf{..} train0 eval0 = do
 
     pool <- newMacaPool 1
-    let ana = fmap (packSent tagset . concat) . macaPar pool . L.toStrict
+    let ana = anaSent tagset pool
         train1 = map (packSentO tagset) <$> train0
         eval1  = map (packSentO tagset) <$> eval0
 
@@ -152,10 +159,29 @@ train TrainConf{..} train0 eval0 = do
 
   where
 
-    guessConf  = G.TrainConf guessSchemaDefault sgdArgs onDisk r0
-    disambConf = D.TrainConf tiersDefault disambSchemaDefault
-        sgdArgs onDisk prune
-
     doReana ana   = C.reAnaTrain tagset ana guessNum guessConf disambConf
     noReana tr ev = C.train tagset guessNum guessConf disambConf 
         (map X.segs <$> tr) (map X.segs <$> ev)
+
+    guessConf  = G.TrainConf guessSchemaDefault sgdArgs onDisk r0
+    disambConf = D.TrainConf tiersDefault disambSchemaDefault sgdArgs onDisk
+
+
+-------------------------------------------------
+-- Re-analysis
+-------------------------------------------------
+
+
+-- | Analyse the given sentence with Maca.
+-- anaSent :: MacaPool -> L.Text -> IO (Sent Tag)
+anaSent :: P.Tagset -> MacaPool -> L.Text -> IO (X.Sent Word P.Tag)
+anaSent tagset pool
+    = fmap (packSent tagset . concat)
+    . macaPar pool . L.toStrict
+
+
+-- -- | Reanalyse the input paragraph (lazy IO).
+-- reAnaPar :: P.Tagset -> [SentO Tag] -> IO [Sent Tag]
+-- reAnaPar tagset inp = do
+--     pool <- newMacaPool 1
+--     A.reAnaPar tagset (anaSent pool) inp

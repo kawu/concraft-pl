@@ -82,6 +82,12 @@ size, run:
 Run `concraft-pl train --help` to learn more about the program arguments and
 possible training options.
 
+Finally, you may consider pruning the resultant model in order to reduce its size.
+Features with values close to 0 (in log-domain) have little effect on the modeled
+probability and, therefore, it should be safe to discard them.
+
+    concraft-pl prune -t 0.05 input-model.gz pruned-model.gz
+
 
 Tagging
 =======
@@ -94,6 +100,10 @@ The input file is first divided into paragraphs (the tool interprets empty lines
 as paragraph ending markers).  After that, [Maca][maca] is used to segment and analyse
 each paragraph.  Finally, [Concraft][concraft] module is used to disambiguate each
 sentence in the [Maca][maca] output.
+
+With the `--marginals` option enabled, Concraft-pl will output marginal probabilities
+corresponding to individual tags (determined on the basis of the disambiguation model)
+instead of `disamb` markers.
 
 Run `concraft-pl tag --help` to learn more about possible tagging options.
 

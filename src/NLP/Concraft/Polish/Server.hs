@@ -1,4 +1,5 @@
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE RecordWildCards #-}
 
 
 module NLP.Concraft.Polish.Server
@@ -7,8 +8,7 @@ module NLP.Concraft.Polish.Server
   runConcraftServer
 
 -- * Client
-, tag
-, tag'
+, submit
 ) where
 
 
@@ -16,18 +16,14 @@ import           Control.Applicative ((<$>))
 import           Control.Monad (forever, void)
 import           Control.Concurrent (forkIO)
 import           System.IO (Handle, hFlush)
-import qualified Control.Monad.LazyIO as LazyIO
 import qualified Network as N
-import qualified Data.Char as Char
-import qualified Data.List.Split as Split
 import qualified Data.Binary as B
 import qualified Data.ByteString.Lazy as BS
-import qualified Data.Text as T
-import qualified Data.Text.Lazy as L
 
 import           NLP.Concraft.Polish.Morphosyntax hiding (tag)
 import           NLP.Concraft.Polish.Maca
 import qualified NLP.Concraft.Polish as C
+import qualified NLP.Concraft.Polish.Request as R
 
 
 -------------------------------------------------
@@ -42,6 +38,7 @@ runConcraftServer pool concraft port = N.withSocketsDo $ do
     forever $ sockHandler pool concraft sock
 
 
+-- | Read and process short requests from the socket.
 sockHandler :: MacaPool -> C.Concraft -> N.Socket -> IO ()
 sockHandler pool concraft sock = do
     (handle, _, _) <- N.accept sock
@@ -50,7 +47,7 @@ sockHandler pool concraft sock = do
         -- putStrLn "Waiting for input..."
         inp <- recvMsg handle
         -- putStr "> " >> T.putStrLn inp
-        out <- C.tag pool concraft inp
+        out <- R.short pool concraft inp
         -- putStr "No. of sentences: " >> print (length out)
         sendMsg handle out
 
@@ -60,9 +57,9 @@ sockHandler pool concraft sock = do
 -------------------------------------------------
 
 
--- | Perform morphological tagging on the input text.
-tag :: N.HostName -> N.PortID -> T.Text -> IO [Sent Tag]
-tag host port inp = do
+-- | Submit the given request.
+submit :: N.HostName -> N.PortID -> R.Request R.Short -> IO [Sent Tag]
+submit host port inp = do
     handle <- N.connectTo host port
     -- putStrLn "Connection established"
     -- putStr "Send request: " >> T.putStrLn inp
@@ -70,21 +67,8 @@ tag host port inp = do
     recvMsg handle
 
 
--- | An alernative tagging function which interprets
--- empty lines as paragraph ending markers.
--- The function uses lazy IO so it can be used to
--- analyse large chunks of data.
-tag' :: N.HostName -> N.PortID -> L.Text -> IO [[Sent Tag]]
-tag' host port
-    = LazyIO.mapM (tag host port . L.toStrict)
-    . map L.unlines
-    . Split.splitWhen
-        (L.all Char.isSpace)
-    . L.lines
-
-
 -------------------------------------------------
--- Messages
+-- Communication
 -------------------------------------------------
 
 
