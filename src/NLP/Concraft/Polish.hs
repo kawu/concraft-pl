@@ -10,14 +10,11 @@ module NLP.Concraft.Polish
 , C.loadModel
 
 -- * Tagging
--- ** Plain
 , tag
-, tag'
-, tagSent
--- ** Probabilities
 , marginals
-, marginals'
-, marginalsSent
+
+-- * Analysis
+, macaPar
 
 -- * Training
 , TrainConf (..)
@@ -32,13 +29,10 @@ module NLP.Concraft.Polish
 ) where
 
 
-import qualified Control.Monad.LazyIO as LazyIO
 import           Control.Applicative ((<$>))
-import qualified Data.List.Split as Split
-import qualified Data.Char as Char
-import qualified Data.Text as T
 import qualified Data.Text.Lazy as L
 import qualified Data.Set as S
+
 import qualified Data.Tagset.Positional as P
 import qualified Numeric.SGD as SGD
 
@@ -96,26 +90,9 @@ tiersDefault =
 -------------------------------------------------
 
 
--- | Perform morphological tagging on the input text.
-tag :: MacaPool -> C.Concraft -> T.Text -> IO [Sent Tag]
-tag pool concraft inp = map (tagSent concraft) <$> macaPar pool inp
-
-
--- | An alernative to `tag` which interprets empty lines as
--- paragraph ending markers.  The function uses lazy IO so it
--- can be used to analyse large chunks of data.
-tag' :: MacaPool -> C.Concraft -> L.Text -> IO [[Sent Tag]]
-tag' pool concraft
-    = LazyIO.mapM (tag pool concraft . L.toStrict)
-    . map L.unlines
-    . Split.splitWhen
-        (L.all Char.isSpace)
-    . L.lines
-
-
 -- | Tag the analysed sentence.
-tagSent :: C.Concraft -> Sent Tag -> Sent Tag
-tagSent concraft sent =
+tag :: C.Concraft -> Sent Tag -> Sent Tag
+tag concraft sent =
     [ select' gs t seg
     | (seg, gs, t) <- zip3 sent gss ts ]
   where
@@ -127,32 +104,9 @@ tagSent concraft sent =
     showTag = P.showTag tagset
 
 
--------------------------------------------------
--- Tagging with probabilities
--------------------------------------------------
-
-
--- | Tag the input text with morphosyntactic tags and corresponding
--- marginal probabilities.
-marginals :: MacaPool -> C.Concraft -> T.Text -> IO [Sent Tag]
-marginals pool concraft inp = map (marginalsSent concraft) <$> macaPar pool inp
-
-
--- | An alernative to `marginals` which interprets empty lines as
--- paragraph ending markers.  The function uses lazy IO so it
--- can be used to analyse large chunks of data.
-marginals' :: MacaPool -> C.Concraft -> L.Text -> IO [[Sent Tag]]
-marginals' pool concraft
-    = LazyIO.mapM (marginals pool concraft . L.toStrict)
-    . map L.unlines
-    . Split.splitWhen
-        (L.all Char.isSpace)
-    . L.lines
-
-
 -- | Tag the sentence with marginal probabilities.
-marginalsSent :: C.Concraft -> Sent Tag -> Sent Tag
-marginalsSent concraft sent
+marginals :: C.Concraft -> Sent Tag -> Sent Tag
+marginals concraft sent
     = map (uncurry selectWMap)
     $ zip wmaps sent
   where

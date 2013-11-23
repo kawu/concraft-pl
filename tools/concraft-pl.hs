@@ -19,6 +19,7 @@ import qualified NLP.Concraft.Guess as Guess
 
 import qualified NLP.Concraft.Polish.Maca as Maca
 import qualified NLP.Concraft.Polish as C
+import qualified NLP.Concraft.Polish.Request as R
 import qualified NLP.Concraft.Polish.Server as S
 import qualified NLP.Concraft.Polish.Morphosyntax as X
 import qualified NLP.Concraft.Polish.Format.Plain as P
@@ -67,14 +68,15 @@ data Concraft
     { inModel       :: FilePath
     , noAna         :: Bool
     , format        :: Format
-    , weights       :: Bool }
+    , marginals     :: Bool }
     -- , guessNum      :: Int }
   | Server
     { inModel       :: FilePath
     , port          :: Int }
   | Client
-    { format        :: Format
-    , weights       :: Bool
+    { noAna         :: Bool
+    , format        :: Format
+    , marginals     :: Bool
     , host          :: String
     , port          :: Int }
   | Compare
@@ -112,10 +114,10 @@ trainMode = Train
 
 tagMode :: Concraft
 tagMode = Tag
-    { inModel = def &= argPos 0 &= typ "MODEL-FILE"
-    , noAna   = False &= help "Do not analyse input text"
-    , format  = enum [Plain &= help "Plain input format"]
-    , weights = False &= help "Show weights instead of disamb tags" }
+    { inModel  = def &= argPos 0 &= typ "MODEL-FILE"
+    , noAna    = False &= help "Do not analyse input text"
+    , format   = enum [Plain &= help "Plain format"]
+    , marginals = False &= help "Tag with marginal probabilities" }
     -- , guessNum = 10 &= help "Number of guessed tags for each unknown word" }
 
 
@@ -127,10 +129,11 @@ serverMode = Server
 
 clientMode :: Concraft
 clientMode = Client
-    { port    = portDefault &= help "Port number"
+    { noAna   = False &= help "Do not perform reanalysis"
+    , port    = portDefault &= help "Port number"
     , host    = "localhost" &= help "Server host name"
     , format  = enum [Plain &= help "Plain output format"]
-    , weights = False &= help "Show weights instead of disamb tags" }
+    , marginals = False &= help "Tag with marginal probabilities" }
 
 
 compareMode :: Concraft
@@ -138,7 +141,7 @@ compareMode = Compare
     { refPath   = def &= argPos 1 &= typ "REFERENCE-FILE"
     , otherPath = def &= argPos 2 &= typ "OTHER-FILE"
     , tagsetPath = def &= typFile &= help "Tagset definition file"
-    , format  = enum [Plain &= help "Plain input format"] }
+    , format  = enum [Plain &= help "Plain format"] }
 
 
 pruneMode :: Concraft
@@ -151,7 +154,7 @@ pruneMode = Prune
 
 -- reAnaMode :: Concraft
 -- reAnaMode = ReAna
---     { format    = enum [Plain &= help "Plain input format"] }
+--     { format    = enum [Plain &= help "Plain format"] }
 
 
 argModes :: Mode (CmdArgs Concraft)
@@ -201,26 +204,22 @@ exec Train{..} = do
 
 
 exec Tag{..} = do
-    cft  <- C.loadModel inModel
+    cft <- C.loadModel inModel
     pool <- Maca.newMacaPool numCapabilities
-    inp  <- L.getContents
-    out  <- if not noAna
-        then tag pool cft inp
-        else return $
-           let out = parseText format inp
-           in  map (map (tagSent cft)) out
+    inp <- L.getContents
+    out <- R.long (R.short pool cft) $ rq $ if noAna
+        then R.Doc $ parseText format inp
+        else R.Long inp
     L.putStr $ showData showCfg out
   where
-    tag = if weights
-        then C.marginals'
-        else C.tag'
-    tagSent = if weights
-        then C.marginalsSent
-        else C.tagSent
+    rq x = R.Request
+        { R.rqBody = x
+        , R.rqConf = rqConf }
+    rqConf = R.Config
+        { R.tagProbs = marginals }
     showCfg = ShowCfg
         { formatCfg = format
-        , showWsCfg = weights }
-    
+        , showWsCfg = marginals }
 
 
 exec Server{..} = do
@@ -235,15 +234,20 @@ exec Server{..} = do
 
 exec Client{..} = do
     let portNum = N.PortNumber $ fromIntegral port
-    out <- tag host portNum =<< L.getContents
+    inp <- L.getContents
+    out <- R.long (S.submit host portNum) $ rq $ if noAna
+        then R.Doc $ parseText format inp
+        else R.Long inp
     L.putStr $ showData showCfg out
   where
-    tag = if weights
-        then S.tag'
-        else S.tag'
+    rq x = R.Request
+        { R.rqBody = x
+        , R.rqConf = rqConf }
+    rqConf = R.Config
+        { R.tagProbs = marginals }
     showCfg = ShowCfg
         { formatCfg = format
-        , showWsCfg = weights }
+        , showWsCfg = marginals }
 
 
 exec Compare{..} = do

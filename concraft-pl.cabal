@@ -42,6 +42,7 @@ library
         NLP.Concraft.Polish
       , NLP.Concraft.Polish.Maca
       , NLP.Concraft.Polish.Morphosyntax
+      , NLP.Concraft.Polish.Request
       , NLP.Concraft.Polish.Server
 
     other-modules:
