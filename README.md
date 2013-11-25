@@ -5,9 +5,17 @@ This package provides a morphosyntactic tagger for the Polish language.
 The tool combines the following components into a pipeline:
 * A morphosyntactic segmentation and analysis tool [Maca][maca],
 * A morphosyntactic disambiguation library [Concraft][concraft],
+<!---
 * A simple, frequency-driven lemmatiser (TODO).  Until the lemmatiser component
   is implemented, the tagger may output multiple interpretations (all related
   to the same morphosyntactic tag, but with different lemmas) in some cases.
+-->
+
+As for now, the tagger doesn't provide any lemmatisation capabilities.
+As a result, the tool may output multiple interpretations (all related
+to the same morphosyntactic tag, but with different lemmas) for some known
+words, while for the out-of-vocabulary words it just outputs orthographic
+forms as lemmas.
 
 See the [homepage][homepage] if you wish to download a pre-trained
 model for the Polish language.
