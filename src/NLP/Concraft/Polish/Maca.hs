@@ -68,7 +68,7 @@ newMaca = do
 -- | Run Maca server on given channels.
 -- TODO: Should check, if maca works.  In particular, if morfeusz is available.
 runMacaOn :: In -> Out -> IO ThreadId
-runMacaOn inCh outCh = forkIO . mask $ \restore -> do
+runMacaOn inCh outCh = mask $ \restore -> forkIO (do
     let cmd  = "maca-analyse"
         args = ["-q", "morfeusz-nkjp-official", "-o", "plain", "-l"]
     (Just inh, Just outh, Just errh, pid) <-
@@ -102,6 +102,7 @@ runMacaOn inCh outCh = forkIO . mask $ \restore -> do
 
         -- Read maca response and put it in the output channel.
         writeChan outCh =<< readMacaResponse outh (textWeight txt)
+    )
 
 
 readMacaResponse :: Handle -> Int -> IO [Sent Tag]
