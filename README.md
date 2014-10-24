@@ -127,18 +127,18 @@ described above very slow in such a setting.
 
 To start the Concraft-pl server, run:
 
-    concraft-pl server model.gz
+    concraft-pl server --inmodel model.gz
 
 You can supply a custom port number using a `--port` option.  For example,
 to run the server on the `10101` port, use the following command:
 
-    concraft-pl server model.gz --port 10101
+    concraft-pl server --inmodel model.gz --port 10101
 
 To use the server in a multi-threaded environment, you need to specify the
 `-N` [RTS][ghc-rts] option.  A set of options which usually yields good
 server performance is presented in the following example:
 
-    concraft-pl server model.gz +RTS -N -A4M -qg1 -I0
+    concraft-pl server --inmodel model.gz +RTS -N -A4M -qg1 -I0
 
 Run `concraft-pl server --help` to learn more about possible server-mode options.
 
