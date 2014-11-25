@@ -213,29 +213,33 @@ putMaca :: Maca -> MacaPool -> IO ()
 putMaca x (MacaPool c) = writeChan c x
 
 
--- | Analyse paragraph with Maca.
--- The function is thread-safe.
+-- | Analyse paragraph with Maca.  The function is thread-safe.  As a
+-- pre-processing step, all non-printable characters are removed from
+-- the input (based on empirical observations, Maca behaves likewise).
 macaPar :: MacaPool -> T.Text -> IO [Sent Tag]
-macaPar pool par = do
+macaPar pool par0 = do
+    let par = T.filter C.isPrint par0
     maca <- popMaca pool
     doMacaPar maca par `finally` putMaca maca pool
 
 
-----------------------------
--- Weight
-----------------------------
+------------------------------------------------------------
+-- Weight: a number of non-space characters
+------------------------------------------------------------
 
 
--- | A number of non-space characters in a text.
+-- | A weight of a text.
 textWeight :: T.Text -> Int
+-- textWeight = T.length . T.filter C.isAlphaNum
 textWeight = T.length . T.filter (not . C.isSpace)
+-- textWeight = T.length . T.filter ((&&) <$> not . C.isSpace <*> C.isPrint)
 
 
--- | A number of non-space characters in a sentence.
+-- | A weight of a segment.
 segWeight :: Seg t -> Int
 segWeight = textWeight . orth . word
 
 
--- | A number of non-space characters in a sentence.
+-- | A weight of a sentence.
 sentWeight :: Sent t -> Int
 sentWeight = sum . map segWeight
