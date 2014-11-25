@@ -1,5 +1,8 @@
 -*-change-log-*-
 
+0.7.4	Nov 2014
+	* Ignore non-printable characters for compatibility with Maca
+
 0.7.0	Nov 2013
 	* Output guessing results for unknown words 
 	* Allow "--noana" option in the client/server mode
