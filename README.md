@@ -25,35 +25,18 @@ model for the Polish language.
 Installation
 ============
 
-You will need [Glasgow Haskell Compiler (GHC)][ghc] and the [Cabal][cabal] tool
-to build Concraft-pl.  The easiest way to get both [GHC][ghc] and [Cabal][cabal]
-is to install the latest [Haskell Platform][haskell-platform].  
+It is recommanded to install Concraft-pl using the
+[Haskell Tool Stack][stack], which you will need to downoload and
+install on your machine beforehand.  Then clone this repository into
+a local directory and use `stack` to install the library by running:
 
-Unless you plan to use a custom preprocessing pipeline or run [Maca][maca] on a
-different machine (see section [Tagging analysed data](#tagging-analysed-data)),
-you will also need the [Maca][maca] tool. 
-A detailed [installation guide][maca-install] can be found on the [Maca][maca]
-homepage.
+    stack install
 
-To install Concraft-pl from the official [Hackage repository][hackage-repo]
-just run:
-
-    cabal install concraft-pl
-
-The `concraft-pl` tool will be installed in the `~/.cabal/bin` directory
-by default.  
-
-If you want to upgrade Concraft-pl to a newer version you should
-update the package list first:
-
-    cabal update 
-    cabal install concraft-pl
-
-To install the latest development version from github just run
-
-    cabal install
-
-from the `concraft-pl` toplevel directory.
+Unless you plan to use a custom preprocessing pipeline or run
+[Maca][maca] on a different machine (see section
+[Tagging analysed data](#tagging-analysed-data)), you will also need
+the [Maca][maca] tool.  A detailed [installation guide][maca-install]
+can be found on the [Maca][maca] homepage.
 
 
 Data format
@@ -173,6 +156,7 @@ training and disambiguation.  Inconsistencies between training material and inpu
 data may severely harm the quality of disambiguation.*
 
 
+[stack]: http://docs.haskellstack.org "Haskell Tool Stack"
 [homepage]: http://zil.ipipan.waw.pl/Concraft "Homepage"
 [concraft]: https://github.com/kawu/concraft "Concraft"
 [hackage-repo]: http://hackage.haskell.org/package/concraft-pl "Concraft-pl Hackage repository"
