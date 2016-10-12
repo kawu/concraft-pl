@@ -6,14 +6,16 @@ resolver: lts-1.15
 # Local packages, usually specified by relative directory name
 packages:
 - '.'
+- '../crf-chain1-constrained'
+- '../concraft'
 
 # Packages to be pulled from upstream that are not in the resolver (e.g., acme-missiles-0.3)
 extra-deps:
-- concraft-0.9.4
+- concraft-0.10.0
 - lazy-io-0.1.0
 - sgd-0.3.7
 - tagset-positional-0.3.0
-- crf-chain1-constrained-0.3.2
+- crf-chain1-constrained-0.4.0
 - crf-chain2-tiers-0.2.4
 - data-lens-2.10.7
 - monad-codec-0.2.0
