@@ -94,6 +94,7 @@ data Concraft
 --   | ReAna
 --     { format	    :: Format }
   | Conv
+    { convPlain     :: Bool }
   deriving (Data, Typeable, Show)
 
 
@@ -158,6 +159,7 @@ pruneMode = Prune
 
 convMode :: Concraft
 convMode = Conv
+  { convPlain = False &= help "Set to true if convert plain and dag otherwise" }
 
 
 -- reAnaMode :: Concraft
@@ -277,10 +279,14 @@ exec Prune{..} = do
     C.saveModel outModel $ C.prune threshold cft
 
 
-exec Conv{..} = do
-  inp <- concat . P.parsePlain <$> L.getContents
-  let out = map XD.fromList inp
-  L.putStrLn $ D.showData D.ShowCfg out
+exec Conv{..}
+  | convPlain = do
+      inp <- concat . P.parsePlain <$> L.getContents
+      let out = map XD.fromList inp
+      L.putStrLn $ D.showData D.ShowCfg out
+  | otherwise = do
+      inp <- D.parseData <$> L.getContents
+      L.putStrLn $ D.showData D.ShowCfg inp
 
 
 -- exec ReAna{..} = do
