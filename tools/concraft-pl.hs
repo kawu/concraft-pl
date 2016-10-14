@@ -4,7 +4,7 @@
 
 
 import           Control.Applicative ((<$>))
-import           Control.Monad (unless)
+import           Control.Monad (unless, forM_)
 import           System.Console.CmdArgs
 import           System.IO (hFlush, stdout)
 import qualified Network as N
@@ -22,7 +22,10 @@ import qualified NLP.Concraft.Polish as C
 import qualified NLP.Concraft.Polish.Request as R
 import qualified NLP.Concraft.Polish.Server as S
 import qualified NLP.Concraft.Polish.Morphosyntax as X
+import qualified NLP.Concraft.Polish.Morphosyntax.DAG as XD
+
 import qualified NLP.Concraft.Polish.Format.Plain as P
+import qualified NLP.Concraft.Polish.Format.DAG as D
 
 import           Paths_concraft_pl (version, getDataFileName)
 import           Data.Version (showVersion)
@@ -90,6 +93,7 @@ data Concraft
     , threshold     :: Double }
 --   | ReAna
 --     { format	    :: Format }
+  | Conv
   deriving (Data, Typeable, Show)
 
 
@@ -152,6 +156,10 @@ pruneMode = Prune
         help "Remove disambiguation features below the threshold" }
 
 
+convMode :: Concraft
+convMode = Conv
+
+
 -- reAnaMode :: Concraft
 -- reAnaMode = ReAna
 --     { format    = enum [Plain &= help "Plain format"] }
@@ -159,7 +167,7 @@ pruneMode = Prune
 
 argModes :: Mode (CmdArgs Concraft)
 argModes = cmdArgsMode $ modes
-    [trainMode, tagMode, serverMode, clientMode, compareMode, pruneMode]
+    [trainMode, tagMode, serverMode, clientMode, compareMode, pruneMode, convMode]
     &= summary concraftDesc
     &= program "concraft-pl"
 
@@ -267,6 +275,12 @@ exec Compare{..} = do
 exec Prune{..} = do
     cft <- C.loadModel inModel
     C.saveModel outModel $ C.prune threshold cft
+
+
+exec Conv{..} = do
+  inp <- concat . P.parsePlain <$> L.getContents
+  let out = map XD.fromList inp
+  L.putStrLn $ D.showData D.ShowCfg out
 
 
 -- exec ReAna{..} = do

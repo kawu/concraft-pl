@@ -24,6 +24,7 @@ library
     build-depends:
         base >= 4 && < 5
       , concraft                >= 0.10     && < 0.11
+      , crf-chain1-constrained  >= 0.4      && < 0.5
       , tagset-positional       >= 0.3      && < 0.4
       , sgd                     >= 0.3.3    && < 0.4
       , containers              >= 0.4      && < 0.6
@@ -42,11 +43,13 @@ library
         NLP.Concraft.Polish
       , NLP.Concraft.Polish.Maca
       , NLP.Concraft.Polish.Morphosyntax
+      , NLP.Concraft.Polish.Morphosyntax.DAG
       , NLP.Concraft.Polish.Request
       , NLP.Concraft.Polish.Server
 
     other-modules:
         NLP.Concraft.Polish.Format.Plain
+        NLP.Concraft.Polish.Format.DAG
 
     ghc-options: -Wall -O2
 

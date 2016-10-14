@@ -3,16 +3,16 @@
 {-# LANGUAGE TupleSections #-}
 
 
--- | Morphosyntax data layer in Polish.
+-- | DAG-aware morphosyntax data layer in Polish.
 
 
-module NLP.Concraft.Polish.Morphosyntax
+module NLP.Concraft.Polish.Morphosyntax.DAG
 (
 -- * Tag
   Tag
 
--- * Segment
-, Seg (..)
+-- * Edge
+, Edge (..)
 , Word (..)
 , Interp (..)
 , Space (..)
@@ -30,22 +30,29 @@ module NLP.Concraft.Polish.Morphosyntax
 , packSeg
 , packSent
 , packSentO
+
+, fromList
 ) where
 
 
 import           Control.Applicative ((<$>), (<*>))
 import           Control.Arrow (first)
-import           Data.Maybe (catMaybes)
-import           Data.Aeson
 import           Data.Binary (Binary, put, get, putWord8, getWord8)
+import           Data.Aeson
 import qualified Data.Aeson as Aeson
 import qualified Data.Set as S
 import qualified Data.Map as M
+import           Data.Maybe (catMaybes)
 import qualified Data.Text as T
 import qualified Data.Text.Lazy as L
 import qualified Data.Tagset.Positional as P
 
-import qualified NLP.Concraft.Morphosyntax as X
+import           Data.CRF.Chain1.Constrained.DAG.Dataset.Internal (DAG)
+import qualified Data.CRF.Chain1.Constrained.DAG.Dataset.Internal as DAG
+
+import qualified NLP.Concraft.Morphosyntax.DAG as X
+import qualified NLP.Concraft.Polish.Morphosyntax as R
+import           NLP.Concraft.Polish.Morphosyntax (Space(..), Interp(..))
 
 
 -- | A textual representation of a morphosyntactic tag.
@@ -53,118 +60,79 @@ type Tag = T.Text
 
 
 --------------------------------
--- Segment
+-- Edge
 --------------------------------
 
 
--- | A segment consists of a word and a set of morphosyntactic interpretations.
-data Seg t = Seg
+-- | An edge consists of a word and a set of morphosyntactic interpretations.
+data Edge t = Edge
     { word      :: Word
-    -- | Interpretations of the token, each interpretation annotated
+    -- | Interpretations of the word, each interpretation annotated
     -- with a /disamb/ Boolean value (if 'True', the interpretation
     -- is correct within the context).
     , interps   :: X.WMap (Interp t) }
     deriving (Show, Eq, Ord)
 
 
-instance (Ord t, Binary t) => Binary (Seg t) where
-    put Seg{..} = put word >> put interps
-    get = Seg <$> get <*> get
+instance (Ord t, Binary t) => Binary (Edge t) where
+    put Edge{..} = put word >> put interps
+    get = Edge <$> get <*> get
+
+
+--------------------------------
+-- Word
+--------------------------------
 
 
 -- | A word.
 data Word = Word
     { orth      :: T.Text
-    , space     :: Space
+    -- , space     :: Space
     , known     :: Bool }
     deriving (Show, Eq, Ord)
-
 
 instance X.Word Word where
     orth = orth
     oov = not.known
 
+instance Binary Word where
+    -- put Word{..} = put orth >> put space >> put known
+    put Word{..} = put orth >> put known
+    -- get = Word <$> get <*> get <*> get
+    get = Word <$> get <*> get
 
 instance ToJSON Word where
     toJSON Word{..} = object
         [ "orth"  .= orth
-        , "space" .= space
         , "known" .= known ]
-
 
 instance FromJSON Word where
     parseJSON (Object v) = Word
         <$> v .: "orth"
-        <*> v .: "space"
         <*> v .: "known"
     parseJSON _ = error "parseJSON [Word]"
 
 
-instance Binary Word where
-    put Word{..} = put orth >> put space >> put known
-    get = Word <$> get <*> get <*> get
-
-
--- | A morphosyntactic interpretation.
-data Interp t = Interp
-    { base  :: T.Text
-    , tag   :: t }
-    deriving (Show, Eq, Ord)
-
-
-instance (Ord t, Binary t) => Binary (Interp t) where
-    put Interp{..} = put base >> put tag
-    get = Interp <$> get <*> get
-
-
--- | No space, space or newline.
--- TODO: Perhaps we should use a bit more informative data type.
-data Space
-    = None
-    | Space
-    | NewLine
-    deriving (Show, Eq, Ord)
-
-
-instance Binary Space where
-    put x = case x of
-        None    -> putWord8 1
-        Space   -> putWord8 2
-        NewLine -> putWord8 3
-    get = getWord8 >>= \x -> return $ case x of
-        1   -> None
-        2   -> Space
-        _   -> NewLine
-
-
-instance ToJSON Space where
-    toJSON x = Aeson.String $ case x of
-        None    -> "none"
-        Space   -> "space"
-        NewLine -> "newline"
-
-
-instance FromJSON Space where
-    parseJSON (Aeson.String x) = return $ case x of
-        "none"      -> None
-        "space"     -> Space
-        "newline"   -> NewLine
-        _           -> error "parseJSON [Space]"
-    parseJSON _ = error "parseJSON [Space]"
+--------------------------------
+-- Selection
+--
+-- (Honestly, I don't remember
+-- what is this one about...)
+--------------------------------
 
 
 -- | Select one chosen interpretation.
-select :: Ord a => a -> Seg a -> Seg a
+select :: Ord a => a -> Edge a -> Edge a
 select = select' []
 
 
 -- | Select multiple interpretations and one chosen interpretation.
-select' :: Ord a => [a] -> a -> Seg a -> Seg a
+select' :: Ord a => [a] -> a -> Edge a -> Edge a
 select' ys x = selectWMap . X.mkWMap $ (x, 1) : map (,0) ys
 
 
 -- | Select interpretations.
-selectWMap :: Ord a => X.WMap a -> Seg a -> Seg a
+selectWMap :: Ord a => X.WMap a -> Edge a -> Edge a
 selectWMap wMap seg =
     seg { interps = newInterps }
   where
@@ -188,32 +156,43 @@ selectWMap wMap seg =
 
 
 -- | A sentence.
-type Sent t = [Seg t]
+type Sent t = DAG Space (Edge t)
 
 
--- | A sentence.
+-- | A sentence with its original textual representation.
 data SentO t = SentO
-    { segs  :: [Seg t]
+    { sent  :: Sent t
     , orig  :: L.Text }
 
 
 -- | Restore textual representation of a sentence.
 -- The function is not very accurate, it could be improved
--- if we enrich representation of a space.
+-- if we enriched the representation of spaces.
 restore :: Sent t -> L.Text
 restore =
-    let wordStr Word{..} = [spaceStr space, orth] 
-        spaceStr None       = ""
-        spaceStr Space      = " "
-        spaceStr NewLine    = "\n"
-    in  L.fromChunks . concatMap (wordStr . word)
+    let edgeStr = orth . word
+        spaceStr None    = ""
+        spaceStr Space   = " "
+        spaceStr NewLine = "\n"
+    in  L.fromChunks . map (either spaceStr edgeStr) . pickPath
 
 
 -- | Use `restore` to translate `Sent` to a `SentO`.
 withOrig :: Sent t -> SentO t
 withOrig s = SentO
-    { segs = s
+    { sent = s
     , orig = restore s }
+
+
+--------------------------------
+-- Utils
+--------------------------------
+
+
+-- | Pick any path from the given DAG. The result is a list
+-- of interleaved node and edge labels.
+pickPath :: DAG a b -> [Either a b]
+pickPath = undefined
 
 
 ---------------------------
@@ -221,9 +200,9 @@ withOrig s = SentO
 ---------------------------
 
 
--- | Convert a segment to a segment from a core library.
-packSeg_ :: Ord a => Seg a -> X.Seg Word a
-packSeg_ Seg{..}
+-- | Convert a segment to a segment from the core library.
+packSeg_ :: Ord a => Edge a -> X.Seg Word a
+packSeg_ Edge{..}
     = X.Seg word
     $ X.mkWMap
     $ map (first tag)
@@ -231,18 +210,42 @@ packSeg_ Seg{..}
     $ X.unWMap interps
 
 
--- | Convert a segment to a segment from a core library.
-packSeg :: P.Tagset -> Seg Tag -> X.Seg Word P.Tag
+-- | Convert a segment to a segment from the core library.
+packSeg :: P.Tagset -> Edge Tag -> X.Seg Word P.Tag
 packSeg tagset = X.mapSeg (P.parseTag tagset) . packSeg_
 
 
--- | Convert a sentence to a sentence from a core library.
+-- | Convert a sentence to a sentence from the core library.
 packSent :: P.Tagset -> Sent Tag -> X.Sent Word P.Tag
-packSent = map . packSeg
+packSent tagset
+  = DAG.mapN (const ())
+  . fmap (packSeg tagset)
 
 
--- | Convert a sentence to a sentence from a core library.
+-- | Convert a sentence to a sentence from the core library.
 packSentO :: P.Tagset -> SentO Tag -> X.SentO Word P.Tag
 packSentO tagset s = X.SentO
-    { segs = packSent tagset (segs s)
+    { segs = packSent tagset (sent s)
     , orig = orig s }
+
+
+---------------------------
+-- From simple sentence
+---------------------------
+
+
+fromWord :: R.Word -> (Space, Word)
+fromWord R.Word{..} = (space, Word {orth=orth, known=known})
+
+
+fromSeg :: R.Seg t -> (Space, Edge t)
+fromSeg R.Seg{..} =
+  (space, edge)
+  where
+    edge = Edge {word = newWord , interps = interps}
+    (space, newWord) = fromWord word
+
+
+-- | Create a DAG-based sentence from a list-based sentence.
+fromList :: R.Sent t -> Sent t
+fromList = DAG.fromList' None . map fromSeg
