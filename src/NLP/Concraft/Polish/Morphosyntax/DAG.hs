@@ -47,8 +47,10 @@ import qualified Data.Text as T
 import qualified Data.Text.Lazy as L
 import qualified Data.Tagset.Positional as P
 
-import           Data.CRF.Chain1.Constrained.DAG.Dataset.Internal (DAG)
-import qualified Data.CRF.Chain1.Constrained.DAG.Dataset.Internal as DAG
+import           Data.DAG (DAG)
+import qualified Data.DAG as DAG
+-- import           Data.CRF.Chain1.Constrained.DAG.Dataset.Internal (DAG)
+-- import qualified Data.CRF.Chain1.Constrained.DAG.Dataset.Internal as DAG
 
 import qualified NLP.Concraft.Morphosyntax.DAG as X
 import qualified NLP.Concraft.Polish.Morphosyntax as R

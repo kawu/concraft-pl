@@ -24,7 +24,9 @@ import qualified Data.Text.Lazy as L
 import qualified Data.Text.Lazy.Builder as L
 import           Text.Printf (printf)
 
-import qualified Data.CRF.Chain1.Constrained.DAG.Dataset.Internal as DAG
+import qualified Data.DAG as DAG
+-- import qualified Data.CRF.Chain1.Constrained.DAG.Dataset.Internal as DAG
+
 import qualified NLP.Concraft.Morphosyntax.DAG as X
 import qualified NLP.Concraft.Polish.Morphosyntax as I
 import           NLP.Concraft.Polish.Morphosyntax.DAG
