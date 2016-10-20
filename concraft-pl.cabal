@@ -44,13 +44,15 @@ library
         NLP.Concraft.Polish
       , NLP.Concraft.Polish.Maca
       , NLP.Concraft.Polish.Morphosyntax
-      , NLP.Concraft.Polish.Morphosyntax.DAG
       , NLP.Concraft.Polish.Request
       , NLP.Concraft.Polish.Server
 
+      , NLP.Concraft.Polish.DAG
+      , NLP.Concraft.Polish.DAG.Morphosyntax
+
     other-modules:
         NLP.Concraft.Polish.Format.Plain
-        NLP.Concraft.Polish.Format.DAG
+        NLP.Concraft.Polish.DAG.Format.Base
 
     ghc-options: -Wall -O2
 
@@ -63,4 +65,11 @@ executable concraft-pl
         cmdargs                 >= 0.10     && < 0.11
     hs-source-dirs: src, tools
     main-is: concraft-pl.hs
+    ghc-options: -Wall -O2 -threaded -rtsopts
+
+executable concraft-dag-pl
+    build-depends:
+        cmdargs                 >= 0.10     && < 0.11
+    hs-source-dirs: src, tools
+    main-is: concraft-dag-pl.hs
     ghc-options: -Wall -O2 -threaded -rtsopts

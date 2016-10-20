@@ -2,7 +2,7 @@
 {-# LANGUAGE RecordWildCards #-}
 
 
-module NLP.Concraft.Polish.Format.DAG
+module NLP.Concraft.Polish.DAG.Format.Base
 (
 -- * Printing
   ShowCfg (..)
@@ -27,9 +27,9 @@ import           Text.Printf (printf)
 import qualified Data.DAG as DAG
 -- import qualified Data.CRF.Chain1.Constrained.DAG.Dataset.Internal as DAG
 
-import qualified NLP.Concraft.Morphosyntax.DAG as X
+import qualified NLP.Concraft.DAG.Morphosyntax as X
 import qualified NLP.Concraft.Polish.Morphosyntax as I
-import           NLP.Concraft.Polish.Morphosyntax.DAG
+import           NLP.Concraft.Polish.DAG.Morphosyntax
 
 
 -----------------------------
@@ -59,14 +59,26 @@ buildSent _cfg dag = finalize $ do
   let tailNode = DAG.begsWith edgeID dag
       headNode = DAG.endsWith edgeID dag
       Edge{..} = DAG.edgeLabel edgeID dag
-  (Interp{..}, weight) <- M.toList (X.unWMap interps)
-  return . mconcat $ intersperse "\t"
-    [ buildNode tailNode
-    , buildNode headNode
-    , L.fromText (orth word)
-    , L.fromText base
-    , L.fromText tag
-    , buildDmb weight ]
+  interp <- map Just (M.toList (X.unWMap interps)) ++
+            if known word then [] else [Nothing]
+  return $ case interp of
+    Just (Interp{..}, weight) ->
+      mconcat $ intersperse "\t"
+        [ buildNode tailNode
+        , buildNode headNode
+        , L.fromText (orth word)
+        , L.fromText base
+        , L.fromText tag
+        , buildDmb weight ]
+    -- below, the case when the word is unknown
+    Nothing ->
+      mconcat $ intersperse "\t"
+        [ buildNode tailNode
+        , buildNode headNode
+        , L.fromText (orth word)
+        , L.fromText "none"
+        , L.fromText ign
+        , buildDmb 0.0 ]
   where
     finalize = (`mappend` "\n") . mconcat . intersperse "\n"
     buildNode (DAG.NodeID i) = L.fromString (show i)
@@ -110,13 +122,14 @@ fromRows =
     theSameEdge r1 r2
       =  tailNode r1 == tailNode r2
       && headNode r1 == headNode r2
+    mkEdge [] = error "Format.Base.fromRows: empty list"
     mkEdge rows@(row0:_) = Edge
       { word = newWord
       , interps = newInterps }
       where
         newWord = Word
           { orth = orthForm row0
-          , known = theTag row0 /= ign }
+          , known = not $ ign `elem` map theTag rows }
         newInterps = X.mkWMap
           [ (interp, tagProb)
           | Row{..} <- rows
