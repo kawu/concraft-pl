@@ -116,17 +116,22 @@ data Row = Row
 
 fromRows :: [Row] -> Sent Tag
 fromRows =
-  DAG.fromList' I.None . zip (repeat I.None) . getEdges
+  -- DAG.fromList' I.None . zip (repeat I.None) . getEdges
+  DAG.mapN (const I.None) . DAG.fromEdgesUnsafe . getEdges
   where
     getEdges = map mkEdge . groupBy theSameEdge
     theSameEdge r1 r2
       =  tailNode r1 == tailNode r2
       && headNode r1 == headNode r2
     mkEdge [] = error "Format.Base.fromRows: empty list"
-    mkEdge rows@(row0:_) = Edge
-      { word = newWord
-      , interps = newInterps }
+    mkEdge rows@(row0:_) = DAG.Edge
+      { DAG.tailNode = DAG.NodeID $ tailNode row0
+      , DAG.headNode = DAG.NodeID $ headNode row0
+      , DAG.edLabel = edge }
       where
+        edge = Edge
+          { word = newWord
+          , interps = newInterps }
         newWord = Word
           { orth = orthForm row0
           , known = not $ ign `elem` map theTag rows }
