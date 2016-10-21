@@ -75,10 +75,13 @@ data Edge t = Edge
     , interps   :: X.WMap (Interp t) }
     deriving (Show, Eq, Ord)
 
-
 instance (Ord t, Binary t) => Binary (Edge t) where
     put Edge{..} = put word >> put interps
     get = Edge <$> get <*> get
+
+instance X.Word (Edge t) where
+    orth = X.orth . word
+    oov = X.oov . word
 
 
 --------------------------------

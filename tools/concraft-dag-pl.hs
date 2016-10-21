@@ -49,9 +49,9 @@ data Concraft
     , guessNum      :: Int
     , r0            :: Guess.R0T }
   | Tag
-    { inModel       :: FilePath }
+    { inModel       :: FilePath
     -- , marginals     :: Bool
-    -- , guessNum      :: Int }
+    , mayGuessNum      :: Maybe Int }
   deriving (Data, Typeable, Show)
 
 
@@ -74,10 +74,10 @@ trainMode = Train
 
 tagMode :: Concraft
 tagMode = Tag
-    { inModel  = def &= argPos 0 &= typ "MODEL-FILE" }
+    { inModel  = def &= argPos 0 &= typ "MODEL-FILE"
     -- , noAna    = False &= help "Do not analyse input text"
     -- , marginals = False &= help "Tag with marginal probabilities" }
-    -- , guessNum = 10 &= help "Number of guessed tags for each unknown word" }
+    , mayGuessNum = def &= help "Number of guessed tags for each unknown word" }
 
 
 argModes :: Mode (CmdArgs Concraft)
@@ -131,7 +131,10 @@ exec Train{..} = do
 exec Tag{..} = do
   crf <- C.loadModel inModel
   inp <- DB.parseData <$> L.getContents
-  let out = C.marginals crf <$> inp
+  let out = trim . C.marginals crf <$> inp
+      trim = case mayGuessNum of
+        Nothing -> id
+        Just k  -> C.trimOOV k
   L.putStr $ DB.showData DB.ShowCfg out
 
 

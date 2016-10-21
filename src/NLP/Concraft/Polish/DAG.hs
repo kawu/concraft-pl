@@ -17,6 +17,9 @@ module NLP.Concraft.Polish.DAG
 , marginals
 -- , tag
 
+-- * Trimming
+, trimOOV
+
 -- * Training
 , TrainConf (..)
 , train
@@ -79,6 +82,22 @@ marginals concraft sent
         (C.marginals concraft packed)
     showTag = P.showTag tagset
 
+
+-------------------------------------------------
+-- Trimming
+-------------------------------------------------
+
+
+-- | Trim down the set of potential labels to `k` most probable ones
+-- for each OOV word in the sentence.
+trimOOV :: Int -> Sent Tag -> Sent Tag
+trimOOV k =
+  fmap trim
+  where
+    trim edge = if X.oov edge
+      then trimEdge edge
+      else edge
+    trimEdge edge = edge {interps = X.trim k (interps edge)}
 
 -------------------------------------------------
 -- Training
