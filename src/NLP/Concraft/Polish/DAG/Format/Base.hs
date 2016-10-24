@@ -138,6 +138,7 @@ fromRows =
         newInterps = X.mkWMap
           [ (interp, tagProb)
           | Row{..} <- rows
+          , not $ theTag == ign
           , let interp = Interp
                   { base = baseForm
                   , tag = theTag } ]
