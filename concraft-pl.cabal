@@ -26,6 +26,7 @@ library
       , concraft                >= 0.10     && < 0.11
       , pedestrian-dag          >= 0.1      && < 0.2
       , crf-chain1-constrained  >= 0.4      && < 0.5
+      , crf-chain2-tiers        >= 0.3      && < 0.4
       , tagset-positional       >= 0.3      && < 0.4
       , sgd                     >= 0.3.3    && < 0.4
       , containers              >= 0.4      && < 0.6
@@ -48,6 +49,7 @@ library
       , NLP.Concraft.Polish.Server
 
       , NLP.Concraft.Polish.DAG
+      , NLP.Concraft.Polish.DAG2
       , NLP.Concraft.Polish.DAG.Morphosyntax
 
     other-modules:
