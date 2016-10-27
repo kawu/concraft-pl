@@ -10,13 +10,14 @@ packages:
 - '../crf-chain1-constrained'
 - '../crf-chain2-tiers'
 - '../concraft'
+- '../tagset-positional'
 
 # Packages to be pulled from upstream that are not in the resolver (e.g., acme-missiles-0.3)
 extra-deps:
 - concraft-0.10.0
 - lazy-io-0.1.0
 - sgd-0.3.7
-- tagset-positional-0.3.0
+- tagset-positional-0.3.1
 - crf-chain1-constrained-0.4.0
 - crf-chain2-tiers-0.3.0
 - data-lens-2.10.7
