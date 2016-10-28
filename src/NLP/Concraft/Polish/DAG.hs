@@ -106,16 +106,18 @@ trimOOV k =
 
 -- | Training configuration.
 data TrainConf = TrainConf {
-    -- | Tagset.
+    -- | Tagset
       tagset    :: P.Tagset
-    -- | SGD parameters.
+    -- | SGD parameters
     , sgdArgs   :: SGD.SgdArgs
-    -- | Store SGD dataset on disk.
+    -- | Store SGD dataset on disk
     , onDisk    :: Bool
-    -- | Numer of guessed tags for each word.
+    -- | Numer of guessed tags for each word
     , guessNum  :: Int
-    -- | `G.r0T` parameter.
-    , r0        :: G.R0T }
+    -- | `G.r0T` parameter
+    , r0        :: G.R0T
+    -- | `G.zeroProbLabel` parameter
+    , zeroProbLabel :: Tag }
 
 -- | Train concraft model.
 -- TODO: It should be possible to supply the two training procedures with
@@ -131,5 +133,5 @@ train TrainConf{..} train0 eval0 = do
   noReana train1 eval1
   where
     noReana tr ev = C.train tagset guessNum guessConf tr ev
-        -- (map X.segs <$> tr) (map X.segs <$> ev)
-    guessConf  = G.TrainConf guessSchemaDefault sgdArgs onDisk r0
+    guessConf  = G.TrainConf guessSchemaDefault sgdArgs onDisk r0 zeroProbTag 
+    zeroProbTag = P.parseTag tagset zeroProbLabel

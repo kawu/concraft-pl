@@ -8,9 +8,11 @@ import           Control.Monad (unless, forM_)
 import           System.Console.CmdArgs
 import           System.IO (hFlush, stdout)
 import qualified Numeric.SGD as SGD
+import qualified Data.Text as T
 import qualified Data.Text.Lazy as L
 import qualified Data.Text.Lazy.IO as L
 import           Data.Tagset.Positional (parseTagset)
+import qualified Data.Tagset.Positional as P
 
 import qualified NLP.Concraft.DAG.Guess as Guess
 
@@ -48,7 +50,8 @@ data Concraft
     , disk          :: Bool
     , outModel      :: FilePath
     , guessNum      :: Int
-    , r0            :: Guess.R0T }
+    , r0            :: Guess.R0T
+    , zeroProbLabel :: String }
   | Tag
     { inModel       :: FilePath
     -- , marginals     :: Bool
@@ -70,7 +73,8 @@ trainMode = Train
     , disk = False &= help "Store SGD dataset on disk"
     , outModel = def &= typFile &= help "Output Model file"
     , guessNum = 10 &= help "Number of guessed tags for each unknown word"
-    , r0 = Guess.OovChosen &= help "R0 construction method" }
+    , r0 = Guess.OovChosen &= help "R0 construction method"
+    , zeroProbLabel = "xxx" &= help "Zero probability label" }
 
 
 tagMode :: Concraft
@@ -105,11 +109,13 @@ exec Train{..} = do
         Nothing -> getDataFileName "config/nkjp-tagset.cfg"
         Just x  -> return x
     tagset <- parseTagset tagsetPath' <$> readFile tagsetPath'
+    -- let zeroProbLab = P.parseTag taset zeroProbLabel
+    let zeroProbLab = T.pack zeroProbLabel
     let train0 = DB.parseData <$> L.readFile trainPath
     let eval0  = case evalPath of
           Nothing -> return []
           Just ph -> DB.parseData <$> L.readFile ph
-    concraft <- P.train (trainConf tagset) train0 eval0
+    concraft <- P.train (trainConf tagset zeroProbLab) train0 eval0
     unless (null outModel) $ do
         putStrLn $ "\nSaving model in " ++ outModel ++ "..."
         P.saveModel outModel concraft
@@ -120,13 +126,14 @@ exec Train{..} = do
         , SGD.iterNum = iterNum
         , SGD.gain0 = gain0
         , SGD.tau = tau }
-    trainConf tagset = P.TrainConf
+    trainConf tagset zeroLab = P.TrainConf
         { tagset    = tagset 
         , sgdArgs   = sgdArgs
         -- , reana     = not noAna
         , onDisk    = disk
         , guessNum  = guessNum
-        , r0        = r0 }
+        , r0        = r0
+        , zeroProbLabel = zeroLab }
 
 
 exec Tag{..} = do

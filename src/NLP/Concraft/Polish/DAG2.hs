@@ -159,7 +159,9 @@ data TrainConf = TrainConf {
     -- | Numer of guessed tags for each word.
     , guessNum  :: Int
     -- | `G.r0T` parameter.
-    , r0        :: G.R0T }
+    , r0        :: G.R0T
+    -- | `G.zeroProbLabel` parameter
+    , zeroProbLabel :: Tag }
 
 -- | Train concraft model.
 -- TODO: It should be possible to supply the two training procedures with
@@ -175,5 +177,6 @@ train TrainConf{..} train0 eval0 = do
   noReana train1 eval1
   where
     noReana tr ev = C.train tagset guessNum guessConf disambConf tr ev
-    guessConf  = G.TrainConf guessSchemaDefault sgdArgs onDisk r0
+    guessConf  = G.TrainConf guessSchemaDefault sgdArgs onDisk r0 zeroProbTag
     disambConf = D.TrainConf tiersDefault disambSchemaDefault sgdArgs onDisk
+    zeroProbTag = P.parseTag tagset zeroProbLabel
