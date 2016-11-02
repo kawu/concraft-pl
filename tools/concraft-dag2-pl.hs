@@ -15,6 +15,7 @@ import           Data.Tagset.Positional (parseTagset)
 import qualified Data.Tagset.Positional as P
 
 import qualified NLP.Concraft.DAG.Guess as Guess
+import qualified NLP.Concraft.DAG.Disamb as Disamb
 
 import qualified NLP.Concraft.DAG2 as C
 import qualified NLP.Concraft.Polish.DAG2 as P
@@ -55,8 +56,21 @@ data Concraft
   | Tag
     { inModel       :: FilePath
     -- , marginals     :: Bool
+    , probType      :: ProbType
     , mayGuessNum      :: Maybe Int }
   deriving (Data, Typeable, Show)
+
+
+-- | Type of probabilities.
+data ProbType
+  = Marginals
+  | MaxProbs
+  deriving (Show, Eq, Ord, Enum, Typeable, Data)
+
+
+mkProbType :: ProbType -> Disamb.ProbType
+mkProbType Marginals = Disamb.Marginals
+mkProbType MaxProbs = Disamb.MaxProbs
 
 
 trainMode :: Concraft
@@ -82,6 +96,7 @@ tagMode = Tag
     { inModel  = def &= argPos 0 &= typ "MODEL-FILE"
     -- , noAna    = False &= help "Do not analyse input text"
     -- , marginals = False &= help "Tag with marginal probabilities" }
+    , probType = Marginals &= help "Type of probabilities"
     , mayGuessNum = def &= help "Number of guessed tags for each unknown word" }
 
 
@@ -142,7 +157,7 @@ exec Tag{..} = do
   let guessNum = case mayGuessNum of
         Nothing -> C.guessNum crf
         Just k  -> k
-      out = P.tag guessNum crf <$> inp
+      out = P.tag' guessNum (mkProbType probType) crf <$> inp
   L.putStr $ DB.showData DB.ShowCfg out
 
 

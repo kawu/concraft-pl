@@ -15,7 +15,9 @@ module NLP.Concraft.Polish.DAG2
 -- * Tagging
 , guess
 , disamb
+, disamb'
 , tag
+, tag'
 
 -- * Trimming
 , trimOOV
@@ -100,6 +102,11 @@ disamb :: C.Concraft -> Sent Tag -> Sent Tag
 disamb = tagWith C.disambMarginals
 
 
+-- | Tag the sentence with disambiguation marginal probabilities.
+disamb' :: C.Concraft -> C.ProbType -> Sent Tag -> Sent Tag
+disamb' crf typ = tagWith (C.disambProbs typ) crf
+
+
 -- | Perform guessing -> trimming -> disambiguation.
 tag
   :: Int
@@ -125,6 +132,17 @@ tagWith tagFun concraft sent
         (X.mapWMap showTag)
         (tagFun concraft packed)
     showTag = P.showTag tagset
+
+
+-- | Perform guessing -> trimming -> disambiguation.
+tag'
+  :: Int
+  -- ^ Trimming parameter
+  -> D.ProbType
+  -> C.Concraft
+  -> Sent Tag
+  -> Sent Tag
+tag' k probTyp = tagWith (C.tag' k probTyp)
 
 
 -------------------------------------------------
