@@ -56,21 +56,10 @@ data Concraft
   | Tag
     { inModel       :: FilePath
     -- , marginals     :: Bool
-    , probType      :: ProbType
-    , mayGuessNum      :: Maybe Int }
+    , probType      :: DB.ProbType
+    , suppressProbs :: Bool
+    , mayGuessNum   :: Maybe Int }
   deriving (Data, Typeable, Show)
-
-
--- | Type of probabilities.
-data ProbType
-  = Marginals
-  | MaxProbs
-  deriving (Show, Eq, Ord, Enum, Typeable, Data)
-
-
-mkProbType :: ProbType -> Disamb.ProbType
-mkProbType Marginals = Disamb.Marginals
-mkProbType MaxProbs = Disamb.MaxProbs
 
 
 trainMode :: Concraft
@@ -96,7 +85,8 @@ tagMode = Tag
     { inModel  = def &= argPos 0 &= typ "MODEL-FILE"
     -- , noAna    = False &= help "Do not analyse input text"
     -- , marginals = False &= help "Tag with marginal probabilities" }
-    , probType = Marginals &= help "Type of probabilities"
+    , probType = DB.Marginals &= help "Type of probabilities"
+    , suppressProbs = False &= help "Do not show probabilities"
     , mayGuessNum = def &= help "Number of guessed tags for each unknown word" }
 
 
@@ -159,7 +149,10 @@ exec Tag{..} = do
         Just k  -> k
       -- out = P.tag' guessNum (mkProbType probType) crf <$> inp
       out = P.annoAll guessNum crf <$> inp
-  L.putStr $ DB.showData DB.ShowCfg out
+      showCfg = DB.ShowCfg
+        { suppressProbs = suppressProbs
+        , probType = probType }
+  L.putStr $ DB.showData showCfg out
 
 
 -- ---------------------------------------

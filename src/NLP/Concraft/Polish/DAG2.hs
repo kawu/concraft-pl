@@ -33,6 +33,7 @@ module NLP.Concraft.Polish.DAG2
 
 import           Control.Applicative ((<$>))
 import           Control.Arrow (first)
+import           Data.Maybe (listToMaybe)
 import qualified Data.Text.Lazy as L
 import qualified Data.Set as S
 import qualified Data.Map.Strict as M
@@ -196,13 +197,16 @@ annoAll
   -> Sent Tag
   -> AnnoSent
 annoAll k concraft sent0 = AnnoSent
-  { guessSent = sent
-  , disambs   = undefined
-  , marginals = annoWith (+) (C.disambProbs D.Marginals . C.disamb) concraft sent
-  , maxProbs  = annoWith (+) (C.disambProbs D.MaxProbs . C.disamb) concraft sent
-  }
+  { guessSent = _guessSent
+  , disambs   = _disambs
+  , marginals = _marginals
+  , maxProbs  = _maxProbs }
   where
-    sent = tagWith (C.guess k . C.guesser) concraft sent0
+    _guessSent = tagWith (C.guess k . C.guesser) concraft sent0
+    _marginals = annoWith (+) (C.disambProbs D.Marginals . C.disamb) concraft _guessSent
+    _maxProbs  = annoWith (+) (C.disambProbs D.MaxProbs . C.disamb) concraft _guessSent
+    _disambs   = C.disambPath (optimal _maxProbs) _maxProbs
+    optimal = maybe [] id . listToMaybe . C.findOptimalPaths
 
 
 -------------------------------------------------

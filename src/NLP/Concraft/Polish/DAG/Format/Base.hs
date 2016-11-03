@@ -1,11 +1,13 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RecordWildCards #-}
+{-# LANGUAGE DeriveDataTypeable #-}
 
 
 module NLP.Concraft.Polish.DAG.Format.Base
 (
 -- * Printing
   ShowCfg (..)
+, ProbType (..)
 , showSent
 , showData
 
@@ -20,6 +22,8 @@ import qualified Data.Map as M
 import           Data.List (intersperse, groupBy)
 import           Data.Maybe (listToMaybe)
 import           Data.String (IsString)
+import           Data.Data (Data)
+import           Data.Typeable (Typeable)
 import qualified Data.Text as T
 import qualified Data.Text.Lazy as L
 import qualified Data.Text.Lazy.Builder as L
@@ -42,6 +46,29 @@ import           NLP.Concraft.Polish.DAG.Morphosyntax
 
 -- | Printing configuration.
 data ShowCfg = ShowCfg
+  { suppressProbs :: Bool
+    -- ^ Do not show any probabilities
+  , probType  :: ProbType
+    -- ^ Which type of probabilities to show (unless suppressed)
+  }
+
+
+-- | Type of probabilities.
+data ProbType
+  = Marginals
+    -- ^ Marginals of the disambiguation model
+  | MaxProbs
+    -- ^ Max probabilities of the disambiguation model
+  | GuessedMarginals
+    -- ^ Marginals of the guessing model
+  deriving (Show, Eq, Ord, Enum, Typeable, Data)
+-- Above, deriving Typeable and Data so that it can be easily parsed
+-- for the command-line tool.
+
+
+-- mkProbType :: ProbType -> Disamb.ProbType
+-- mkProbType Marginals = Disamb.Marginals
+-- mkProbType MaxProbs = Disamb.MaxProbs
 
 
 -- | Show the given sentence.
@@ -57,7 +84,7 @@ showSent :: ShowCfg -> AnnoSent -> L.Text
 showSent cfg = L.toLazyText . buildSent cfg
 
 buildSent :: ShowCfg -> AnnoSent -> L.Builder
-buildSent _cfg AnnoSent{..} = finalize $ do
+buildSent ShowCfg{..} AnnoSent{..} = finalize $ do
   let dag = guessSent
   edgeID <- DAG.dagEdges dag
   let tailNode = DAG.begsWith edgeID dag
@@ -67,33 +94,43 @@ buildSent _cfg AnnoSent{..} = finalize $ do
             if known word then [] else [Nothing]
   return $ case interp of
     Just (Interp{..}, weight) ->
-      mconcat $ intersperse "\t"
+      mconcat $ intersperse "\t" $
         [ buildNode tailNode
         , buildNode headNode
         , L.fromText (orth word)
         , L.fromText base
-        , L.fromText tag
-        , buildWeight weight
-        , buildWeight $ tagWeightIn edgeID tag marginals
-        , buildWeight $ tagWeightIn edgeID tag maxProbs
-        ]
+        , L.fromText tag ] ++
+        ( if suppressProbs then [] else
+            [ case probType of
+                Marginals ->
+                  buildWeight $ tagWeightIn edgeID tag marginals
+                MaxProbs ->
+                  buildWeight $ tagWeightIn edgeID tag maxProbs
+                GuessedMarginals ->
+                  buildWeight weight ] ) ++
+        [ buildBool $ tagLabelIn False edgeID tag disambs ]
     -- below, the case when the word is unknown
     Nothing ->
-      mconcat $ intersperse "\t"
+      mconcat $ intersperse "\t" $
         [ buildNode tailNode
         , buildNode headNode
         , L.fromText (orth word)
         , L.fromText "none"
-        , L.fromText ign
-        , buildWeight 0 ]
+        , L.fromText ign ] ++
+        if suppressProbs then [] else [buildWeight 0]
   where
-    tagWeightIn i x anno = maybe 0 (tagWeight x) (DAG.maybeEdgeLabel i anno)
-    tagWeight x = maybe 0.0 id . M.lookup x
     finalize = (`mappend` "\n") . mconcat . intersperse "\n"
     buildNode (DAG.NodeID i) = L.fromString (show i)
     buildWeight = L.fromString . printf "%.3f"
+    buildBool True = "disamb"
+    buildBool False = ""
     -- buildDmb = between "\t" "\n" . L.fromString . printf "%.3f"
     -- between x y z = x <> z <> y
+
+    tagWeightIn = tagLabelIn 0
+    tagLabelIn def i x anno
+      = maybe def (tagLabel def x) (DAG.maybeEdgeLabel i anno)
+    tagLabel def x = maybe def id . M.lookup x
 
 
 -----------------------------
