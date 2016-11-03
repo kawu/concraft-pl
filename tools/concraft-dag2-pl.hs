@@ -157,7 +157,8 @@ exec Tag{..} = do
   let guessNum = case mayGuessNum of
         Nothing -> C.guessNum crf
         Just k  -> k
-      out = P.tag' guessNum (mkProbType probType) crf <$> inp
+      -- out = P.tag' guessNum (mkProbType probType) crf <$> inp
+      out = P.annoAll guessNum crf <$> inp
   L.putStr $ DB.showData DB.ShowCfg out
 
 

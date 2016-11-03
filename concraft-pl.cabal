@@ -69,12 +69,12 @@ executable concraft-pl
     main-is: concraft-pl.hs
     ghc-options: -Wall -O2 -threaded -rtsopts
 
-executable concraft-dag-pl
-    build-depends:
-        cmdargs                 >= 0.10     && < 0.11
-    hs-source-dirs: src, tools
-    main-is: concraft-dag-pl.hs
-    ghc-options: -Wall -O2 -threaded -rtsopts
+-- executable concraft-dag-pl
+--     build-depends:
+--         cmdargs                 >= 0.10     && < 0.11
+--     hs-source-dirs: src, tools
+--     main-is: concraft-dag-pl.hs
+--     ghc-options: -Wall -O2 -threaded -rtsopts
 
 executable concraft-dag2-pl
     build-depends:

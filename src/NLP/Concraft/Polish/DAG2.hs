@@ -18,9 +18,9 @@ module NLP.Concraft.Polish.DAG2
 , disamb'
 , tag
 , tag'
-
--- * Trimming
-, trimOOV
+-- ** High level
+, AnnoSent (..)
+, annoAll
 
 -- * Training
 , TrainConf (..)
@@ -32,8 +32,10 @@ module NLP.Concraft.Polish.DAG2
 
 
 import           Control.Applicative ((<$>))
+import           Control.Arrow (first)
 import qualified Data.Text.Lazy as L
 import qualified Data.Set as S
+import qualified Data.Map.Strict as M
 
 import qualified Data.Tagset.Positional as P
 import qualified Numeric.SGD as SGD
@@ -94,17 +96,17 @@ tiersDefault =
 
 -- | Tag the sentence with guessing marginal probabilities.
 guess :: C.Concraft -> Sent Tag -> Sent Tag
-guess = tagWith C.guessMarginals
+guess = tagWith (C.guessMarginals . C.guesser)
 
 
 -- | Tag the sentence with disambiguation marginal probabilities.
 disamb :: C.Concraft -> Sent Tag -> Sent Tag
-disamb = tagWith C.disambMarginals
+disamb = tagWith (C.disambMarginals . C.disamb)
 
 
--- | Tag the sentence with disambiguation marginal probabilities.
+-- | Tag the sentence with disambiguation probabilities.
 disamb' :: C.Concraft -> C.ProbType -> Sent Tag -> Sent Tag
-disamb' crf typ = tagWith (C.disambProbs typ) crf
+disamb' crf typ = tagWith (C.disambProbs typ . C.disamb) crf
 
 
 -- | Perform guessing -> trimming -> disambiguation.
@@ -115,23 +117,6 @@ tag
   -> Sent Tag
   -> Sent Tag
 tag = tagWith . C.tag
-
-
--- | Tag with the help of a lower-level tagging function.
-tagWith
-  :: (C.Concraft -> X.Sent Word P.Tag -> DAG.DAG () (X.WMap P.Tag))
-  -> C.Concraft -> Sent Tag -> Sent Tag
-tagWith tagFun concraft sent
-    = fmap select
-    $ DAG.zipE sent wmaps
-  where
-    select (edge, wmap) = selectWMap wmap edge
-    tagset = C.tagset concraft
-    packed = packSent tagset sent
-    wmaps  = fmap
-        (X.mapWMap showTag)
-        (tagFun concraft packed)
-    showTag = P.showTag tagset
 
 
 -- | Perform guessing -> trimming -> disambiguation.
@@ -145,21 +130,80 @@ tag'
 tag' k probTyp = tagWith (C.tag' k probTyp)
 
 
--------------------------------------------------
--- Trimming
--------------------------------------------------
-
-
--- | Trim down the set of potential labels to `k` most probable ones
--- for each OOV word in the sentence.
-trimOOV :: Int -> Sent Tag -> Sent Tag
-trimOOV k =
-  fmap trim
+-- | Tag with the help of a lower-level annotation function.
+tagWith
+  :: (C.Concraft -> X.Sent Word P.Tag -> C.Anno P.Tag Double)
+  -> C.Concraft -> Sent Tag -> Sent Tag
+tagWith annoFun concraft sent
+  = fmap select
+  $ DAG.zipE sent annoSent
   where
-    trim edge = if X.oov edge
-      then trimEdge edge
-      else edge
-    trimEdge edge = edge {interps = X.trim k (interps edge)}
+    select (edge, anno) = selectAnno anno edge
+    annoSent = annoWith (+) annoFun concraft sent
+
+-- tagWith tagFun concraft sent
+--     = fmap select
+--     $ DAG.zipE sent annos
+--   where
+--     select (edge, anno) = selectAnno anno edge
+--     tagset = C.tagset concraft
+--     packed = packSent tagset sent
+--     annos  = fmap
+--         -- (X.mapWMap showTag)
+--         (M.mapKeysWith (+) showTag)
+--         (tagFun concraft packed)
+--     showTag = P.showTag tagset
+
+
+-- | Annotate with the help of a lower-level annotation function.
+annoWith
+  :: (a -> a -> a)
+  -> (C.Concraft -> X.Sent Word P.Tag -> C.Anno P.Tag a)
+  -> C.Concraft -> Sent Tag -> C.Anno Tag a
+annoWith f anno concraft sent = fmap
+  (M.mapKeysWith f showTag)
+  (anno concraft packed)
+  where
+    showTag = P.showTag tagset
+    packed = packSent tagset sent
+    tagset = C.tagset concraft
+
+
+
+-------------------------------------------------
+-- High-level Tagging
+-------------------------------------------------
+
+
+-- | Annotated sentence.
+data AnnoSent = AnnoSent
+  { guessSent :: Sent Tag
+  -- ^ The sentence after guessing and annotated with marginal probabilities
+  , disambs   :: C.Anno Tag Bool
+  -- ^ Disambiguation markers
+  , marginals :: C.Anno Tag Double
+  -- ^ Marginal probabilities according to the disambiguation model
+  , maxProbs  :: C.Anno Tag Double
+  -- ^ Maximal probabilities according to the disambiguation model
+  }
+
+
+-- | Annotate all possibly interesting information.
+annoAll
+  :: Int
+  -- ^ Trimming parameter
+  -> C.Concraft
+  -> Sent Tag
+  -> AnnoSent
+annoAll k concraft sent0 = AnnoSent
+  { guessSent = sent
+  , disambs   = undefined
+  , marginals = annoWith (+) (C.disambProbs D.Marginals . C.disamb) concraft sent
+  , maxProbs  = annoWith (+) (C.disambProbs D.MaxProbs . C.disamb) concraft sent
+  }
+  where
+    sent = tagWith (C.guess k . C.guesser) concraft sent0
+
 
 -------------------------------------------------
 -- Training

@@ -22,10 +22,10 @@ import qualified NLP.Concraft.Polish as C
 import qualified NLP.Concraft.Polish.Request as R
 import qualified NLP.Concraft.Polish.Server as S
 import qualified NLP.Concraft.Polish.Morphosyntax as X
-import qualified NLP.Concraft.Polish.DAG.Morphosyntax as DX
+-- import qualified NLP.Concraft.Polish.DAG.Morphosyntax as DX
 
 import qualified NLP.Concraft.Polish.Format.Plain as P
-import qualified NLP.Concraft.Polish.DAG.Format.Base as DB
+-- import qualified NLP.Concraft.Polish.DAG.Format.Base as DB
 
 import           Paths_concraft_pl (version, getDataFileName)
 import           Data.Version (showVersion)
@@ -279,14 +279,14 @@ exec Prune{..} = do
     C.saveModel outModel $ C.prune threshold cft
 
 
-exec Conv{..}
-  | convPlain = do
-      inp <- concat . P.parsePlain <$> L.getContents
-      let out = map DX.fromList inp
-      L.putStrLn $ DB.showData DB.ShowCfg out
-  | otherwise = do
-      inp <- DB.parseData <$> L.getContents
-      L.putStrLn $ DB.showData DB.ShowCfg inp
+-- exec Conv{..}
+--   | convPlain = do
+--       inp <- concat . P.parsePlain <$> L.getContents
+--       let out = map DX.fromList inp
+--       L.putStrLn $ DB.showData DB.ShowCfg out
+--   | otherwise = do
+--       inp <- DB.parseData <$> L.getContents
+--       L.putStrLn $ DB.showData DB.ShowCfg inp
 
 
 -- exec ReAna{..} = do

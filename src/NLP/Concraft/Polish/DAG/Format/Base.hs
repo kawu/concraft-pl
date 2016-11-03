@@ -18,6 +18,7 @@ module NLP.Concraft.Polish.DAG.Format.Base
 import           Data.Monoid (mconcat, mappend)
 import qualified Data.Map as M
 import           Data.List (intersperse, groupBy)
+import           Data.Maybe (listToMaybe)
 import           Data.String (IsString)
 import qualified Data.Text as T
 import qualified Data.Text.Lazy as L
@@ -28,6 +29,8 @@ import qualified Data.DAG as DAG
 -- import qualified Data.CRF.Chain1.Constrained.DAG.Dataset.Internal as DAG
 
 import qualified NLP.Concraft.DAG.Morphosyntax as X
+import qualified NLP.Concraft.Polish.DAG2 as C
+import           NLP.Concraft.Polish.DAG2 (AnnoSent(..))
 import qualified NLP.Concraft.Polish.Morphosyntax as I
 import           NLP.Concraft.Polish.DAG.Morphosyntax
 
@@ -42,7 +45,7 @@ data ShowCfg = ShowCfg
 
 
 -- | Show the given sentence.
-showData :: ShowCfg -> [Sent Tag] -> L.Text
+showData :: ShowCfg -> [AnnoSent] -> L.Text
 showData cfg
   = L.toLazyText
   . mconcat
@@ -50,11 +53,12 @@ showData cfg
   . map (buildSent cfg)
 
 -- | Show the given sentence.
-showSent :: ShowCfg -> Sent Tag -> L.Text
+showSent :: ShowCfg -> AnnoSent -> L.Text
 showSent cfg = L.toLazyText . buildSent cfg
 
-buildSent :: ShowCfg -> Sent Tag -> L.Builder
-buildSent _cfg dag = finalize $ do
+buildSent :: ShowCfg -> AnnoSent -> L.Builder
+buildSent _cfg AnnoSent{..} = finalize $ do
+  let dag = guessSent
   edgeID <- DAG.dagEdges dag
   let tailNode = DAG.begsWith edgeID dag
       headNode = DAG.endsWith edgeID dag
@@ -69,7 +73,10 @@ buildSent _cfg dag = finalize $ do
         , L.fromText (orth word)
         , L.fromText base
         , L.fromText tag
-        , buildDmb weight ]
+        , buildWeight weight
+        , buildWeight $ tagWeightIn edgeID tag marginals
+        , buildWeight $ tagWeightIn edgeID tag maxProbs
+        ]
     -- below, the case when the word is unknown
     Nothing ->
       mconcat $ intersperse "\t"
@@ -78,11 +85,13 @@ buildSent _cfg dag = finalize $ do
         , L.fromText (orth word)
         , L.fromText "none"
         , L.fromText ign
-        , buildDmb 0.0 ]
+        , buildWeight 0 ]
   where
+    tagWeightIn i x anno = maybe 0 (tagWeight x) (DAG.maybeEdgeLabel i anno)
+    tagWeight x = maybe 0.0 id . M.lookup x
     finalize = (`mappend` "\n") . mconcat . intersperse "\n"
     buildNode (DAG.NodeID i) = L.fromString (show i)
-    buildDmb = L.fromString . printf "%.3f"
+    buildWeight = L.fromString . printf "%.3f"
     -- buildDmb = between "\t" "\n" . L.fromString . printf "%.3f"
     -- between x y z = x <> z <> y
 

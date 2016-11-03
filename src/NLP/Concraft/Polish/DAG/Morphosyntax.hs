@@ -16,9 +16,10 @@ module NLP.Concraft.Polish.DAG.Morphosyntax
 , Word (..)
 , Interp (..)
 , Space (..)
-, select
-, select'
+-- , select
+-- , select'
 , selectWMap
+, selectAnno
 
 -- * Sentence
 , Sent
@@ -41,7 +42,7 @@ import           Data.Binary (Binary, put, get, putWord8, getWord8)
 import           Data.Aeson
 import qualified Data.Aeson as Aeson
 import qualified Data.Set as S
-import qualified Data.Map as M
+import qualified Data.Map.Strict as M
 import           Data.Maybe (catMaybes)
 import qualified Data.Text as T
 import qualified Data.Text.Lazy as L
@@ -52,6 +53,7 @@ import qualified Data.DAG as DAG
 -- import           Data.CRF.Chain1.Constrained.DAG.Dataset.Internal (DAG)
 -- import qualified Data.CRF.Chain1.Constrained.DAG.Dataset.Internal as DAG
 
+-- import qualified NLP.Concraft.DAG2 as C
 import qualified NLP.Concraft.DAG.Morphosyntax as X
 import qualified NLP.Concraft.Polish.Morphosyntax as R
 import           NLP.Concraft.Polish.Morphosyntax (Space(..), Interp(..))
@@ -118,22 +120,28 @@ instance FromJSON Word where
     parseJSON _ = error "parseJSON [Word]"
 
 
---------------------------------
+---------------------------------------------------------------------------------
 -- Selection
 --
--- (Honestly, I don't remember
--- what is this one about...)
---------------------------------
+-- (Honestly, I don't remember what is this one about...)
+--
+-- Update: maybe related to the fact that base forms have to be handled somehow?
+---------------------------------------------------------------------------------
 
 
--- | Select one chosen interpretation.
-select :: Ord a => a -> Edge a -> Edge a
-select = select' []
+-- -- | Select one chosen interpretation.
+-- select :: Ord a => a -> Edge a -> Edge a
+-- select = select' []
+-- 
+-- 
+-- -- | Select multiple interpretations and one chosen interpretation.
+-- select' :: Ord a => [a] -> a -> Edge a -> Edge a
+-- select' ys x = selectWMap . X.mkWMap $ (x, 1) : map (,0) ys
 
 
--- | Select multiple interpretations and one chosen interpretation.
-select' :: Ord a => [a] -> a -> Edge a -> Edge a
-select' ys x = selectWMap . X.mkWMap $ (x, 1) : map (,0) ys
+-- | Select interpretations.
+selectAnno :: Ord a => M.Map a Double -> Edge a -> Edge a
+selectAnno = selectWMap . X.fromMap
 
 
 -- | Select interpretations.
