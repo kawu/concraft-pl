@@ -243,6 +243,7 @@ train TrainConf{..} train0 eval0 = do
   noReana train1 eval1
   where
     noReana tr ev = C.train tagset guessNum guessConf disambConf tr ev
+    -- guessConf  = G.TrainConf guessSchemaDefault sgdArgs {SGD.iterNum=0} onDisk r0 zeroProbTag
     guessConf  = G.TrainConf guessSchemaDefault sgdArgs onDisk r0 zeroProbTag
     disambConf = D.TrainConf tiersDefault disambSchemaDefault sgdArgs onDisk
     zeroProbTag = P.parseTag tagset zeroProbLabel
