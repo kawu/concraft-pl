@@ -47,7 +47,7 @@ import qualified NLP.Concraft.DAG.Morphosyntax as X
 import qualified NLP.Concraft.DAG.Schema as S
 import           NLP.Concraft.DAG.Schema (SchemaConf(..), entry, entryWith)
 import qualified NLP.Concraft.DAG.Guess as G
--- import qualified NLP.Concraft.DAG.Disamb as D
+import qualified NLP.Concraft.DAG.Disamb as D
 import qualified NLP.Concraft.DAG2 as C
 
 import           NLP.Concraft.Polish.DAG.Morphosyntax hiding (tag)
@@ -79,15 +79,15 @@ disambSchemaDefault = S.nullConf
     oov Nothing     = Nothing
 
 
--- -- | Default tiered tagging configuration.
--- tiersDefault :: [D.Tier]
--- tiersDefault =
---     [tier1, tier2]
---   where
---     tier1 = D.Tier True $ S.fromList ["cas", "per"]
---     tier2 = D.Tier False $ S.fromList
---         [ "nmb", "gnd", "deg", "asp" , "ngt", "acm"
---         , "acn", "ppr", "agg", "vlc", "dot" ]
+-- | Default tiered tagging configuration.
+tiersDefault :: [D.Tier]
+tiersDefault =
+    [tier1, tier2]
+  where
+    tier1 = D.Tier True $ S.fromList ["cas", "per"]
+    tier2 = D.Tier False $ S.fromList
+        [ "nmb", "gnd", "deg", "asp" , "ngt", "acm"
+        , "acn", "ppr", "agg", "vlc", "dot" ]
 
 
 -------------------------------------------------
@@ -100,35 +100,35 @@ guess :: C.Concraft Tag -> Sent Tag -> Sent Tag
 guess = tagWith (C.guessMarginals . C.guesser)
 
 
--- -- | Tag the sentence with disambiguation marginal probabilities.
--- disamb :: C.Concraft -> Sent Tag -> Sent Tag
--- disamb = tagWith (C.disambMarginals . C.disamb)
---
---
--- -- | Tag the sentence with disambiguation probabilities.
--- disamb' :: C.Concraft -> C.ProbType -> Sent Tag -> Sent Tag
--- disamb' crf typ = tagWith (C.disambProbs typ . C.disamb) crf
+-- | Tag the sentence with disambiguation marginal probabilities.
+disamb :: C.Concraft Tag -> Sent Tag -> Sent Tag
+disamb = tagWith (C.disambMarginals . C.disamb)
+
+
+-- | Tag the sentence with disambiguation probabilities.
+disamb' :: C.Concraft Tag -> D.ProbType -> Sent Tag -> Sent Tag
+disamb' crf typ = tagWith (C.disambProbs typ . C.disamb) crf
+
+
+-- | Perform guessing -> trimming -> disambiguation.
+tag
+  :: Int
+  -- ^ Trimming parameter
+  -> C.Concraft Tag
+  -> Sent Tag
+  -> Sent Tag
+tag = tagWith . C.tag
 
 
 -- -- | Perform guessing -> trimming -> disambiguation.
--- tag
+-- tag'
 --   :: Int
 --   -- ^ Trimming parameter
---   -> C.Concraft Tag
+--   -> D.ProbType
+--   -> C.Concraft
 --   -> Sent Tag
 --   -> Sent Tag
--- tag = tagWith . C.tag
---
---
--- -- -- | Perform guessing -> trimming -> disambiguation.
--- -- tag'
--- --   :: Int
--- --   -- ^ Trimming parameter
--- --   -> D.ProbType
--- --   -> C.Concraft
--- --   -> Sent Tag
--- --   -> Sent Tag
--- -- tag' k probTyp = tagWith (C.tag' k probTyp)
+-- tag' k probTyp = tagWith (C.tag' k probTyp)
 
 
 -- | Tag with the help of a lower-level annotation function.
@@ -212,11 +212,8 @@ annoAll k concraft sent0 = AnnoSent
   , maxProbs  = _maxProbs }
   where
     _guessSent = tagWith (C.guess k . C.guesser) concraft sent0
-    -- TODO: temporarily we ignore the disambiguation model
-    -- _marginals = annoWith (+) (C.disambProbs D.Marginals . C.disamb) concraft _guessSent
-    -- _maxProbs  = annoWith (+) (C.disambProbs D.MaxProbs . C.disamb) concraft _guessSent
-    _marginals = annoWith (C.guessMarginals . C.guesser) concraft _guessSent
-    _maxProbs  = _marginals
+    _marginals = annoWith (C.disambProbs D.Marginals . C.disamb) concraft _guessSent
+    _maxProbs  = annoWith (C.disambProbs D.MaxProbs . C.disamb) concraft _guessSent
     _disambs   = C.disambPath (optimal _maxProbs) _maxProbs
     optimal = maybe [] id . listToMaybe . C.findOptimalPaths
 
@@ -258,9 +255,8 @@ train TrainConf{..} train0 eval0 = do
       eval1  = map packSent <$> eval0
   noReana train1 eval1
   where
-    -- noReana tr ev = C.train tagset guessNum guessConf disambConf tr ev
-    noReana tr ev = C.train tagset guessNum guessConf tr ev
+    noReana tr ev = C.train tagset guessNum guessConf disambConf tr ev
+    -- noReana tr ev = C.train tagset guessNum guessConf tr ev
     simplifyLabel = P.parseTag tagset
-    -- zeroProbTag = P.parseTag tagset zeroProbLabel
     guessConf = G.TrainConf guessSchemaDefault sgdArgs onDisk r0 zeroProbLabel simplifyLabel
-    -- disambConf = D.TrainConf tiersDefault disambSchemaDefault sgdArgs onDisk
+    disambConf = D.TrainConf tiersDefault disambSchemaDefault sgdArgs onDisk simplifyLabel
