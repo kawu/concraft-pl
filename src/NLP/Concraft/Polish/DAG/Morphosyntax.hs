@@ -56,11 +56,47 @@ import qualified Data.DAG as DAG
 -- import qualified NLP.Concraft.DAG2 as C
 import qualified NLP.Concraft.DAG.Morphosyntax as X
 import qualified NLP.Concraft.Polish.Morphosyntax as R
-import           NLP.Concraft.Polish.Morphosyntax (Space(..), Interp(..))
+import           NLP.Concraft.Polish.Morphosyntax (Space(..))
+
+
+--------------------------------
+-- Basics
+--------------------------------
 
 
 -- | A textual representation of a morphosyntactic tag.
 type Tag = T.Text
+
+
+--------------------------------
+-- Interp
+--------------------------------
+
+
+-- | A morphosyntactic interpretation.
+data Interp t = Interp
+    { base  :: T.Text
+      -- ^ Base form (lemma)
+    , tag   :: t
+      -- ^ The (morphosyntactic) tag
+    , commonness :: Maybe T.Text
+    , qualifier  :: Maybe T.Text
+    , metaInfo   :: Maybe T.Text
+    , eos        :: Bool
+      -- ^ The remaining four are ignored for the moment, but we plan to rely on
+      -- them later on.
+    } deriving (Show, Eq, Ord)
+
+
+instance (Ord t, Binary t) => Binary (Interp t) where
+    put Interp{..} = do
+      put base
+      put tag
+      put commonness
+      put qualifier
+      put metaInfo
+      put eos
+    get = Interp <$> get <*> get <*> get <*> get <*> get <*> get
 
 
 --------------------------------
@@ -158,9 +194,17 @@ selectWMap wMap seg =
             ++ catMaybes
         [ if tag `S.member` wSet
             then Nothing
-            else Just (Interp lemma tag, x)
+            else Just (interp, x)
         | let lemma = orth $ word seg   -- Default base form
-        , (tag, x) <- M.toList (X.unWMap wMap) ]
+        , (tag, x) <- M.toList (X.unWMap wMap)
+        , let interp = Interp
+                { base = lemma
+                , tag = tag
+                , commonness = Nothing
+                , qualifier = Nothing
+                , metaInfo = Nothing
+                , eos = False }
+        ]
 
 
 --------------------------------
@@ -224,21 +268,26 @@ packSeg_ Edge{..}
 
 
 -- | Convert a segment to a segment from the core library.
-packSeg :: P.Tagset -> Edge Tag -> X.Seg Word P.Tag
-packSeg tagset = X.mapSeg (P.parseTag tagset) . packSeg_
+-- packSeg :: P.Tagset -> Edge Tag -> X.Seg Word P.Tag
+packSeg :: Edge Tag -> X.Seg Word Tag
+-- packSeg tagset = X.mapSeg (P.parseTag tagset) . packSeg_
+packSeg = packSeg_
 
 
 -- | Convert a sentence to a sentence from the core library.
-packSent :: P.Tagset -> Sent Tag -> X.Sent Word P.Tag
-packSent tagset
+-- packSent :: P.Tagset -> Sent Tag -> X.Sent Word P.Tag
+packSent :: Sent Tag -> X.Sent Word Tag
+packSent -- tagset
   = DAG.mapN (const ())
-  . fmap (packSeg tagset)
+  -- . fmap (packSeg tagset)
+  . fmap packSeg
 
 
 -- | Convert a sentence to a sentence from the core library.
-packSentO :: P.Tagset -> SentO Tag -> X.SentO Word P.Tag
-packSentO tagset s = X.SentO
-    { segs = packSent tagset (sent s)
+-- packSentO :: P.Tagset -> SentO Tag -> X.SentO Word P.Tag
+packSentO :: SentO Tag -> X.SentO Word Tag
+packSentO s = X.SentO
+    { segs = packSent (sent s)
     , orig = orig s }
 
 
@@ -251,14 +300,26 @@ fromWord :: R.Word -> (Space, Word)
 fromWord R.Word{..} = (space, Word {orth=orth, known=known})
 
 
-fromSeg :: R.Seg t -> (Space, Edge t)
+fromSeg :: (Ord t) => R.Seg t -> (Space, Edge t)
 fromSeg R.Seg{..} =
   (space, edge)
   where
-    edge = Edge {word = newWord , interps = interps}
+    edge = Edge {word = newWord, interps = updateInterps interps}
     (space, newWord) = fromWord word
+    -- updateInterps = X.mkWMap . map (first fromInterp) . X.unWMap
+    updateInterps = X.mapWMap fromInterp
+
+
+fromInterp :: R.Interp t -> Interp t
+fromInterp R.Interp{..} = Interp
+  { base = base
+  , tag = tag
+  , commonness = Nothing
+  , qualifier = Nothing
+  , metaInfo = Nothing
+  , eos = False }
 
 
 -- | Create a DAG-based sentence from a list-based sentence.
-fromList :: R.Sent t -> Sent t
+fromList :: Ord t => R.Sent t -> Sent t
 fromList = DAG.fromList' None . map fromSeg

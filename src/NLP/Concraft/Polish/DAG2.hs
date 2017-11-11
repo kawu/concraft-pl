@@ -14,10 +14,10 @@ module NLP.Concraft.Polish.DAG2
 
 -- * Tagging
 , guess
-, disamb
-, disamb'
-, tag
-, tag'
+-- , disamb
+-- , disamb'
+-- , tag
+-- , tag'
 -- ** High level
 , AnnoSent (..)
 , annoAll
@@ -27,7 +27,7 @@ module NLP.Concraft.Polish.DAG2
 , train
 
 -- * Pruning
-, C.prune
+-- , C.prune
 ) where
 
 
@@ -47,7 +47,7 @@ import qualified NLP.Concraft.DAG.Morphosyntax as X
 import qualified NLP.Concraft.DAG.Schema as S
 import           NLP.Concraft.DAG.Schema (SchemaConf(..), entry, entryWith)
 import qualified NLP.Concraft.DAG.Guess as G
-import qualified NLP.Concraft.DAG.Disamb as D
+-- import qualified NLP.Concraft.DAG.Disamb as D
 import qualified NLP.Concraft.DAG2 as C
 
 import           NLP.Concraft.Polish.DAG.Morphosyntax hiding (tag)
@@ -79,15 +79,15 @@ disambSchemaDefault = S.nullConf
     oov Nothing     = Nothing
 
 
--- | Default tiered tagging configuration.
-tiersDefault :: [D.Tier]
-tiersDefault =
-    [tier1, tier2]
-  where
-    tier1 = D.Tier True $ S.fromList ["cas", "per"]
-    tier2 = D.Tier False $ S.fromList
-        [ "nmb", "gnd", "deg", "asp" , "ngt", "acm"
-        , "acn", "ppr", "agg", "vlc", "dot" ]
+-- -- | Default tiered tagging configuration.
+-- tiersDefault :: [D.Tier]
+-- tiersDefault =
+--     [tier1, tier2]
+--   where
+--     tier1 = D.Tier True $ S.fromList ["cas", "per"]
+--     tier2 = D.Tier False $ S.fromList
+--         [ "nmb", "gnd", "deg", "asp" , "ngt", "acm"
+--         , "acn", "ppr", "agg", "vlc", "dot" ]
 
 
 -------------------------------------------------
@@ -96,51 +96,52 @@ tiersDefault =
 
 
 -- | Tag the sentence with guessing marginal probabilities.
-guess :: C.Concraft -> Sent Tag -> Sent Tag
+guess :: C.Concraft Tag -> Sent Tag -> Sent Tag
 guess = tagWith (C.guessMarginals . C.guesser)
 
 
--- | Tag the sentence with disambiguation marginal probabilities.
-disamb :: C.Concraft -> Sent Tag -> Sent Tag
-disamb = tagWith (C.disambMarginals . C.disamb)
+-- -- | Tag the sentence with disambiguation marginal probabilities.
+-- disamb :: C.Concraft -> Sent Tag -> Sent Tag
+-- disamb = tagWith (C.disambMarginals . C.disamb)
+--
+--
+-- -- | Tag the sentence with disambiguation probabilities.
+-- disamb' :: C.Concraft -> C.ProbType -> Sent Tag -> Sent Tag
+-- disamb' crf typ = tagWith (C.disambProbs typ . C.disamb) crf
 
 
--- | Tag the sentence with disambiguation probabilities.
-disamb' :: C.Concraft -> C.ProbType -> Sent Tag -> Sent Tag
-disamb' crf typ = tagWith (C.disambProbs typ . C.disamb) crf
-
-
--- | Perform guessing -> trimming -> disambiguation.
-tag
-  :: Int
-  -- ^ Trimming parameter
-  -> C.Concraft
-  -> Sent Tag
-  -> Sent Tag
-tag = tagWith . C.tag
-
-
--- | Perform guessing -> trimming -> disambiguation.
-tag'
-  :: Int
-  -- ^ Trimming parameter
-  -> D.ProbType
-  -> C.Concraft
-  -> Sent Tag
-  -> Sent Tag
-tag' k probTyp = tagWith (C.tag' k probTyp)
+-- -- | Perform guessing -> trimming -> disambiguation.
+-- tag
+--   :: Int
+--   -- ^ Trimming parameter
+--   -> C.Concraft Tag
+--   -> Sent Tag
+--   -> Sent Tag
+-- tag = tagWith . C.tag
+--
+--
+-- -- -- | Perform guessing -> trimming -> disambiguation.
+-- -- tag'
+-- --   :: Int
+-- --   -- ^ Trimming parameter
+-- --   -> D.ProbType
+-- --   -> C.Concraft
+-- --   -> Sent Tag
+-- --   -> Sent Tag
+-- -- tag' k probTyp = tagWith (C.tag' k probTyp)
 
 
 -- | Tag with the help of a lower-level annotation function.
 tagWith
-  :: (C.Concraft -> X.Sent Word P.Tag -> C.Anno P.Tag Double)
-  -> C.Concraft -> Sent Tag -> Sent Tag
+  -- :: (C.Concraft Tag -> X.Sent Word P.Tag -> C.Anno P.Tag Double)
+  :: (C.Concraft Tag -> X.Sent Word Tag -> C.Anno Tag Double)
+  -> C.Concraft Tag -> Sent Tag -> Sent Tag
 tagWith annoFun concraft sent
   = fmap select
   $ DAG.zipE sent annoSent
   where
     select (edge, anno) = selectAnno anno edge
-    annoSent = annoWith (+) annoFun concraft sent
+    annoSent = annoWith annoFun concraft sent
 
 -- tagWith tagFun concraft sent
 --     = fmap select
@@ -158,16 +159,24 @@ tagWith annoFun concraft sent
 
 -- | Annotate with the help of a lower-level annotation function.
 annoWith
-  :: (a -> a -> a)
-  -> (C.Concraft -> X.Sent Word P.Tag -> C.Anno P.Tag a)
-  -> C.Concraft -> Sent Tag -> C.Anno Tag a
-annoWith f anno concraft sent = fmap
-  (M.mapKeysWith f showTag)
-  (anno concraft packed)
-  where
-    showTag = P.showTag tagset
-    packed = packSent tagset sent
-    tagset = C.tagset concraft
+  :: (C.Concraft Tag -> X.Sent Word Tag -> C.Anno Tag a)
+  -> C.Concraft Tag -> Sent Tag -> C.Anno Tag a
+annoWith anno concraft =
+  anno concraft . packSent
+
+
+-- -- | Annotate with the help of a lower-level annotation function.
+-- annoWith
+--   :: (a -> a -> a)
+--   -> (C.Concraft Tag -> X.Sent Word P.Tag -> C.Anno P.Tag a)
+--   -> C.Concraft Tag -> Sent Tag -> C.Anno Tag a
+-- annoWith f anno concraft sent = fmap
+--   (M.mapKeysWith f showTag)
+--   (anno concraft packed)
+--   where
+--     showTag = P.showTag tagset
+--     packed = packSent tagset sent
+--     tagset = C.tagset concraft
 
 
 
@@ -193,7 +202,7 @@ data AnnoSent = AnnoSent
 annoAll
   :: Int
   -- ^ Trimming parameter
-  -> C.Concraft
+  -> C.Concraft Tag
   -> Sent Tag
   -> AnnoSent
 annoAll k concraft sent0 = AnnoSent
@@ -203,8 +212,11 @@ annoAll k concraft sent0 = AnnoSent
   , maxProbs  = _maxProbs }
   where
     _guessSent = tagWith (C.guess k . C.guesser) concraft sent0
-    _marginals = annoWith (+) (C.disambProbs D.Marginals . C.disamb) concraft _guessSent
-    _maxProbs  = annoWith (+) (C.disambProbs D.MaxProbs . C.disamb) concraft _guessSent
+    -- TODO: temporarily we ignore the disambiguation model
+    -- _marginals = annoWith (+) (C.disambProbs D.Marginals . C.disamb) concraft _guessSent
+    -- _maxProbs  = annoWith (+) (C.disambProbs D.MaxProbs . C.disamb) concraft _guessSent
+    _marginals = annoWith (C.guessMarginals . C.guesser) concraft _guessSent
+    _maxProbs  = _marginals
     _disambs   = C.disambPath (optimal _maxProbs) _maxProbs
     optimal = maybe [] id . listToMaybe . C.findOptimalPaths
 
@@ -227,7 +239,9 @@ data TrainConf = TrainConf {
     -- | `G.r0T` parameter.
     , r0        :: G.R0T
     -- | `G.zeroProbLabel` parameter
-    , zeroProbLabel :: Tag }
+    , zeroProbLabel :: Tag
+    }
+
 
 -- | Train concraft model.
 -- TODO: It should be possible to supply the two training procedures with
@@ -236,14 +250,17 @@ train
     :: TrainConf
     -> IO [Sent Tag]      -- ^ Training data
     -> IO [Sent Tag]      -- ^ Evaluation data
-    -> IO C.Concraft
+    -> IO (C.Concraft Tag)
 train TrainConf{..} train0 eval0 = do
-  let train1 = map (packSent tagset) <$> train0
-      eval1  = map (packSent tagset) <$> eval0
+--   let train1 = map (packSent tagset) <$> train0
+--       eval1  = map (packSent tagset) <$> eval0
+  let train1 = map packSent <$> train0
+      eval1  = map packSent <$> eval0
   noReana train1 eval1
   where
-    noReana tr ev = C.train tagset guessNum guessConf disambConf tr ev
-    -- guessConf  = G.TrainConf guessSchemaDefault sgdArgs {SGD.iterNum=0} onDisk r0 zeroProbTag
-    guessConf  = G.TrainConf guessSchemaDefault sgdArgs onDisk r0 zeroProbTag
-    disambConf = D.TrainConf tiersDefault disambSchemaDefault sgdArgs onDisk
-    zeroProbTag = P.parseTag tagset zeroProbLabel
+    -- noReana tr ev = C.train tagset guessNum guessConf disambConf tr ev
+    noReana tr ev = C.train tagset guessNum guessConf tr ev
+    simplifyLabel = P.parseTag tagset
+    -- zeroProbTag = P.parseTag tagset zeroProbLabel
+    guessConf = G.TrainConf guessSchemaDefault sgdArgs onDisk r0 zeroProbLabel simplifyLabel
+    -- disambConf = D.TrainConf tiersDefault disambSchemaDefault sgdArgs onDisk

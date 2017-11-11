@@ -99,7 +99,9 @@ buildSent ShowCfg{..} AnnoSent{..} = finalize $ do
         , buildNode headNode
         , L.fromText (orth word)
         , L.fromText base
-        , L.fromText tag ] ++
+        , L.fromText tag
+        , buildMayText commonness
+        , buildMayText qualifier ] ++
         ( if suppressProbs then [] else
             [ case probType of
                 Marginals ->
@@ -108,7 +110,9 @@ buildSent ShowCfg{..} AnnoSent{..} = finalize $ do
                   buildWeight $ tagWeightIn edgeID tag maxProbs
                 GuessedMarginals ->
                   buildWeight weight ] ) ++
-        [ buildBool $ tagLabelIn False edgeID tag disambs ]
+        [ buildMayText metaInfo
+        , if eos then "eos" else ""
+        , buildBool $ tagLabelIn False edgeID tag disambs ]
     -- below, the case when the word is unknown
     Nothing ->
       mconcat $ intersperse "\t" $
@@ -126,6 +130,8 @@ buildSent ShowCfg{..} AnnoSent{..} = finalize $ do
     buildBool False = ""
     -- buildDmb = between "\t" "\n" . L.fromString . printf "%.3f"
     -- between x y z = x <> z <> y
+    buildMayText Nothing = ""
+    buildMayText (Just x) = L.fromText x
 
     tagWeightIn = tagLabelIn 0
     tagLabelIn def i x anno
@@ -152,12 +158,17 @@ parseSent = fromRows . parseRows
 
 
 data Row = Row
-  { tailNode :: Int
-  , headNode :: Int
-  , orthForm :: T.Text
-  , baseForm :: T.Text
-  , theTag   :: Tag
-  , tagProb  :: Double }
+  { tailNode   :: Int
+  , headNode   :: Int
+  , orthForm   :: T.Text
+  , baseForm   :: T.Text
+  , theTag     :: Tag
+  , commonness :: Maybe T.Text
+  , qualifier  :: Maybe T.Text
+  , tagProb    :: Double
+  , metaInfo   :: Maybe T.Text
+  , eos        :: Bool
+  }
 
 
 fromRows :: [Row] -> Sent Tag
@@ -187,7 +198,12 @@ fromRows =
           , not $ theTag == ign
           , let interp = Interp
                   { base = baseForm
-                  , tag = theTag } ]
+                  , tag = theTag
+                  , commonness = commonness
+                  , qualifier = qualifier
+                  , metaInfo = metaInfo
+                  , eos = eos }
+          ]
 
 
 parseRows :: L.Text -> [Row]
@@ -198,14 +214,24 @@ parseRow :: L.Text -> Row
 parseRow =
   doit . L.splitOn "\t"
   where
-    doit [tlNode, hdNode, otForm, bsForm, tag, prob] = Row
+    doit [tlNode, hdNode, otForm, bsForm, tag, comm, qual, prob, meta, eos] = Row
       { tailNode = read $ L.unpack tlNode
       , headNode = read $ L.unpack hdNode
       , orthForm = L.toStrict otForm
       , baseForm = L.toStrict bsForm
       , theTag   = L.toStrict tag
-      , tagProb  = read $ L.unpack prob }
+      , commonness = nullIfEmpty comm
+      , qualifier = nullIfEmpty qual
+      , tagProb  = read $ L.unpack prob
+      , metaInfo = nullIfEmpty meta
+      , eos = case eos of
+          "eos" -> True
+          _ -> False
+      }
     doit _ = error "parseRow: unexpected number of row cells"
+    nullIfEmpty x = case x of
+      "" -> Nothing
+      _  -> Just (L.toStrict x)
 
 
 -----------

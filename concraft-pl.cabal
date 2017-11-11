@@ -1,5 +1,5 @@
 name:               concraft-pl
-version:            0.8.0
+version:            0.9.0
 synopsis:           Morphological tagger for Polish
 description:
     A morphological tagger for Polish based on the concraft library.
@@ -23,7 +23,7 @@ library
 
     build-depends:
         base >= 4 && < 5
-      , concraft                >= 0.10     && < 0.11
+      , concraft                >= 0.11     && < 0.12
       , pedestrian-dag          >= 0.1      && < 0.2
       , crf-chain1-constrained  >= 0.4      && < 0.5
       , crf-chain2-tiers        >= 0.3      && < 0.4
@@ -48,7 +48,7 @@ library
       , NLP.Concraft.Polish.Request
       , NLP.Concraft.Polish.Server
 
-      , NLP.Concraft.Polish.DAG
+      -- , NLP.Concraft.Polish.DAG
       , NLP.Concraft.Polish.DAG2
       , NLP.Concraft.Polish.DAG.Morphosyntax
 

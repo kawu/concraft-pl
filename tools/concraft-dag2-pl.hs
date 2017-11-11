@@ -15,7 +15,7 @@ import           Data.Tagset.Positional (parseTagset)
 import qualified Data.Tagset.Positional as P
 
 import qualified NLP.Concraft.DAG.Guess as Guess
-import qualified NLP.Concraft.DAG.Disamb as Disamb
+-- import qualified NLP.Concraft.DAG.Disamb as Disamb
 
 import qualified NLP.Concraft.DAG2 as C
 import qualified NLP.Concraft.Polish.DAG2 as P

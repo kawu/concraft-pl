@@ -9,12 +9,12 @@ packages:
 - '../pedestrian-dag'
 - '../crf-chain1-constrained'
 - '../crf-chain2-tiers'
-- '../concraft'
 - '../tagset-positional'
+- '../concraft'
 
 # Packages to be pulled from upstream that are not in the resolver (e.g., acme-missiles-0.3)
 extra-deps:
-- concraft-0.10.0
+- concraft-0.11.0
 - lazy-io-0.1.0
 - sgd-0.3.7
 - tagset-positional-0.3.1
