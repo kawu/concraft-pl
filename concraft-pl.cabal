@@ -49,7 +49,7 @@ library
       , NLP.Concraft.Polish.Server
 
       -- , NLP.Concraft.Polish.DAG
-      , NLP.Concraft.Polish.DAG2
+      -- , NLP.Concraft.Polish.DAG2
       , NLP.Concraft.Polish.DAGSeg
       , NLP.Concraft.Polish.DAG.Morphosyntax
 
@@ -63,12 +63,12 @@ source-repository head
     type: git
     location: https://github.com/kawu/concraft-pl.git
 
-executable concraft-pl
-    build-depends:
-        cmdargs                 >= 0.10     && < 0.11
-    hs-source-dirs: src, tools
-    main-is: concraft-pl.hs
-    ghc-options: -Wall -O2 -threaded -rtsopts
+-- executable concraft-pl
+--     build-depends:
+--         cmdargs                 >= 0.10     && < 0.11
+--     hs-source-dirs: src, tools
+--     main-is: concraft-pl.hs
+--     ghc-options: -Wall -O2 -threaded -rtsopts
 
 -- executable concraft-dag-pl
 --     build-depends:

@@ -33,10 +33,22 @@ import qualified Data.DAG as DAG
 -- import qualified Data.CRF.Chain1.Constrained.DAG.Dataset.Internal as DAG
 
 import qualified NLP.Concraft.DAG.Morphosyntax as X
-import qualified NLP.Concraft.Polish.DAG2 as C
-import           NLP.Concraft.Polish.DAG2 (AnnoSent(..))
+-- import qualified NLP.Concraft.Polish.DAG2 as C
+-- import           NLP.Concraft.Polish.DAG2 (AnnoSent(..))
+import qualified NLP.Concraft.Polish.DAGSeg as C
+import           NLP.Concraft.Polish.DAGSeg (AnnoSent(..))
 import qualified NLP.Concraft.Polish.Morphosyntax as I
-import           NLP.Concraft.Polish.DAG.Morphosyntax
+
+import           NLP.Concraft.Polish.DAG.Morphosyntax hiding (tag, Tag)
+import qualified NLP.Concraft.Polish.DAG.Morphosyntax as PolX
+
+
+-----------------------------
+-- Base
+-----------------------------
+
+
+type Tag = PolX.Interp PolX.Tag
 
 
 -----------------------------
@@ -89,54 +101,69 @@ buildSent ShowCfg{..} AnnoSent{..} = finalize $ do
   edgeID <- DAG.dagEdges dag
   let tailNode = DAG.begsWith edgeID dag
       headNode = DAG.endsWith edgeID dag
-      Edge{..} = DAG.edgeLabel edgeID dag
-  interp <- map Just (M.toList (X.unWMap interps)) ++
+      X.Seg{..} = DAG.edgeLabel edgeID dag
+  interp <- map Just (M.toList (X.unWMap tags)) ++
             if known word then [] else [Nothing]
   return $ case interp of
-    Just (Interp{..}, weight) ->
-      mconcat $ intersperse "\t" $
-        [ buildNode tailNode
-        , buildNode headNode
-        , L.fromText (orth word)
-        , L.fromText base
-        , L.fromText tag
-        , buildMayText commonness
-        , buildMayText qualifier ] ++
-        ( if suppressProbs then [] else
-            [ case probType of
-                Marginals ->
-                  buildWeight $ tagWeightIn edgeID tag marginals
-                MaxProbs ->
-                  buildWeight $ tagWeightIn edgeID tag maxProbs
-                GuessedMarginals ->
-                  buildWeight weight ] ) ++
-        [ buildMayText metaInfo
-        , if eos then "eos" else ""
-        , buildBool $ tagLabelIn False edgeID tag disambs ]
+    Just (interp@Interp{..}, weight) -> buildInterp
+      suppressProbs tailNode headNode word interp
+      (case probType of
+          Marginals ->
+            tagWeightIn edgeID interp marginals
+          MaxProbs ->
+            tagWeightIn edgeID interp maxProbs
+          GuessedMarginals ->
+            weight)
+      (tagLabelIn False edgeID interp disambs)
     -- below, the case when the word is unknown
     Nothing ->
-      mconcat $ intersperse "\t" $
-        [ buildNode tailNode
-        , buildNode headNode
-        , L.fromText (orth word)
-        , L.fromText "none"
-        , L.fromText ign ] ++
-        if suppressProbs then [] else [buildWeight 0]
+      let interp = Interp
+            { base = "none"
+            , tag = ign
+            , commonness = Nothing
+            , qualifier = Nothing
+            , metaInfo = Nothing
+            , eos = False }
+      in  buildInterp suppressProbs tailNode headNode word interp 0 False
   where
     finalize = (`mappend` "\n") . mconcat . intersperse "\n"
+    tagWeightIn = tagLabelIn 0
+    tagLabelIn def i x anno
+      = maybe def (tagLabel def x) (DAG.maybeEdgeLabel i anno)
+    tagLabel def x = maybe def id . M.lookup x
+
+
+buildInterp
+  :: Bool        -- ^ Suppress probs
+  -> DAG.NodeID  -- ^ Tail node
+  -> DAG.NodeID  -- ^ Head node
+  -> Word        -- ^ Word
+  -> Interp PolX.Tag
+  -> Double
+  -> Bool
+  -> L.Builder
+buildInterp suppressProbs tailNode headNode word Interp{..} weight disamb =
+  mconcat $ intersperse "\t" $
+  [ buildNode tailNode
+  , buildNode headNode
+  , L.fromText (orth word)
+  , L.fromText base
+  , L.fromText tag
+  , buildMayText commonness
+  , buildMayText qualifier ] ++
+  (if suppressProbs then [] else [buildWeight weight]) ++
+  [ buildMayText metaInfo
+  , if eos then "eos" else ""
+  , buildBool disamb ]
+  where
     buildNode (DAG.NodeID i) = L.fromString (show i)
-    buildWeight = L.fromString . printf "%.3f"
+    buildWeight = L.fromString . printf "%.4f"
     buildBool True = "disamb"
     buildBool False = ""
     -- buildDmb = between "\t" "\n" . L.fromString . printf "%.3f"
     -- between x y z = x <> z <> y
     buildMayText Nothing = ""
     buildMayText (Just x) = L.fromText x
-
-    tagWeightIn = tagLabelIn 0
-    tagLabelIn def i x anno
-      = maybe def (tagLabel def x) (DAG.maybeEdgeLabel i anno)
-    tagLabel def x = maybe def id . M.lookup x
 
 
 -----------------------------
@@ -162,7 +189,7 @@ data Row = Row
   , headNode   :: Int
   , orthForm   :: T.Text
   , baseForm   :: T.Text
-  , theTag     :: Tag
+  , theTag     :: PolX.Tag
   , commonness :: Maybe T.Text
   , qualifier  :: Maybe T.Text
   , tagProb    :: Double
@@ -186,13 +213,13 @@ fromRows =
       , DAG.headNode = DAG.NodeID $ headNode row0
       , DAG.edLabel = edge }
       where
-        edge = Edge
+        edge = X.Seg
           { word = newWord
-          , interps = newInterps }
+          , tags = newTags }
         newWord = Word
           { orth = orthForm row0
           , known = not $ ign `elem` map theTag rows }
-        newInterps = X.mkWMap
+        newTags = X.mkWMap
           [ (interp, tagProb)
           | Row{..} <- rows
           , not $ theTag == ign

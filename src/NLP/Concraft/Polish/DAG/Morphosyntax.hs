@@ -12,9 +12,10 @@ module NLP.Concraft.Polish.DAG.Morphosyntax
   Tag
 
 -- * Edge
-, Edge (..)
+-- , Edge (..)
 , Word (..)
 , Interp (..)
+, voidInterp
 , Space (..)
 -- , select
 -- , select'
@@ -28,11 +29,12 @@ module NLP.Concraft.Polish.DAG.Morphosyntax
 , withOrig
 
 -- * Conversion
-, packSeg
 , packSent
 , packSentO
+-- , packSeg
 
-, fromList
+-- -- ** From simple sentence
+-- , fromList
 ) where
 
 
@@ -76,7 +78,7 @@ type Tag = T.Text
 -- | A morphosyntactic interpretation.
 data Interp t = Interp
     { base  :: T.Text
-      -- ^ Base form (lemma)
+      -- ^ The base form (lemma)
     , tag   :: t
       -- ^ The (morphosyntactic) tag
     , commonness :: Maybe T.Text
@@ -86,6 +88,18 @@ data Interp t = Interp
       -- ^ The remaining four are ignored for the moment, but we plan to rely on
       -- them later on.
     } deriving (Show, Eq, Ord)
+
+
+-- | An almost empty interpretation, with only the `tag` actually specified.
+voidInterp :: t -> Interp t
+voidInterp x = Interp
+  { base = "none"
+  , tag = x
+  , commonness = Nothing
+  , qualifier = Nothing
+  , metaInfo = Nothing
+  , eos = False
+  }
 
 
 instance (Ord t, Binary t) => Binary (Interp t) where
@@ -104,22 +118,22 @@ instance (Ord t, Binary t) => Binary (Interp t) where
 --------------------------------
 
 
--- | An edge consists of a word and a set of morphosyntactic interpretations.
-data Edge t = Edge
-    { word      :: Word
-    -- | Interpretations of the word, each interpretation annotated
-    -- with a /disamb/ Boolean value (if 'True', the interpretation
-    -- is correct within the context).
-    , interps   :: X.WMap (Interp t) }
-    deriving (Show, Eq, Ord)
-
-instance (Ord t, Binary t) => Binary (Edge t) where
-    put Edge{..} = put word >> put interps
-    get = Edge <$> get <*> get
-
-instance X.Word (Edge t) where
-    orth = X.orth . word
-    oov = X.oov . word
+-- -- | An edge consists of a word and a set of morphosyntactic interpretations.
+-- data Edge t = Edge
+--     { word      :: Word
+--     -- | Interpretations of the word, each interpretation annotated
+--     -- with a /disamb/ Boolean value (if 'True', the interpretation
+--     -- is correct within the context).
+--     , interps   :: X.WMap (Interp t) }
+--     deriving (Show, Eq, Ord)
+--
+-- instance (Ord t, Binary t) => Binary (Edge t) where
+--     put Edge{..} = put word >> put interps
+--     get = Edge <$> get <*> get
+--
+-- instance X.Word (Edge t) where
+--     orth = X.orth . word
+--     oov = X.oov . word
 
 
 --------------------------------
@@ -168,43 +182,45 @@ instance FromJSON Word where
 -- -- | Select one chosen interpretation.
 -- select :: Ord a => a -> Edge a -> Edge a
 -- select = select' []
--- 
--- 
+--
+--
 -- -- | Select multiple interpretations and one chosen interpretation.
 -- select' :: Ord a => [a] -> a -> Edge a -> Edge a
 -- select' ys x = selectWMap . X.mkWMap $ (x, 1) : map (,0) ys
 
 
 -- | Select interpretations.
-selectAnno :: Ord a => M.Map a Double -> Edge a -> Edge a
+selectAnno :: Ord a => M.Map (Interp a) Double -> X.Seg Word (Interp a) -> X.Seg Word (Interp a)
 selectAnno = selectWMap . X.fromMap
 
 
 -- | Select interpretations.
-selectWMap :: Ord a => X.WMap a -> Edge a -> Edge a
-selectWMap wMap seg =
-    seg { interps = newInterps }
-  where
-    wSet = S.fromList . map tag . M.keys . X.unWMap . interps $ seg
-    newInterps = X.mkWMap $
-        [ case M.lookup (tag interp) (X.unWMap wMap) of
-            Just x  -> (interp, x)
-            Nothing -> (interp, 0)
-        | interp <- (M.keys . X.unWMap) (interps seg) ]
-            ++ catMaybes
-        [ if tag `S.member` wSet
-            then Nothing
-            else Just (interp, x)
-        | let lemma = orth $ word seg   -- Default base form
-        , (tag, x) <- M.toList (X.unWMap wMap)
-        , let interp = Interp
-                { base = lemma
-                , tag = tag
-                , commonness = Nothing
-                , qualifier = Nothing
-                , metaInfo = Nothing
-                , eos = False }
-        ]
+selectWMap :: Ord a => X.WMap (Interp a) -> X.Seg Word (Interp a) -> X.Seg Word (Interp a)
+selectWMap wMap seg = seg {X.tags = wMap}
+--     seg { X.tags = newTags }
+--   where
+--     wSet = S.fromList . map tag . M.keys . X.unWMap . X.tags $ seg
+--     newTags = X.mkWMap $
+--         -- [ case M.lookup (tag interp) (X.unWMap wMap) of
+--         [ case M.lookup interp (X.unWMap wMap) of
+--             Just x  -> (interp, x)
+--             Nothing -> (interp, 0)
+--         | interp <- (M.keys . X.unWMap) (X.tags seg) ]
+--             ++ catMaybes
+--         [ if interp `S.member` wSet
+--             then Nothing
+--             else Just (interp, x)
+--         | (interp, x) <- M.toList (X.unWMap wMap)
+-- --         | let lemma = orth $ X.word seg   -- Default base form
+-- --         , (tag, x) <- M.toList (X.unWMap wMap)
+-- --         , let interp = Interp
+-- --                 { base = lemma
+-- --                 , tag = tag
+-- --                 , commonness = Nothing
+-- --                 , qualifier = Nothing
+-- --                 , metaInfo = Nothing
+-- --                 , eos = False }
+--         ]
 
 
 --------------------------------
@@ -213,7 +229,8 @@ selectWMap wMap seg =
 
 
 -- | A sentence.
-type Sent t = DAG Space (Edge t)
+-- type Sent t = DAG Space (Edge t)
+type Sent t = DAG Space (X.Seg Word t)
 
 
 -- | A sentence with its original textual representation.
@@ -227,7 +244,7 @@ data SentO t = SentO
 -- if we enriched the representation of spaces.
 restore :: Sent t -> L.Text
 restore =
-    let edgeStr = orth . word
+    let edgeStr = orth . X.word
         spaceStr None    = ""
         spaceStr Space   = " "
         spaceStr NewLine = "\n"
@@ -257,21 +274,22 @@ pickPath = undefined
 ---------------------------
 
 
--- | Convert a segment to a segment from the core library.
-packSeg :: Ord a => Edge a -> X.Seg Word a
-packSeg Edge{..}
-    = X.Seg word
-    $ X.mkWMap
-    $ map (first tag)
-    $ M.toList
-    $ X.unWMap interps
+-- -- | Convert a segment to a segment from the core library.
+-- packSeg :: Ord a => X.Seg Word a -> X.Seg Word a
+-- packSeg = id
+-- -- packSeg Edge{..}
+-- --     = X.Seg word
+-- --     $ X.mkWMap
+-- --     $ map (first tag)
+-- --     $ M.toList
+-- --     $ X.unWMap interps
 
 
 -- | Convert a sentence to a sentence from the core library.
 packSent :: Ord a => Sent a -> X.Sent Word a
-packSent -- tagset
+packSent
   = DAG.mapN (const ())
-  . fmap packSeg
+  -- . fmap packSeg
 
 
 -- | Convert a sentence to a sentence from the core library.
@@ -287,30 +305,30 @@ packSentO s = X.SentO
 ---------------------------
 
 
-fromWord :: R.Word -> (Space, Word)
-fromWord R.Word{..} = (space, Word {orth=orth, known=known})
-
-
-fromSeg :: (Ord t) => R.Seg t -> (Space, Edge t)
-fromSeg R.Seg{..} =
-  (space, edge)
-  where
-    edge = Edge {word = newWord, interps = updateInterps interps}
-    (space, newWord) = fromWord word
-    -- updateInterps = X.mkWMap . map (first fromInterp) . X.unWMap
-    updateInterps = X.mapWMap fromInterp
-
-
-fromInterp :: R.Interp t -> Interp t
-fromInterp R.Interp{..} = Interp
-  { base = base
-  , tag = tag
-  , commonness = Nothing
-  , qualifier = Nothing
-  , metaInfo = Nothing
-  , eos = False }
-
-
--- | Create a DAG-based sentence from a list-based sentence.
-fromList :: Ord t => R.Sent t -> Sent t
-fromList = DAG.fromList' None . map fromSeg
+-- fromWord :: R.Word -> (Space, Word)
+-- fromWord R.Word{..} = (space, Word {orth=orth, known=known})
+--
+--
+-- fromSeg :: (Ord t) => R.Seg t -> (Space, Edge t)
+-- fromSeg R.Seg{..} =
+--   (space, edge)
+--   where
+--     edge = Edge {word = newWord, interps = updateInterps interps}
+--     (space, newWord) = fromWord word
+--     -- updateInterps = X.mkWMap . map (first fromInterp) . X.unWMap
+--     updateInterps = X.mapWMap fromInterp
+--
+--
+-- fromInterp :: R.Interp t -> Interp t
+-- fromInterp R.Interp{..} = Interp
+--   { base = base
+--   , tag = tag
+--   , commonness = Nothing
+--   , qualifier = Nothing
+--   , metaInfo = Nothing
+--   , eos = False }
+--
+--
+-- -- | Create a DAG-based sentence from a list-based sentence.
+-- fromList :: Ord t => R.Sent t -> Sent t
+-- fromList = DAG.fromList' None . map fromSeg

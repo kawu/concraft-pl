@@ -7,8 +7,15 @@
 
 module NLP.Concraft.Polish.DAGSeg
 (
--- * Model
-  C.Concraft
+
+-- * Types
+  Tag (..)
+-- ** Simplification
+, simplify4gsr
+, simplify4dmb
+
+-- ** Model
+, C.Concraft
 , C.saveModel
 , C.loadModel
 
@@ -71,10 +78,13 @@ guessSchemaDefault = S.nullConf
 -- | Default configuration for the guessing observation schema.
 disambSchemaDefault :: SchemaConf
 disambSchemaDefault = S.nullConf
-    { lowOrthC      = entry                         [-2, -1, 0, 1]
-    , lowPrefixesC  = oov $ entryWith [1, 2, 3]     [0]
-    , lowSuffixesC  = oov $ entryWith [1, 2, 3]     [0]
-    , begPackedC    = oov $ entry                   [0] }
+--     { lowOrthC      = entry                         [-2, -1, 0, 1]
+--     , lowPrefixesC  = oov $ entryWith [1, 2, 3]     [0]
+--     , lowSuffixesC  = oov $ entryWith [1, 2, 3]     [0]
+    { begPackedC    = entry                         [-1, 0, 1] }
+    -- ^ NOTE: The current configuration works quite well for segmentation.
+    -- Adding orthographic forms was not a good idea, at least on a small
+    -- training dataset.
   where
     oov (Just body) = Just $ body { S.oovOnly = True }
     oov Nothing     = Nothing
@@ -83,12 +93,18 @@ disambSchemaDefault = S.nullConf
 -- | Default tiered tagging configuration.
 tiersDefault :: [D.Tier]
 tiersDefault =
-    [tier1]
+    [tier2]
   where
     tier1 = D.Tier
       { D.withPos = True
-      , D.withEos = True
+      , D.withEos = False
       , D.withAtts = S.fromList ["cas", "per"]
+      -- , D.withAtts = S.fromList []
+      }
+    tier2 = D.Tier
+      { D.withPos = True
+      , D.withEos = True
+      , D.withAtts = S.fromList []
       }
 
 
@@ -97,12 +113,8 @@ tiersDefault =
 -------------------------------------------------
 
 
-data Tag = Tag
-  { posiTag :: PolX.Tag
-    -- ^ Positional tag (in textual form)
-  , hasEos :: Bool
-    -- ^ End-of-sentence marker
-  } deriving (Show, Eq, Ord)
+-- type Tag = PolX.Tag
+type Tag = PolX.Interp PolX.Tag
 
 
 -- | Tag the sentence with guessing marginal probabilities.
@@ -162,6 +174,30 @@ annoWith anno concraft =
   anno concraft . packSent
 
 
+-- | Tranform each tag into two tags, one with EOS(end-of-sentence)=True, one
+-- with EOS=False. The idea behind this transformation is that, at some point,
+-- we may want to tag with an EOS-aware model, with no EOS-related information
+-- coming from the previous tagging stages.
+--
+-- NOTE: this procedure does not apply to OOV words.  The motivation: it seems
+-- highly unlikely that any OOV word can mark a sentence end.
+addEosMarkers :: X.Seg Word Tag -> X.Seg Word Tag
+addEosMarkers seg
+  | X.oov seg = seg
+  | otherwise = seg {X.tags = newTags (X.tags seg)}
+  where
+    newTags tagMap = X.mkWMap $ concat
+      [ multiply interp p
+      | (interp, p) <- M.toList (X.unWMap tagMap) ]
+    multiply interp p
+      | eos interp == True =
+          [ (interp {eos=True}, p)
+          , (interp {eos=False}, 0) ]
+      | otherwise =
+          [ (interp {eos=True}, 0)
+          , (interp {eos=False}, p) ]
+
+
 -------------------------------------------------
 -- High-level Tagging
 -------------------------------------------------
@@ -193,7 +229,8 @@ annoAll k concraft sent0 = AnnoSent
   , marginals = _marginals
   , maxProbs  = _maxProbs }
   where
-    _guessSent = tagWith (C.guess k . C.guesser) concraft sent0
+    -- We add EOS markers only after guessing, for the sake of the unknown words
+    _guessSent = fmap addEosMarkers $ tagWith (C.guess k . C.guesser) concraft sent0
     _marginals = annoWith (C.disambProbs D.Marginals . C.disamb) concraft _guessSent
     _maxProbs  = annoWith (C.disambProbs D.MaxProbs . C.disamb) concraft _guessSent
     _disambs   = C.disambPath (optimal _maxProbs) _maxProbs
@@ -231,18 +268,81 @@ train
     -> IO [Sent Tag]      -- ^ Evaluation data
     -> IO (C.Concraft Tag)
 train TrainConf{..} train0 eval0 = do
---   let train1 = map (packSent tagset) <$> train0
---       eval1  = map (packSent tagset) <$> eval0
-  let train1 = map packSent <$> train0
-      eval1  = map packSent <$> eval0
-  noReana train1 eval1
+  let trainR'IO = map packSent <$> train0
+      evalR'IO  = map packSent <$> eval0
+
+  putStrLn "\n===== Train guessing model ====="
+  guesser <- G.train guessConf trainR'IO evalR'IO
+  let guess = C.guessSent guessNum guesser
+      prepSent = fmap addEosMarkers . guess
+      trainG'IO = map prepSent <$> trainR'IO
+      evalG'IO  = map prepSent <$> evalR'IO
+
+  putStrLn "\n===== Train disambiguation/segmentation model ====="
+  disamb <- D.train disambConf trainG'IO evalG'IO
+  return $ C.Concraft tagset guessNum guesser disamb
+
+  -- C.train tagset guessNum guessConf disambConf train eval
   where
-    noReana tr ev = C.train tagset guessNum guessConf disambConf tr ev
-    -- noReana tr ev = C.train tagset guessNum guessConf tr ev
-    -- simplifyLabel = P.parseTag tagset
-    simplifyGsr Tag{..} = P.parseTag tagset posiTag
-    simplifyDmb Tag{..} = D.Tag
-      { D.posiTag = P.parseTag tagset posiTag
-      , D.hasEos = hasEos }
-    guessConf = G.TrainConf guessSchemaDefault sgdArgs onDisk r0 zeroProbLabel simplifyGsr
-    disambConf = D.TrainConf tiersDefault disambSchemaDefault sgdArgs onDisk simplifyDmb
+
+    guessConf = G.TrainConf
+      guessSchemaDefault sgdArgs onDisk r0 zeroProbLabel
+      (simplify4gsr tagset) strip4gsr
+    strip4gsr interp = PolX.voidInterp (PolX.tag interp)
+    disambConf = D.TrainConf
+      tiersDefault disambSchemaDefault sgdArgs onDisk
+      (simplify4dmb tagset)
+
+
+-- | Simplify the tag for the sake of the disambiguation model.
+simplify4dmb :: P.Tagset -> PolX.Interp PolX.Tag -> D.Tag
+simplify4dmb tagset PolX.Interp{..} = D.Tag
+  { D.posiTag = P.parseTag tagset tag
+  , D.hasEos = eos }
+
+
+-- | Simplify the tag for the sake of the disambiguation model.
+simplify4gsr :: P.Tagset -> PolX.Interp PolX.Tag -> P.Tag
+simplify4gsr tagset PolX.Interp{..} = P.parseTag tagset tag
+
+
+-- -- | Train the `Concraft` model.
+-- -- No reanalysis of the input data will be performed.
+-- --
+-- -- The `FromJSON` and `ToJSON` instances are used to store processed
+-- -- input data in temporary files on a disk.
+-- train
+--     :: (X.Word w, Ord t)
+--     => P.Tagset             -- ^ A morphosyntactic tagset to which `P.Tag`s
+--                             --   of the training and evaluation input data
+--                             --   must correspond.
+--     -> Int                  -- ^ How many tags is the guessing model supposed
+--                             --   to produce for a given OOV word?  It will be
+--                             --   used (see `G.guessSent`) on both training and
+--                             --   evaluation input data prior to the training
+--                             --   of the disambiguation model.
+--     -> G.TrainConf t P.Tag  -- ^ Training configuration for the guessing model.
+--     -> D.TrainConf t        -- ^ Training configuration for the
+--                             --   disambiguation model.
+--     -> IO [Sent w t]    -- ^ Training dataset.  This IO action will be
+--                             --   executed a couple of times, so consider using
+--                             --   lazy IO if your dataset is big.
+--     -> IO [Sent w t]    -- ^ Evaluation dataset IO action.  Consider using
+--                             --   lazy IO if your dataset is big.
+--     -> IO (Concraft t)
+-- train tagset guessNum guessConf disambConf trainR'IO evalR'IO = do
+--   Temp.withTempDirectory "." ".guessed" $ \tmpDir -> do
+--   let temp = withTemp tagset tmpDir
+--
+--   putStrLn "\n===== Train guessing model ====="
+--   guesser <- G.train guessConf trainR'IO evalR'IO
+--   let guess = guessSent guessNum guesser
+--   trainG  <- map guess <$> trainR'IO
+--   evalG   <- map guess <$> evalR'IO
+--
+--   temp "train" trainG $ \trainG'IO -> do
+--   temp "eval"  evalG  $ \evalG'IO  -> do
+--
+--   putStrLn "\n===== Train disambiguation model ====="
+--   disamb <- D.train disambConf trainG'IO evalG'IO
+--   return $ Concraft tagset guessNum guesser disamb

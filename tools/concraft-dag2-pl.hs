@@ -1,3 +1,4 @@
+{-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE DeriveDataTypeable #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE RecordWildCards #-}
@@ -17,8 +18,10 @@ import qualified Data.Tagset.Positional as P
 import qualified NLP.Concraft.DAG.Guess as Guess
 -- import qualified NLP.Concraft.DAG.Disamb as Disamb
 
-import qualified NLP.Concraft.DAG2 as C
-import qualified NLP.Concraft.Polish.DAG2 as P
+-- import qualified NLP.Concraft.DAG2 as C
+-- import qualified NLP.Concraft.Polish.DAG2 as P
+import qualified NLP.Concraft.DAGSeg as C
+import qualified NLP.Concraft.Polish.DAGSeg as Pol
 import qualified NLP.Concraft.Polish.DAG.Morphosyntax as X
 import qualified NLP.Concraft.Polish.DAG.Format.Base as DB
 
@@ -115,15 +118,21 @@ exec Train{..} = do
         Just x  -> return x
     tagset <- parseTagset tagsetPath' <$> readFile tagsetPath'
     -- let zeroProbLab = P.parseTag taset zeroProbLabel
-    let zeroProbLab = T.pack zeroProbLabel
-    let train0 = DB.parseData <$> L.readFile trainPath
-    let eval0  = case evalPath of
+    let zeroProbLab = X.Interp
+          { X.base = "none"
+          , X.tag = T.pack zeroProbLabel
+          , X.commonness = Nothing
+          , X.qualifier = Nothing
+          , X.metaInfo = Nothing
+          , X.eos = False }
+        train0 = DB.parseData <$> L.readFile trainPath
+        eval0  = case evalPath of
           Nothing -> return []
           Just ph -> DB.parseData <$> L.readFile ph
-    concraft <- P.train (trainConf tagset zeroProbLab) train0 eval0
+    concraft <- Pol.train (trainConf tagset zeroProbLab) train0 eval0
     unless (null outModel) $ do
         putStrLn $ "\nSaving model in " ++ outModel ++ "..."
-        P.saveModel outModel concraft
+        Pol.saveModel outModel concraft
   where
     sgdArgs = SGD.SgdArgs
         { SGD.batchSize = batchSize
@@ -131,7 +140,7 @@ exec Train{..} = do
         , SGD.iterNum = iterNum
         , SGD.gain0 = gain0
         , SGD.tau = tau }
-    trainConf tagset zeroLab = P.TrainConf
+    trainConf tagset zeroLab = Pol.TrainConf
         { tagset    = tagset
         , sgdArgs   = sgdArgs
         -- , reana     = not noAna
@@ -142,13 +151,14 @@ exec Train{..} = do
 
 
 exec Tag{..} = do
-  crf <- P.loadModel P.parseTag inModel
+  -- crf <- Pol.loadModel P.parseTag inModel
+  crf <- Pol.loadModel Pol.simplify4gsr Pol.simplify4dmb inModel
   inp <- DB.parseData <$> L.getContents
   let guessNum = case mayGuessNum of
         Nothing -> C.guessNum crf
         Just k  -> k
-      -- out = P.tag' guessNum (mkProbType probType) crf <$> inp
-      out = P.annoAll guessNum crf <$> inp
+      -- out = Pol.tag' guessNum (mkProbType probType) crf <$> inp
+      out = Pol.annoAll guessNum crf <$> inp
       showCfg = DB.ShowCfg
         { suppressProbs = suppressProbs
         , probType = probType }
