@@ -50,6 +50,7 @@ library
 
       -- , NLP.Concraft.Polish.DAG
       , NLP.Concraft.Polish.DAG2
+      , NLP.Concraft.Polish.DAGSeg
       , NLP.Concraft.Polish.DAG.Morphosyntax
 
     other-modules:

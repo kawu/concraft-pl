@@ -79,8 +79,8 @@ tiersDefault :: [D.Tier]
 tiersDefault =
     [tier1, tier2]
   where
-    tier1 = D.Tier True $ S.fromList ["cas", "per"]
-    tier2 = D.Tier False $ S.fromList
+    tier1 = D.Tier True False $ S.fromList ["cas", "per"]
+    tier2 = D.Tier False False $ S.fromList
         [ "nmb", "gnd", "deg", "asp" , "ngt", "acm"
         , "acn", "ppr", "agg", "vlc", "dot" ]
 

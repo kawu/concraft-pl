@@ -258,8 +258,8 @@ pickPath = undefined
 
 
 -- | Convert a segment to a segment from the core library.
-packSeg_ :: Ord a => Edge a -> X.Seg Word a
-packSeg_ Edge{..}
+packSeg :: Ord a => Edge a -> X.Seg Word a
+packSeg Edge{..}
     = X.Seg word
     $ X.mkWMap
     $ map (first tag)
@@ -267,25 +267,16 @@ packSeg_ Edge{..}
     $ X.unWMap interps
 
 
--- | Convert a segment to a segment from the core library.
--- packSeg :: P.Tagset -> Edge Tag -> X.Seg Word P.Tag
-packSeg :: Edge Tag -> X.Seg Word Tag
--- packSeg tagset = X.mapSeg (P.parseTag tagset) . packSeg_
-packSeg = packSeg_
-
-
 -- | Convert a sentence to a sentence from the core library.
--- packSent :: P.Tagset -> Sent Tag -> X.Sent Word P.Tag
-packSent :: Sent Tag -> X.Sent Word Tag
+packSent :: Ord a => Sent a -> X.Sent Word a
 packSent -- tagset
   = DAG.mapN (const ())
-  -- . fmap (packSeg tagset)
   . fmap packSeg
 
 
 -- | Convert a sentence to a sentence from the core library.
 -- packSentO :: P.Tagset -> SentO Tag -> X.SentO Word P.Tag
-packSentO :: SentO Tag -> X.SentO Word Tag
+packSentO :: Ord a => SentO a -> X.SentO Word a
 packSentO s = X.SentO
     { segs = packSent (sent s)
     , orig = orig s }

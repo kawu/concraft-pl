@@ -40,7 +40,7 @@ concraftDesc = "Concraft-dag-pl " ++ showVersion version
 
 data Concraft
   = Train
-    { trainPath	    :: FilePath
+    { trainPath     :: FilePath
     , evalPath      :: Maybe FilePath
     , tagsetPath    :: Maybe FilePath
     , iterNum       :: Double
@@ -132,7 +132,7 @@ exec Train{..} = do
         , SGD.gain0 = gain0
         , SGD.tau = tau }
     trainConf tagset zeroLab = P.TrainConf
-        { tagset    = tagset 
+        { tagset    = tagset
         , sgdArgs   = sgdArgs
         -- , reana     = not noAna
         , onDisk    = disk
@@ -142,7 +142,7 @@ exec Train{..} = do
 
 
 exec Tag{..} = do
-  crf <- P.loadModel inModel
+  crf <- P.loadModel P.parseTag inModel
   inp <- DB.parseData <$> L.getContents
   let guessNum = case mayGuessNum of
         Nothing -> C.guessNum crf
@@ -158,60 +158,60 @@ exec Tag{..} = do
 -- ---------------------------------------
 -- -- Reading files
 -- ---------------------------------------
--- 
+--
 -- -- TODO: make everything work on DAG input/output.
--- 
+--
 -- parseFileO' :: Format -> Maybe FilePath -> IO [X.SentO X.Tag]
 -- parseFileO' format path = case path of
 --     Nothing -> return []
 --     Just pt -> parseFileO format pt
--- 
--- 
+--
+--
 -- parseFileO :: Format -> FilePath -> IO [X.SentO X.Tag]
 -- parseFileO format path = parseParaO format <$> L.readFile path
--- 
--- 
+--
+--
 -- parseFile :: Format -> FilePath -> IO [X.Sent X.Tag]
 -- parseFile format path = parsePara format <$> L.readFile path
--- 
--- 
+--
+--
 -- ---------------------------------------
 -- -- Parsing text
 -- ---------------------------------------
--- 
--- 
+--
+--
 -- -- parseTextO :: Format -> L.Text -> [[X.SentO X.Tag]]
 -- -- parseTextO format = map (map X.withOrig) . parseText format
--- 
--- 
+--
+--
 -- parseParaO :: Format -> L.Text -> [X.SentO X.Tag]
 -- parseParaO format = map X.withOrig . parsePara format
--- 
--- 
+--
+--
 -- ---------------------------------------
 -- -- Parsing (format dependent)
 -- ---------------------------------------
--- 
--- 
+--
+--
 -- parseText :: Format -> L.Text -> [[X.Sent X.Tag]]
 -- parseText Plain = P.parsePlain
--- 
--- 
+--
+--
 -- parsePara :: Format -> L.Text -> [X.Sent X.Tag]
 -- parsePara Plain = P.parsePara
--- 
--- 
+--
+--
 -- ---------------------------------------
 -- -- Showing (format dependent)
 -- ---------------------------------------
--- 
--- 
+--
+--
 -- data ShowCfg = ShowCfg {
 --     -- | The format used.
 --       formatCfg :: Format
 --     -- | Show weights?
 --     , showWsCfg :: Bool }
--- 
--- 
+--
+--
 -- showData :: ShowCfg -> [[X.Sent X.Tag]] -> L.Text
 -- showData ShowCfg{..} = P.showPlain (P.ShowCfg {P.showWsCfg = showWsCfg})

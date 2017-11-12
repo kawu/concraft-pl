@@ -5,7 +5,7 @@
 -- | DAG-based model for morphosyntactic tagging.
 
 
-module NLP.Concraft.Polish.DAG2
+module NLP.Concraft.Polish.DAGSeg
 (
 -- * Model
   C.Concraft
@@ -47,10 +47,11 @@ import qualified NLP.Concraft.DAG.Morphosyntax as X
 import qualified NLP.Concraft.DAG.Schema as S
 import           NLP.Concraft.DAG.Schema (SchemaConf(..), entry, entryWith)
 import qualified NLP.Concraft.DAG.Guess as G
-import qualified NLP.Concraft.DAG.Disamb as D
-import qualified NLP.Concraft.DAG2 as C
+import qualified NLP.Concraft.DAG.DisambSeg as D
+import qualified NLP.Concraft.DAGSeg as C
 
-import           NLP.Concraft.Polish.DAG.Morphosyntax hiding (tag)
+import           NLP.Concraft.Polish.DAG.Morphosyntax hiding (tag, Tag)
+import qualified NLP.Concraft.Polish.DAG.Morphosyntax as PolX
 
 
 -------------------------------------------------
@@ -82,17 +83,26 @@ disambSchemaDefault = S.nullConf
 -- | Default tiered tagging configuration.
 tiersDefault :: [D.Tier]
 tiersDefault =
-    [tier1, tier2]
+    [tier1]
   where
-    tier1 = D.Tier True False $ S.fromList ["cas", "per"]
-    tier2 = D.Tier False False $ S.fromList
-        [ "nmb", "gnd", "deg", "asp" , "ngt", "acm"
-        , "acn", "ppr", "agg", "vlc", "dot" ]
+    tier1 = D.Tier
+      { D.withPos = True
+      , D.withEos = True
+      , D.withAtts = S.fromList ["cas", "per"]
+      }
 
 
 -------------------------------------------------
 -- Tagging
 -------------------------------------------------
+
+
+data Tag = Tag
+  { posiTag :: PolX.Tag
+    -- ^ Positional tag (in textual form)
+  , hasEos :: Bool
+    -- ^ End-of-sentence marker
+  } deriving (Show, Eq, Ord)
 
 
 -- | Tag the sentence with guessing marginal probabilities.
@@ -143,19 +153,6 @@ tagWith annoFun concraft sent
     select (edge, anno) = selectAnno anno edge
     annoSent = annoWith annoFun concraft sent
 
--- tagWith tagFun concraft sent
---     = fmap select
---     $ DAG.zipE sent annos
---   where
---     select (edge, anno) = selectAnno anno edge
---     tagset = C.tagset concraft
---     packed = packSent tagset sent
---     annos  = fmap
---         -- (X.mapWMap showTag)
---         (M.mapKeysWith (+) showTag)
---         (tagFun concraft packed)
---     showTag = P.showTag tagset
-
 
 -- | Annotate with the help of a lower-level annotation function.
 annoWith
@@ -163,21 +160,6 @@ annoWith
   -> C.Concraft Tag -> Sent Tag -> C.Anno Tag a
 annoWith anno concraft =
   anno concraft . packSent
-
-
--- -- | Annotate with the help of a lower-level annotation function.
--- annoWith
---   :: (a -> a -> a)
---   -> (C.Concraft Tag -> X.Sent Word P.Tag -> C.Anno P.Tag a)
---   -> C.Concraft Tag -> Sent Tag -> C.Anno Tag a
--- annoWith f anno concraft sent = fmap
---   (M.mapKeysWith f showTag)
---   (anno concraft packed)
---   where
---     showTag = P.showTag tagset
---     packed = packSent tagset sent
---     tagset = C.tagset concraft
-
 
 
 -------------------------------------------------
@@ -257,6 +239,10 @@ train TrainConf{..} train0 eval0 = do
   where
     noReana tr ev = C.train tagset guessNum guessConf disambConf tr ev
     -- noReana tr ev = C.train tagset guessNum guessConf tr ev
-    simplifyLabel = P.parseTag tagset
-    guessConf = G.TrainConf guessSchemaDefault sgdArgs onDisk r0 zeroProbLabel simplifyLabel
-    disambConf = D.TrainConf tiersDefault disambSchemaDefault sgdArgs onDisk simplifyLabel
+    -- simplifyLabel = P.parseTag tagset
+    simplifyGsr Tag{..} = P.parseTag tagset posiTag
+    simplifyDmb Tag{..} = D.Tag
+      { D.posiTag = P.parseTag tagset posiTag
+      , D.hasEos = hasEos }
+    guessConf = G.TrainConf guessSchemaDefault sgdArgs onDisk r0 zeroProbLabel simplifyGsr
+    disambConf = D.TrainConf tiersDefault disambSchemaDefault sgdArgs onDisk simplifyDmb
