@@ -5,15 +5,15 @@
 
 
 import           Control.Applicative ((<$>))
-import           Control.Monad (unless, forM_)
+import           Control.Monad (unless)
 import           System.Console.CmdArgs
-import           System.IO (hFlush, stdout)
+-- import           System.IO (hFlush, stdout)
 import qualified Numeric.SGD as SGD
 import qualified Data.Text as T
-import qualified Data.Text.Lazy as L
+-- import qualified Data.Text.Lazy as L
 import qualified Data.Text.Lazy.IO as L
 import           Data.Tagset.Positional (parseTagset)
-import qualified Data.Tagset.Positional as P
+-- import qualified Data.Tagset.Positional as P
 
 import qualified NLP.Concraft.DAG.Guess as Guess
 -- import qualified NLP.Concraft.DAG.Disamb as Disamb
