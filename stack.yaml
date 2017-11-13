@@ -7,6 +7,7 @@ resolver: lts-1.15
 packages:
 - '.'
 - '../pedestrian-dag'
+- '../sgd'
 - '../crf-chain1-constrained'
 - '../crf-chain2-tiers'
 - '../tagset-positional'
@@ -16,7 +17,7 @@ packages:
 extra-deps:
 - concraft-0.11.0
 - lazy-io-0.1.0
-- sgd-0.3.7
+- sgd-0.4.0
 - tagset-positional-0.3.1
 - crf-chain1-constrained-0.4.0
 - crf-chain2-tiers-0.3.0

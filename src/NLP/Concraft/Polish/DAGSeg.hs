@@ -88,6 +88,23 @@ segmentSchemaDefault = S.nullConf
     -- training dataset.
 
 
+-- -- | Default configuration for the guessing observation schema.
+-- disambSchemaDefault :: SchemaConf
+-- disambSchemaDefault = S.nullConf
+--     { lowPrefixesC  = entryWith [1, 2]      [-1, 0, 1]
+--     , begPackedC    = entry                 [-1, 0, 1] }
+
+
+-- -- | Default configuration for the guessing observation schema.
+-- disambSchemaDefault :: SchemaConf
+-- disambSchemaDefault = S.nullConf
+--     { orthC         = entry                   [-2, -1, 0, 1, 2]
+--     -- { lowOrthC      = entry                   [-2, -1, 0, 1, 2]
+--     , lowPrefixesC  = entryWith [1, 2, 3]     [-2, -1, 0, 1, 2]
+--     , lowSuffixesC  = entryWith [1, 2, 3]     [-2, -1, 0, 1, 2]
+--     , begPackedC    = entry                   [-2, -1, 0, 1, 2] }
+
+
 -- | Default configuration for the guessing observation schema.
 disambSchemaDefault :: SchemaConf
 disambSchemaDefault = S.nullConf

@@ -129,6 +129,7 @@ exec Train{..} = do
         eval0  = case evalPath of
           Nothing -> return []
           Just ph -> DB.parseData <$> L.readFile ph
+    -- putStrLn $ "\nRegularization variance: " ++ show regVar
     concraft <- Pol.train (trainConf tagset zeroProbLab) train0 eval0
     unless (null outModel) $ do
         putStrLn $ "\nSaving model in " ++ outModel ++ "..."

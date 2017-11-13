@@ -28,7 +28,7 @@ library
       , crf-chain1-constrained  >= 0.4      && < 0.5
       , crf-chain2-tiers        >= 0.3      && < 0.4
       , tagset-positional       >= 0.3      && < 0.4
-      , sgd                     >= 0.3.3    && < 0.4
+      , sgd                     >= 0.4      && < 0.5
       , containers              >= 0.4      && < 0.6
       , bytestring              >= 0.9      && < 0.11
       , text                    >= 0.11     && < 1.3
