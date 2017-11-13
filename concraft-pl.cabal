@@ -24,7 +24,7 @@ library
     build-depends:
         base >= 4 && < 5
       , concraft                >= 0.11     && < 0.12
-      , pedestrian-dag          >= 0.1      && < 0.2
+      , pedestrian-dag          >= 0.2      && < 0.3
       , crf-chain1-constrained  >= 0.4      && < 0.5
       , crf-chain2-tiers        >= 0.3      && < 0.4
       , tagset-positional       >= 0.3      && < 0.4

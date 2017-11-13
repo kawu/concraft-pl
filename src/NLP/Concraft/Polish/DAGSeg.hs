@@ -40,6 +40,7 @@ module NLP.Concraft.Polish.DAGSeg
 
 import           Control.Applicative ((<$>))
 import           Control.Arrow (first)
+import           Control.Monad (guard)
 import           Data.Maybe (listToMaybe)
 import qualified Data.Text.Lazy as L
 import qualified Data.Set as S
@@ -60,6 +61,8 @@ import qualified NLP.Concraft.DAGSeg as C
 import           NLP.Concraft.Polish.DAG.Morphosyntax hiding (tag, Tag)
 import qualified NLP.Concraft.Polish.DAG.Morphosyntax as PolX
 
+-- import Debug.Trace (trace)
+
 
 -------------------------------------------------
 -- Default configuration
@@ -76,36 +79,48 @@ guessSchemaDefault = S.nullConf
 
 
 -- | Default configuration for the guessing observation schema.
+segmentSchemaDefault :: SchemaConf
+segmentSchemaDefault = S.nullConf
+    { lowPrefixesC  = entryWith [1, 2]      [-1, 0, 1]
+    , begPackedC    = entry                 [-1, 0, 1] }
+    -- ^ NOTE: The current configuration works quite well for segmentation.
+    -- Adding orthographic forms was not a good idea, at least not on a small
+    -- training dataset.
+
+
+-- | Default configuration for the guessing observation schema.
 disambSchemaDefault :: SchemaConf
 disambSchemaDefault = S.nullConf
---     { lowOrthC      = entry                         [-2, -1, 0, 1]
---     , lowPrefixesC  = oov $ entryWith [1, 2, 3]     [0]
---     , lowSuffixesC  = oov $ entryWith [1, 2, 3]     [0]
-    { begPackedC    = entry                         [-1, 0, 1] }
-    -- ^ NOTE: The current configuration works quite well for segmentation.
-    -- Adding orthographic forms was not a good idea, at least on a small
-    -- training dataset.
+    { lowOrthC      = entry                         [-2, -1, 0, 1]
+    , lowPrefixesC  = oov $ entryWith [1, 2, 3]     [0]
+    , lowSuffixesC  = oov $ entryWith [1, 2, 3]     [0]
+    , begPackedC    = oov $ entry                   [0] }
   where
     oov (Just body) = Just $ body { S.oovOnly = True }
     oov Nothing     = Nothing
 
 
 -- | Default tiered tagging configuration.
-tiersDefault :: [D.Tier]
-tiersDefault =
-    [tier2]
+tiersSegment :: [D.Tier]
+tiersSegment =
+    [tier]
   where
-    tier1 = D.Tier
-      { D.withPos = True
-      , D.withEos = False
-      , D.withAtts = S.fromList ["cas", "per"]
-      -- , D.withAtts = S.fromList []
-      }
-    tier2 = D.Tier
+    tier = D.Tier
       { D.withPos = True
       , D.withEos = True
       , D.withAtts = S.fromList []
       }
+
+
+-- | Default tiered tagging configuration.
+tiersDisamb :: [D.Tier]
+tiersDisamb =
+    [tier1, tier2]
+  where
+    tier1 = D.Tier True False $ S.fromList ["cas", "per"]
+    tier2 = D.Tier False False $ S.fromList
+        [ "nmb", "gnd", "deg", "asp" , "ngt", "acm"
+        , "acn", "ppr", "agg", "vlc", "dot" ]
 
 
 -------------------------------------------------
@@ -198,6 +213,79 @@ addEosMarkers seg
           , (interp {eos=False}, p) ]
 
 
+-- | Decide if the word should be marked as eos or not.
+resolveEOS
+  :: Double
+     -- ^ 0.5 means that the probability of the tag being EOS is twice as high
+     -- as that of not being EOS. 1.0 means that EOS will be marked only if its
+     -- 100% probable.
+  -> X.Seg Word Tag
+  -> X.Seg Word Tag
+resolveEOS minProp seg
+  | isEos     = seg {X.tags = markEos}
+  | otherwise = seg {X.tags = markNoEos}
+  where
+    tagMap = X.tags seg
+    -- Determine the weights of the most probable EOS-marked and non-marked tags
+    withEosW = maxWeightWith ((==True) . PolX.eos) tagMap
+    withNoEosW = maxWeightWith ((==False) . PolX.eos) tagMap
+    -- Should the segment be marked as EOS?
+    isEos = case (withEosW, withNoEosW) of
+      (Just eosW, Just noEosW) ->
+        eosW / (eosW + noEosW) >= minProp
+      (Just _, Nothing) -> True
+      _ -> False
+    -- Mark the segment as EOS or not
+    markEos = X.mkWMap
+      [ (interp {PolX.eos=True}, p)
+      | (interp, p) <- M.toList (X.unWMap tagMap) ]
+    markNoEos = X.mkWMap
+      [ (interp {PolX.eos=False}, p)
+      | (interp, p) <- M.toList (X.unWMap tagMap) ]
+
+
+-- Determine the weight of the most probable interpretation which satisfies
+maxWeightWith :: (Tag -> Bool) -> X.WMap Tag -> Maybe Double
+maxWeightWith pred tagMap = mayMaximum
+  [ p
+  | (interp, p) <- M.toList (X.unWMap tagMap)
+  , pred interp ]
+  where
+    mayMaximum [] = Nothing
+    mayMaximum xs = Just $ maximum xs
+
+
+-- | Try to segment the sentence based on the EOS markers.
+-- segment :: X.Sent Word Tag -> [X.Sent Word Tag]
+segment :: DAG.DAG a (X.Seg Word Tag) -> [DAG.DAG a (X.Seg Word Tag)]
+segment sent =
+
+  -- (\xs -> trace ("splits: " ++ show (length xs)) xs) $
+  -- go (trace ("splitPoints: " ++ show splitPoints) splitPoints) sent
+  go splitPoints sent
+
+  where
+
+    splitPoints = (S.toList . S.fromList)
+      [ DAG.endsWith edgeID sent
+      | edgeID <- DAG.dagEdges sent
+      , interp <- M.keys . X.unWMap . X.tags . DAG.edgeLabel edgeID $ sent
+      , PolX.eos interp ]
+
+    go (splitPoint:rest) dag =
+      case split splitPoint dag of
+        Just (left, right) -> left : go rest right
+        Nothing -> go rest dag
+    go [] dag = [dag]
+
+    split point dag = do
+      (x, y) <- DAG.splitTmp point dag
+      let empty = null . DAG.dagEdges
+      guard . not . empty $ x
+      guard . not . empty $ y
+      return (x, y)
+
+
 -------------------------------------------------
 -- High-level Tagging
 -------------------------------------------------
@@ -206,7 +294,8 @@ addEosMarkers seg
 -- | Annotated sentence.
 data AnnoSent = AnnoSent
   { guessSent :: Sent Tag
-  -- ^ The sentence after guessing and annotated with marginal probabilities
+  -- ^ The sentence after guessing and segmentation
+  -- (TODO: and annotated with marginal probabilities?)
   , disambs   :: C.Anno Tag Bool
   -- ^ Disambiguation markers
   , marginals :: C.Anno Tag Double
@@ -222,19 +311,34 @@ annoAll
   -- ^ Trimming parameter
   -> C.Concraft Tag
   -> Sent Tag
-  -> AnnoSent
-annoAll k concraft sent0 = AnnoSent
-  { guessSent = _guessSent
-  , disambs   = _disambs
-  , marginals = _marginals
-  , maxProbs  = _maxProbs }
+  -> [AnnoSent]
+annoAll k concraft sent0 =
+
+  map annoOne _guessSent1
+
   where
-    -- We add EOS markers only after guessing, for the sake of the unknown words
-    _guessSent = fmap addEosMarkers $ tagWith (C.guess k . C.guesser) concraft sent0
-    _marginals = annoWith (C.disambProbs D.Marginals . C.disamb) concraft _guessSent
-    _maxProbs  = annoWith (C.disambProbs D.MaxProbs . C.disamb) concraft _guessSent
-    _disambs   = C.disambPath (optimal _maxProbs) _maxProbs
-    optimal = maybe [] id . listToMaybe . C.findOptimalPaths
+
+    -- We add EOS markers only after guessing, because the possible tags are not
+    -- yet determined for the OOV words.
+    _guessSent0 = fmap addEosMarkers $ tagWith (C.guess k . C.guesser) concraft sent0
+    -- Resolve EOS tags based on the segmentation model
+    _guessSent1 = segment . fmap (resolveEOS 0.5) $
+      tagWith (C.disambProbs D.MaxProbs . C.segmenter) concraft _guessSent0
+
+    annoOne _guessSent = AnnoSent
+      { guessSent = _guessSent
+      , disambs   = _disambs
+      , marginals = _marginals
+      , maxProbs  = _maxProbs
+      }
+      where
+        _marginals =
+          annoWith (C.disambProbs D.Marginals . C.disamb) concraft _guessSent
+        _maxProbs  =
+          annoWith (C.disambProbs D.MaxProbs . C.disamb) concraft _guessSent
+        _disambs   =
+          C.disambPath (optimal _maxProbs) _maxProbs
+          where optimal = maybe [] id . listToMaybe . C.findOptimalPaths
 
 
 -------------------------------------------------
@@ -278,19 +382,30 @@ train TrainConf{..} train0 eval0 = do
       trainG'IO = map prepSent <$> trainR'IO
       evalG'IO  = map prepSent <$> evalR'IO
 
-  putStrLn "\n===== Train disambiguation/segmentation model ====="
-  disamb <- D.train disambConf trainG'IO evalG'IO
-  return $ C.Concraft tagset guessNum guesser disamb
+  putStrLn "\n===== Train segmentation model ====="
+  segmenter <- D.train segmentConf trainG'IO evalG'IO
+  let prepSent = segment . fmap (resolveEOS 0.5)
+      trainS'IO = concatMap prepSent <$> trainG'IO
+      evalS'IO  = concatMap prepSent <$> evalG'IO
 
-  -- C.train tagset guessNum guessConf disambConf train eval
+  putStrLn "\n===== Train disambiguation model ====="
+  disamb <- D.train disambConf trainS'IO evalS'IO
+
+  return $ C.Concraft tagset guessNum guesser segmenter disamb
+
   where
 
     guessConf = G.TrainConf
       guessSchemaDefault sgdArgs onDisk r0 zeroProbLabel
       (simplify4gsr tagset) strip4gsr
     strip4gsr interp = PolX.voidInterp (PolX.tag interp)
+
+    segmentConf = D.TrainConf
+      tiersSegment segmentSchemaDefault sgdArgs onDisk
+      (simplify4dmb tagset)
+
     disambConf = D.TrainConf
-      tiersDefault disambSchemaDefault sgdArgs onDisk
+      tiersDisamb disambSchemaDefault sgdArgs onDisk
       (simplify4dmb tagset)
 
 

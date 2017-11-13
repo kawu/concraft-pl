@@ -84,16 +84,23 @@ data ProbType
 
 
 -- | Show the given sentence.
-showData :: ShowCfg -> [AnnoSent] -> L.Text
+showData :: ShowCfg -> [[AnnoSent]] -> L.Text
 showData cfg
   = L.toLazyText
   . mconcat
   . intersperse "\n"
-  . map (buildSent cfg)
+  . map (buildSents cfg)
 
 -- | Show the given sentence.
-showSent :: ShowCfg -> AnnoSent -> L.Text
-showSent cfg = L.toLazyText . buildSent cfg
+showSent :: ShowCfg -> [AnnoSent] -> L.Text
+showSent cfg = L.toLazyText . buildSents cfg
+
+buildSents :: ShowCfg -> [AnnoSent] -> L.Builder
+buildSents cfg =
+  finalize . map (buildSent cfg)
+  where
+    -- finalize = (`mappend` "\n") . mconcat . intersperse "\n"
+    finalize = mconcat
 
 buildSent :: ShowCfg -> AnnoSent -> L.Builder
 buildSent ShowCfg{..} AnnoSent{..} = finalize $ do
