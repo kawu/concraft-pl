@@ -25,7 +25,7 @@ extra-deps:
 - monad-codec-0.2.0
 - monad-ox-0.3.0
 - vector-binary-0.1.1
-- pedestrian-dag-0.1.0
+- pedestrian-dag-0.2.0
 
 # Override default flag values for local packages and extra-deps
 flags: {}
