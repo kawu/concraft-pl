@@ -33,6 +33,7 @@ module NLP.Concraft.Polish.Morphosyntax
 ) where
 
 
+import           Prelude hiding (Word)
 import           Control.Applicative ((<$>), (<*>))
 import           Control.Arrow (first)
 import           Data.Maybe (catMaybes)

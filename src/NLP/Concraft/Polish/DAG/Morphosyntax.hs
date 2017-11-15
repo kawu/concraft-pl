@@ -38,6 +38,7 @@ module NLP.Concraft.Polish.DAG.Morphosyntax
 ) where
 
 
+import           Prelude hiding (Word)
 import           Control.Applicative ((<$>), (<*>))
 import           Control.Arrow (first)
 import           Data.Binary (Binary, put, get, putWord8, getWord8)

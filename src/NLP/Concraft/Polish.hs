@@ -29,6 +29,7 @@ module NLP.Concraft.Polish
 ) where
 
 
+import           Prelude hiding (Word)
 import           Control.Applicative ((<$>))
 import qualified Data.Text.Lazy as L
 import qualified Data.Set as S

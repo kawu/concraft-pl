@@ -17,6 +17,7 @@ module NLP.Concraft.Polish.DAG.Format.Base
 ) where
 
 
+import           Prelude hiding (Word)
 import           Data.Monoid (mconcat, mappend)
 import qualified Data.Map as M
 import           Data.List (intersperse, groupBy)

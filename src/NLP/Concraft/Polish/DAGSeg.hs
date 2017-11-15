@@ -38,6 +38,7 @@ module NLP.Concraft.Polish.DAGSeg
 ) where
 
 
+import           Prelude hiding (Word)
 import           Control.Applicative ((<$>))
 import           Control.Arrow (first)
 import           Control.Monad (guard)
