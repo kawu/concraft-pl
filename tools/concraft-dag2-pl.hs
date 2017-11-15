@@ -8,7 +8,7 @@ import           Control.Applicative ((<$>))
 import           Control.Monad (unless)
 import           System.Console.CmdArgs
 -- import           System.IO (hFlush, stdout)
-import qualified Numeric.SGD as SGD
+import qualified Numeric.SGD.Momentum as SGD
 import qualified Data.Text as T
 -- import qualified Data.Text.Lazy as L
 import qualified Data.Text.Lazy.IO as L

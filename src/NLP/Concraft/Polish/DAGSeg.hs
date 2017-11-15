@@ -48,7 +48,7 @@ import qualified Data.Set as S
 import qualified Data.Map.Strict as M
 
 import qualified Data.Tagset.Positional as P
-import qualified Numeric.SGD as SGD
+import qualified Numeric.SGD.Momentum as SGD
 
 import qualified Data.DAG as DAG
 
