@@ -72,10 +72,15 @@ trainMode = Train
     , tagsetPath = def &= typFile &= help "Tagset definition file"
     -- , discardHidden = False &= help "Discard hidden features"
     , iterNum = 20 &= help "Number of SGD iterations"
-    , batchSize = 50 &= help "Batch size"
-    , regVar = 10.0 &= help "Regularization variance"
-    , gain0 = 1.0 &= help "Initial gain parameter"
-    , tau = 5.0 &= help "Initial tau parameter"
+    , batchSize = 50 &= help
+      "Batch size (the number of dataset elements taken in a single SGD update)"
+    , regVar = 10.0 &=
+      help "Regularization variance (the higher variance, the higher penalty for large params)"
+    , gain0 = 0.25 &= help
+      "Initial gain parameter (gain is used to scale the gradient before parameter update)"
+      -- The value `0.25` makes sense given that SGD momentum is used
+    , tau = 5.0 &= help
+      "Initial tau parameter (after how many passes over the full dataset the gain is halved)"
     , disk = False &= help "Store SGD dataset on disk"
     , outModel = def &= typFile &= help "Output Model file"
     , guessNum = 10 &= help "Number of guessed tags for each unknown word"
