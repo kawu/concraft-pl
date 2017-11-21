@@ -154,8 +154,8 @@ buildInterp suppressProbs tailNode headNode word Interp{..} weight disamb =
   mconcat $ intersperse "\t" $
   [ buildNode tailNode
   , buildNode headNode
-  , L.fromText (orth word)
-  , L.fromText base
+  , L.fromText $ orth word
+  , L.fromText $ if known word then base else orth word
   , L.fromText tag
   , buildMayText commonness
   , buildMayText qualifier ] ++
