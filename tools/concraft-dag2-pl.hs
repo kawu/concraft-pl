@@ -109,8 +109,7 @@ evalMode :: Concraft
 evalMode = Eval
     { justTagsetPath = def &= typ "TAGSET-FILE"  &= argPos 0
     , filePath1 = def &= typ "FILE1" &= argPos 1
-    , filePath2 = def &= typ "FILE2" &= argPos 2
-    }
+    , filePath2 = def &= typ "FILE2" &= argPos 2 }
 
 
 argModes :: Mode (CmdArgs Concraft)
@@ -192,12 +191,40 @@ exec Eval{..} = do
         let newTags = X.mapWMap (Pol.simplify4gsr tagset) (X.tags seg)
         in  seg {X.tags = newTags}
       process = PX.packSent . simplify
-  inp1 <- map process . DB.parseData <$> L.readFile filePath1
-  inp2 <- map process . DB.parseData <$> L.readFile filePath2
+      fromFile = fmap (map process . DB.parseData) . L.readFile
+
+  putStrLn $ concat
+    [ "Note that in this evaulation only the tags (no lemmas,"
+    , " no eos) are taken into account!"
+    ]
+
+  putStrLn "# WITH TAG EXPANSION"
+  let expCfg = Acc.AccCfg
+        { Acc.accSel = Acc.All
+        , Acc.accTagset = tagset
+        , Acc.expandTag = True }
   putStr "Accuracy (ALL): "
-  print $ Acc.accuracy tagset Acc.All inp1 inp2
+  print =<< Acc.accuracy (expCfg {Acc.accSel = Acc.All})
+    <$> fromFile filePath1
+    <*> fromFile filePath2
   putStr "Accuracy (OOV): "
-  print $ Acc.accuracy tagset Acc.Oov inp1 inp2
+  print =<< Acc.accuracy (expCfg {Acc.accSel = Acc.Oov})
+    <$> fromFile filePath1
+    <*> fromFile filePath2
+
+  putStrLn "# WITHOUT EXPANSION"
+  let noExpCfg = Acc.AccCfg
+        { Acc.accSel = Acc.All
+        , Acc.accTagset = tagset
+        , Acc.expandTag = False }
+  putStr "Accuracy (ALL): "
+  print =<< Acc.accuracy (noExpCfg {Acc.accSel = Acc.All})
+    <$> fromFile filePath1
+    <*> fromFile filePath2
+  putStr "Accuracy (OOV): "
+  print =<< Acc.accuracy (noExpCfg {Acc.accSel = Acc.Oov})
+    <$> fromFile filePath1
+    <*> fromFile filePath2
 
 
 -- ---------------------------------------
