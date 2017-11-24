@@ -76,7 +76,8 @@ guessSchemaDefault = S.nullConf
     { lowPrefixesC  = entryWith [1, 2]      [0]
     , lowSuffixesC  = entryWith [1, 2]      [0]
     , knownC        = entry                 [0]
-    , begPackedC    = entry                 [0] }
+    , begPackedC    = entry                 [0]
+    }
 
 
 -- | Default configuration for the guessing observation schema.
@@ -262,7 +263,8 @@ resolveEOS minProp seg
       | (interp, p) <- M.toList (X.unWMap tagMap) ]
 
 
--- Determine the weight of the most probable interpretation which satisfies
+-- | Determine the weight of the most probable interpretation which satisfies
+-- the given predicate.
 maxWeightWith :: (Tag -> Bool) -> X.WMap Tag -> Maybe Double
 maxWeightWith pred tagMap = mayMaximum
   [ p

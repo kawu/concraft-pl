@@ -21,8 +21,10 @@ import qualified NLP.Concraft.DAG.Guess as Guess
 -- import qualified NLP.Concraft.DAG2 as C
 -- import qualified NLP.Concraft.Polish.DAG2 as P
 import qualified NLP.Concraft.DAGSeg as C
+import qualified NLP.Concraft.DAG.Morphosyntax as X
+import qualified NLP.Concraft.DAG.Morphosyntax.Accuracy as Acc
+import qualified NLP.Concraft.Polish.DAG.Morphosyntax as PX
 import qualified NLP.Concraft.Polish.DAGSeg as Pol
-import qualified NLP.Concraft.Polish.DAG.Morphosyntax as X
 import qualified NLP.Concraft.Polish.DAG.Format.Base as DB
 
 -- import qualified NLP.Concraft.Polish.Request as R
@@ -62,6 +64,11 @@ data Concraft
     , probType      :: DB.ProbType
     , suppressProbs :: Bool
     , mayGuessNum   :: Maybe Int }
+  | Eval
+    { justTagsetPath :: FilePath
+    , filePath1      :: FilePath
+    , filePath2      :: FilePath
+    }
   deriving (Data, Typeable, Show)
 
 
@@ -98,9 +105,17 @@ tagMode = Tag
     , mayGuessNum = def &= help "Number of guessed tags for each unknown word" }
 
 
+evalMode :: Concraft
+evalMode = Eval
+    { justTagsetPath = def &= typ "TAGSET-FILE"  &= argPos 0
+    , filePath1 = def &= typ "FILE1" &= argPos 1
+    , filePath2 = def &= typ "FILE2" &= argPos 2
+    }
+
+
 argModes :: Mode (CmdArgs Concraft)
 argModes = cmdArgsMode $ modes
-    [trainMode, tagMode]
+    [trainMode, tagMode, evalMode]
     &= summary concraftDesc
     &= program "concraft-dag-pl"
 
@@ -123,13 +138,13 @@ exec Train{..} = do
         Just x  -> return x
     tagset <- parseTagset tagsetPath' <$> readFile tagsetPath'
     -- let zeroProbLab = P.parseTag taset zeroProbLabel
-    let zeroProbLab = X.Interp
-          { X.base = "none"
-          , X.tag = T.pack zeroProbLabel
-          , X.commonness = Nothing
-          , X.qualifier = Nothing
-          , X.metaInfo = Nothing
-          , X.eos = False }
+    let zeroProbLab = PX.Interp
+          { PX.base = "none"
+          , PX.tag = T.pack zeroProbLabel
+          , PX.commonness = Nothing
+          , PX.qualifier = Nothing
+          , PX.metaInfo = Nothing
+          , PX.eos = False }
         train0 = DB.parseData <$> L.readFile trainPath
         eval0  = case evalPath of
           Nothing -> return []
@@ -169,6 +184,18 @@ exec Tag{..} = do
         { suppressProbs = suppressProbs
         , probType = probType }
   L.putStr $ DB.showData showCfg out
+
+
+exec Eval{..} = do
+  tagset <- parseTagset justTagsetPath <$> readFile justTagsetPath
+  let simplify = fmap $ \seg ->
+        let newTags = X.mapWMap (Pol.simplify4gsr tagset) (X.tags seg)
+        in  seg {X.tags = newTags}
+      process = PX.packSent . simplify
+  inp1 <- map process . DB.parseData <$> L.readFile filePath1
+  inp2 <- map process . DB.parseData <$> L.readFile filePath2
+  putStr "Accuracy: "
+  print $ Acc.accuracy tagset inp1 inp2
 
 
 -- ---------------------------------------
