@@ -194,8 +194,10 @@ exec Eval{..} = do
       process = PX.packSent . simplify
   inp1 <- map process . DB.parseData <$> L.readFile filePath1
   inp2 <- map process . DB.parseData <$> L.readFile filePath2
-  putStr "Accuracy: "
-  print $ Acc.accuracy tagset inp1 inp2
+  putStr "Accuracy (ALL): "
+  print $ Acc.accuracy tagset Acc.All inp1 inp2
+  putStr "Accuracy (OOV): "
+  print $ Acc.accuracy tagset Acc.Oov inp1 inp2
 
 
 -- ---------------------------------------
