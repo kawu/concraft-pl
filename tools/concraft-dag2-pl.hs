@@ -198,31 +198,31 @@ exec Eval{..} = do
     , " no eos) are taken into account!"
     ]
 
-  putStrLn "# WITH TAG EXPANSION"
-  let expCfg = Acc.AccCfg
+  let weakCfg = Acc.AccCfg
         { Acc.accSel = Acc.All
         , Acc.accTagset = tagset
-        , Acc.expandTag = True }
-  putStr "Accuracy (ALL): "
-  print =<< Acc.accuracy (expCfg {Acc.accSel = Acc.All})
+        , Acc.expandTag = False
+        , Acc.weakAcc = True }
+  putStr "Weak accuracy (ALL): "
+  print =<< Acc.accuracy (weakCfg {Acc.accSel = Acc.All})
     <$> fromFile filePath1
     <*> fromFile filePath2
-  putStr "Accuracy (OOV): "
-  print =<< Acc.accuracy (expCfg {Acc.accSel = Acc.Oov})
+  putStr "Weak accuracy (OOV): "
+  print =<< Acc.accuracy (weakCfg {Acc.accSel = Acc.Oov})
     <$> fromFile filePath1
     <*> fromFile filePath2
 
-  putStrLn "# WITHOUT EXPANSION"
-  let noExpCfg = Acc.AccCfg
+  let strongCfg = Acc.AccCfg
         { Acc.accSel = Acc.All
         , Acc.accTagset = tagset
-        , Acc.expandTag = False }
+        , Acc.expandTag = False
+        , Acc.weakAcc = False }
   putStr "Accuracy (ALL): "
-  print =<< Acc.accuracy (noExpCfg {Acc.accSel = Acc.All})
+  print =<< Acc.accuracy (strongCfg {Acc.accSel = Acc.All})
     <$> fromFile filePath1
     <*> fromFile filePath2
   putStr "Accuracy (OOV): "
-  print =<< Acc.accuracy (noExpCfg {Acc.accSel = Acc.Oov})
+  print =<< Acc.accuracy (strongCfg {Acc.accSel = Acc.Oov})
     <$> fromFile filePath1
     <*> fromFile filePath2
 
