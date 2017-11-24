@@ -68,6 +68,10 @@ data Concraft
     { justTagsetPath :: FilePath
     , filePath1      :: FilePath
     , filePath2      :: FilePath
+    , onlyOov        :: Bool
+    , expandTags     :: Bool
+    , weak           :: Bool
+    , discardProb0   :: Bool
     }
   deriving (Data, Typeable, Show)
 
@@ -109,7 +113,12 @@ evalMode :: Concraft
 evalMode = Eval
     { justTagsetPath = def &= typ "TAGSET-FILE"  &= argPos 0
     , filePath1 = def &= typ "FILE1" &= argPos 1
-    , filePath2 = def &= typ "FILE2" &= argPos 2 }
+    , filePath2 = def &= typ "FILE2" &= argPos 2
+    , onlyOov   = False &= help "Only OOV segments"
+    , expandTags = False &= help "Expand tags"
+    , weak = False &= help "Compute weak accuracy rather than strong"
+    , discardProb0 = False &= help "Discard sentences with near 0 probability"
+    }
 
 
 argModes :: Mode (CmdArgs Concraft)
@@ -195,34 +204,16 @@ exec Eval{..} = do
 
   putStrLn $ concat
     [ "Note that in this evaulation only the tags (no lemmas,"
-    , " no eos) are taken into account!"
+    , " no eos) are taken into account."
     ]
 
-  let weakCfg = Acc.AccCfg
-        { Acc.accSel = Acc.All
+  let cfg = Acc.AccCfg
+        { Acc.accSel = if onlyOov then Acc.Oov else Acc.All
         , Acc.accTagset = tagset
-        , Acc.expandTag = False
-        , Acc.weakAcc = True }
-  putStr "Weak accuracy (ALL): "
-  print =<< Acc.accuracy (weakCfg {Acc.accSel = Acc.All})
-    <$> fromFile filePath1
-    <*> fromFile filePath2
-  putStr "Weak accuracy (OOV): "
-  print =<< Acc.accuracy (weakCfg {Acc.accSel = Acc.Oov})
-    <$> fromFile filePath1
-    <*> fromFile filePath2
-
-  let strongCfg = Acc.AccCfg
-        { Acc.accSel = Acc.All
-        , Acc.accTagset = tagset
-        , Acc.expandTag = False
-        , Acc.weakAcc = False }
-  putStr "Accuracy (ALL): "
-  print =<< Acc.accuracy (strongCfg {Acc.accSel = Acc.All})
-    <$> fromFile filePath1
-    <*> fromFile filePath2
-  putStr "Accuracy (OOV): "
-  print =<< Acc.accuracy (strongCfg {Acc.accSel = Acc.Oov})
+        , Acc.expandTag = expandTags
+        , Acc.weakAcc = weak
+        , Acc.discardProb0 = discardProb0 }
+  print =<< Acc.accuracy cfg
     <$> fromFile filePath1
     <*> fromFile filePath2
 
