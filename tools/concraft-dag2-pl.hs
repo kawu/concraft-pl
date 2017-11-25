@@ -213,9 +213,11 @@ exec Eval{..} = do
         , Acc.expandTag = expandTags
         , Acc.weakAcc = weak
         , Acc.discardProb0 = discardProb0 }
-  print =<< Acc.accuracy cfg
+  stats <- Acc.collect cfg
     <$> fromFile filePath1
     <*> fromFile filePath2
+  putStr "Precision: " >> print (Acc.precision stats)
+  putStr "Recall: " >> print (Acc.recall stats)
 
 
 -- ---------------------------------------
