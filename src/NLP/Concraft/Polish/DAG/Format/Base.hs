@@ -59,10 +59,12 @@ type Tag = PolX.Interp PolX.Tag
 
 -- | Printing configuration.
 data ShowCfg = ShowCfg
-  { suppressProbs :: Bool
-    -- ^ Do not show any probabilities
-  , probType  :: ProbType
+--   { suppressProbs :: Bool
+--     -- ^ Do not show any probabilities
+  { probType  :: ProbType
     -- ^ Which type of probabilities to show (unless suppressed)
+  , numericDisamb :: Bool
+    -- ^ Print disamb markers as numerical values instead of probability values
   }
 
 
@@ -104,7 +106,7 @@ buildSents cfg =
     finalize = mconcat
 
 buildSent :: ShowCfg -> AnnoSent -> L.Builder
-buildSent ShowCfg{..} AnnoSent{..} = finalize $ do
+buildSent showCfg AnnoSent{..} = finalize $ do
   let dag = guessSent
   edgeID <- DAG.dagEdges dag
   let tailNode = DAG.begsWith edgeID dag
@@ -114,8 +116,8 @@ buildSent ShowCfg{..} AnnoSent{..} = finalize $ do
             if known word then [] else [Nothing]
   return $ case interp of
     Just (interp@Interp{..}, weight) -> buildInterp
-      suppressProbs tailNode headNode word interp
-      (case probType of
+      showCfg tailNode headNode word interp
+      (case probType showCfg of
           Marginals ->
             tagWeightIn edgeID interp marginals
           MaxProbs ->
@@ -132,7 +134,7 @@ buildSent ShowCfg{..} AnnoSent{..} = finalize $ do
             , qualifier = Nothing
             , metaInfo = Nothing
             , eos = False }
-      in  buildInterp suppressProbs tailNode headNode word interp 0 False
+      in  buildInterp showCfg tailNode headNode word interp 0 False
   where
     finalize = (`mappend` "\n") . mconcat . intersperse "\n"
     tagWeightIn = tagLabelIn 0
@@ -142,7 +144,7 @@ buildSent ShowCfg{..} AnnoSent{..} = finalize $ do
 
 
 buildInterp
-  :: Bool        -- ^ Suppress probs
+  :: ShowCfg
   -> DAG.NodeID  -- ^ Tail node
   -> DAG.NodeID  -- ^ Head node
   -> Word        -- ^ Word
@@ -150,7 +152,7 @@ buildInterp
   -> Double
   -> Bool
   -> L.Builder
-buildInterp suppressProbs tailNode headNode word Interp{..} weight disamb =
+buildInterp ShowCfg{..} tailNode headNode word Interp{..} weight disamb =
   mconcat $ intersperse "\t" $
   [ buildNode tailNode
   , buildNode headNode
@@ -158,16 +160,19 @@ buildInterp suppressProbs tailNode headNode word Interp{..} weight disamb =
   , L.fromText $ if known word then base else orth word
   , L.fromText tag
   , buildMayText commonness
-  , buildMayText qualifier ] ++
-  (if suppressProbs then [] else [buildWeight weight]) ++
-  [ buildMayText metaInfo
+  , buildMayText qualifier
+  , if numericDisamb
+    then buildDisamb disamb
+    else buildWeight weight
+  , buildMayText metaInfo
   , if eos then "eos" else ""
-  , buildBool disamb ]
+  ] ++
+  if numericDisamb then [] else [buildDisamb disamb]
   where
     buildNode (DAG.NodeID i) = L.fromString (show i)
     buildWeight = L.fromString . printf "%.4f"
-    buildBool True = "disamb"
-    buildBool False = ""
+    buildDisamb True  = if numericDisamb then "1.0000" else "disamb"
+    buildDisamb False = if numericDisamb then "0.0000" else ""
     -- buildDmb = between "\t" "\n" . L.fromString . printf "%.3f"
     -- between x y z = x <> z <> y
     buildMayText Nothing = ""

@@ -62,8 +62,9 @@ data Concraft
     { inModel       :: FilePath
     -- , marginals     :: Bool
     , probType      :: DB.ProbType
-    , suppressProbs :: Bool
-    , mayGuessNum   :: Maybe Int }
+    -- , suppressProbs :: Bool
+    , mayGuessNum   :: Maybe Int
+    , numericDisamb :: Bool }
   | Eval
     { justTagsetPath :: FilePath
     , filePath1      :: FilePath
@@ -105,8 +106,11 @@ tagMode = Tag
     -- , noAna    = False &= help "Do not analyse input text"
     -- , marginals = False &= help "Tag with marginal probabilities" }
     , probType = DB.Marginals &= help "Type of probabilities"
-    , suppressProbs = False &= help "Do not show probabilities"
-    , mayGuessNum = def &= help "Number of guessed tags for each unknown word" }
+    -- , suppressProbs = False &= help "Do not show probabilities"
+    , mayGuessNum = def &= help "Number of guessed tags for each unknown word"
+    , numericDisamb = False &= help
+      "Print disamb markers as numerical values in the probability column"
+    }
 
 
 evalMode :: Concraft
@@ -189,8 +193,9 @@ exec Tag{..} = do
       -- out = Pol.tag' guessNum (mkProbType probType) crf <$> inp
       out = Pol.annoAll guessNum crf <$> inp
       showCfg = DB.ShowCfg
-        { suppressProbs = suppressProbs
-        , probType = probType }
+        -- { suppressProbs = suppressProbs
+        { probType = probType
+        , numericDisamb = numericDisamb }
   L.putStr $ DB.showData showCfg out
 
 
