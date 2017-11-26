@@ -67,8 +67,8 @@ data Concraft
     , numericDisamb :: Bool }
   | Eval
     { justTagsetPath :: FilePath
-    , filePath1      :: FilePath
-    , filePath2      :: FilePath
+    , goldPath       :: FilePath
+    , taggPath       :: FilePath
     , onlyOov        :: Bool
     , expandTags     :: Bool
     , weak           :: Bool
@@ -116,8 +116,8 @@ tagMode = Tag
 evalMode :: Concraft
 evalMode = Eval
     { justTagsetPath = def &= typ "TAGSET-FILE"  &= argPos 0
-    , filePath1 = def &= typ "FILE1" &= argPos 1
-    , filePath2 = def &= typ "FILE2" &= argPos 2
+    , goldPath = def &= typ "GOLD-FILE" &= argPos 1
+    , taggPath = def &= typ "TAGGED-FILE" &= argPos 2
     , onlyOov   = False &= help "Only OOV segments"
     , expandTags = False &= help "Expand tags"
     , weak = False &= help "Compute weak accuracy rather than strong"
@@ -219,8 +219,8 @@ exec Eval{..} = do
         , Acc.weakAcc = weak
         , Acc.discardProb0 = discardProb0 }
   stats <- Acc.collect cfg
-    <$> fromFile filePath1
-    <*> fromFile filePath2
+    <$> fromFile goldPath
+    <*> fromFile taggPath
   putStr "Precision: " >> print (Acc.precision stats)
   putStr "Recall: " >> print (Acc.recall stats)
 
