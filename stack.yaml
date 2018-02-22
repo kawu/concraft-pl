@@ -15,17 +15,11 @@ packages:
 
 # Packages to be pulled from upstream that are not in the resolver (e.g., acme-missiles-0.3)
 extra-deps:
-- concraft-0.11.0
 - lazy-io-0.1.0
-- sgd-0.4.0
-- tagset-positional-0.3.1
-- crf-chain1-constrained-0.4.0
-- crf-chain2-tiers-0.3.0
 - data-lens-2.11.1
 - monad-codec-0.2.0
 - monad-ox-0.3.0
 - vector-binary-0.1.1
-- pedestrian-dag-0.2.0
 
 # Override default flag values for local packages and extra-deps
 flags: {}
