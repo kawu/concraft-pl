@@ -70,7 +70,9 @@ data Concraft
     , goldPath       :: FilePath
     , taggPath       :: FilePath
     , onlyOov        :: Bool
+    , onlyAmb        :: Bool
     , expandTags     :: Bool
+    , ignoreTags     :: Bool
     , weak           :: Bool
     , discardProb0   :: Bool
     }
@@ -118,8 +120,10 @@ evalMode = Eval
     { justTagsetPath = def &= typ "TAGSET-FILE"  &= argPos 0
     , goldPath = def &= typ "GOLD-FILE" &= argPos 1
     , taggPath = def &= typ "TAGGED-FILE" &= argPos 2
-    , onlyOov   = False &= help "Only OOV segments"
+    , onlyOov  = False &= help "Only OOV edges"
+    , onlyAmb  = False &= help "Only segmentation-ambiguous edges"
     , expandTags = False &= help "Expand tags"
+    , ignoreTags = False &= help "Ignore tags (compute segmentation-level accurracy)"
     , weak = False &= help "Compute weak accuracy rather than strong"
     , discardProb0 = False &= help "Discard sentences with near 0 probability"
     }
@@ -213,9 +217,11 @@ exec Eval{..} = do
     ]
 
   let cfg = Acc.AccCfg
-        { Acc.accSel = if onlyOov then Acc.Oov else Acc.All
+        { Acc.onlyOov = onlyOov
+        , Acc.onlyAmb = onlyAmb
         , Acc.accTagset = tagset
         , Acc.expandTag = expandTags
+        , Acc.ignoreTag = ignoreTags
         , Acc.weakAcc = weak
         , Acc.discardProb0 = discardProb0 }
   stats <- Acc.collect cfg
