@@ -53,6 +53,7 @@ import qualified Numeric.SGD.Momentum as SGD
 import qualified Data.DAG as DAG
 
 import qualified NLP.Concraft.DAG.Morphosyntax as X
+import qualified NLP.Concraft.DAG.Morphosyntax.Ambiguous as XA
 import qualified NLP.Concraft.DAG.Schema as S
 import           NLP.Concraft.DAG.Schema (SchemaConf(..), entry, entryWith)
 import qualified NLP.Concraft.DAG.Guess as G
@@ -80,7 +81,7 @@ guessSchemaDefault = S.nullConf
     }
 
 
--- | Default configuration for the guessing observation schema.
+-- | Default configuration for the segmentation observation schema.
 segmentSchemaDefault :: SchemaConf
 segmentSchemaDefault = S.nullConf
     { lowPrefixesC  = entryWith [1, 2]      [-1, 0, 1]
@@ -213,11 +214,19 @@ annoWith anno concraft =
 -- we may want to tag with an EOS-aware model, with no EOS-related information
 -- coming from the previous tagging stages.
 --
--- NOTE: this procedure does not apply to OOV words.  The motivation: it seems
+-- NOTE: this procedure does not apply to OOV words. The motivation: it seems
 -- highly unlikely that any OOV word can mark a sentence end.
-addEosMarkers :: X.Seg Word Tag -> X.Seg Word Tag
-addEosMarkers seg
+--
+-- NOTE: this procedure does not apply to segmentation-ambiguous words either.
+-- Allowing the tagger to cut on such words might cause losing DAG edges.
+addEosMarkers
+  :: DAG.DAG a Bool
+  -> DAG.EdgeID
+  -> X.Seg Word Tag
+  -> X.Seg Word Tag
+addEosMarkers ambiDag edgeID seg
   | X.oov seg = seg
+  | DAG.edgeLabel edgeID ambiDag = seg
   | otherwise = seg {X.tags = newTags (X.tags seg)}
   where
     newTags tagMap = X.mkWMap $ concat
@@ -340,7 +349,11 @@ annoAll k concraft sent0 =
 
     -- We add EOS markers only after guessing, because the possible tags are not
     -- yet determined for the OOV words.
-    _guessSent0 = fmap addEosMarkers $ tagWith (C.guess k . C.guesser) concraft sent0
+    ambiDag = XA.identifyAmbiguousSegments sent0
+    _guessSent0 = DAG.mapE (addEosMarkers ambiDag) $
+      tagWith (C.guess k . C.guesser) concraft sent0
+--     _guessSent0 = fmap addEosMarkers $
+--       tagWith (C.guess k . C.guesser) concraft sent0
     -- Resolve EOS tags based on the segmentation model
     _guessSent1 = segment . fmap (resolveEOS 0.5) $
       tagWith (C.disambProbs D.MaxProbs . C.segmenter) concraft _guessSent0
@@ -398,7 +411,9 @@ train TrainConf{..} train0 eval0 = do
   putStrLn "\n===== Train guessing model ====="
   guesser <- G.train guessConf trainR'IO evalR'IO
   let guess = C.guessSent guessNum guesser
-      prepSent = fmap addEosMarkers . guess
+      prepSent dag =
+        let ambiDag = XA.identifyAmbiguousSegments dag
+        in  DAG.mapE (addEosMarkers ambiDag) (guess dag)
       trainG'IO = map prepSent <$> trainR'IO
       evalG'IO  = map prepSent <$> evalR'IO
 
