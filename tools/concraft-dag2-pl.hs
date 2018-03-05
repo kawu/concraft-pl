@@ -64,6 +64,7 @@ data Concraft
     , probType      :: DB.ProbType
     -- , suppressProbs :: Bool
     , mayGuessNum   :: Maybe Int
+    , shortestPath  :: Bool
     , numericDisamb :: Bool }
   | Eval
     { justTagsetPath :: FilePath
@@ -109,6 +110,8 @@ tagMode = Tag
     -- , marginals = False &= help "Tag with marginal probabilities" }
     , probType = DB.Marginals &= help "Type of probabilities"
     -- , suppressProbs = False &= help "Do not show probabilities"
+    , shortestPath = False &= help
+      "Select shortest paths prior to parsing (can serve as a segmentation baseline)"
     , mayGuessNum = def &= help "Number of guessed tags for each unknown word"
     , numericDisamb = False &= help
       "Print disamb markers as numerical values in the probability column"
@@ -194,8 +197,10 @@ exec Tag{..} = do
   let guessNum = case mayGuessNum of
         Nothing -> C.guessNum crf
         Just k  -> k
-      -- out = Pol.tag' guessNum (mkProbType probType) crf <$> inp
-      out = Pol.annoAll guessNum crf <$> inp
+      cfg = Pol.AnnoConf
+        { trimParam = guessNum
+        , shortestPath = shortestPath }
+      out = Pol.annoAll cfg crf <$> inp
       showCfg = DB.ShowCfg
         -- { suppressProbs = suppressProbs
         { probType = probType

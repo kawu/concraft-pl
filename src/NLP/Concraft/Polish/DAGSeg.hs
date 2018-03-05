@@ -27,6 +27,7 @@ module NLP.Concraft.Polish.DAGSeg
 -- , tag'
 -- ** High level
 , AnnoSent (..)
+, AnnoConf (..)
 , annoAll
 
 -- * Training
@@ -58,6 +59,7 @@ import qualified NLP.Concraft.DAG.Schema as S
 import           NLP.Concraft.DAG.Schema (SchemaConf(..), entry, entryWith)
 import qualified NLP.Concraft.DAG.Guess as G
 import qualified NLP.Concraft.DAG.DisambSeg as D
+import qualified NLP.Concraft.DAG.Segmentation as Seg
 import qualified NLP.Concraft.DAGSeg as C
 
 import           NLP.Concraft.Polish.DAG.Morphosyntax hiding (tag, Tag)
@@ -320,6 +322,16 @@ segment sent =
 -------------------------------------------------
 
 
+-- | Annotation config.
+data AnnoConf = AnnoConf
+  { trimParam :: Int
+    -- ^ How many morphosyntactic tags should be kept for OOV words
+  , shortestPath :: Bool
+    -- ^ Select the shortest path in the graph prior to tagging (can serve as a
+    -- segmentation baseline)
+  }
+
+
 -- | Annotated sentence.
 data AnnoSent = AnnoSent
   { guessSent :: Sent Tag
@@ -336,24 +348,30 @@ data AnnoSent = AnnoSent
 
 -- | Annotate all possibly interesting information.
 annoAll
-  :: Int
-  -- ^ Trimming parameter
+--   :: Int
+--   -- ^ Trimming parameter
+  :: AnnoConf
   -> C.Concraft Tag
   -> Sent Tag
   -> [AnnoSent]
-annoAll k concraft sent0 =
+-- annoAll k concraft sent0 =
+annoAll AnnoConf{..} concraft sent00 =
 
   map annoOne _guessSent1
 
   where
 
+    -- See whether the shortest path should be computed first
+    sent0 =
+      if shortestPath
+      then Seg.shortestPath sent00
+      else sent00
+
     -- We add EOS markers only after guessing, because the possible tags are not
     -- yet determined for the OOV words.
     ambiDag = XA.identifyAmbiguousSegments sent0
     _guessSent0 = DAG.mapE (addEosMarkers ambiDag) $
-      tagWith (C.guess k . C.guesser) concraft sent0
---     _guessSent0 = fmap addEosMarkers $
---       tagWith (C.guess k . C.guesser) concraft sent0
+      tagWith (C.guess trimParam . C.guesser) concraft sent0
     -- Resolve EOS tags based on the segmentation model
     _guessSent1 = segment . fmap (resolveEOS 0.5) $
       tagWith (C.disambProbs D.MaxProbs . C.segmenter) concraft _guessSent0
@@ -417,7 +435,7 @@ train TrainConf{..} train0 eval0 = do
       trainG'IO = map prepSent <$> trainR'IO
       evalG'IO  = map prepSent <$> evalR'IO
 
-  putStrLn "\n===== Train segmentation model ====="
+  putStrLn "\n===== Train sentence segmentation model ====="
   segmenter <- D.train segmentConf trainG'IO evalG'IO
   let prepSent = segment . fmap (resolveEOS 0.5)
       trainS'IO = concatMap prepSent <$> trainG'IO
@@ -451,7 +469,7 @@ simplify4dmb tagset PolX.Interp{..} = D.Tag
   , D.hasEos = eos }
 
 
--- | Simplify the tag for the sake of the disambiguation model.
+-- | Simplify the tag for the sake of the guessing model.
 simplify4gsr :: P.Tagset -> PolX.Interp PolX.Tag -> P.Tag
 simplify4gsr tagset PolX.Interp{..} = P.parseTag tagset tag
 
