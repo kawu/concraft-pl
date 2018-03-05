@@ -326,9 +326,9 @@ segment sent =
 data AnnoConf = AnnoConf
   { trimParam :: Int
     -- ^ How many morphosyntactic tags should be kept for OOV words
-  , shortestPath :: Bool
-    -- ^ Select the shortest path in the graph prior to tagging (can serve as a
-    -- segmentation baseline)
+  , pickPath :: Maybe Seg.PathTyp
+    -- ^ Select the shortest/longest path in the graph prior to tagging (can
+    -- serve as a segmentation baseline)
   }
 
 
@@ -363,9 +363,9 @@ annoAll AnnoConf{..} concraft sent00 =
 
     -- See whether the shortest path should be computed first
     sent0 =
-      if shortestPath
-      then Seg.shortestPath sent00
-      else sent00
+      case pickPath of
+        Just typ ->  Seg.pickPath typ sent00
+        Nothing -> sent00
 
     -- We add EOS markers only after guessing, because the possible tags are not
     -- yet determined for the OOV words.

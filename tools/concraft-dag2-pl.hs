@@ -23,6 +23,7 @@ import qualified NLP.Concraft.DAG.Guess as Guess
 import qualified NLP.Concraft.DAGSeg as C
 import qualified NLP.Concraft.DAG.Morphosyntax as X
 import qualified NLP.Concraft.DAG.Morphosyntax.Accuracy as Acc
+import qualified NLP.Concraft.DAG.Segmentation as Seg
 import qualified NLP.Concraft.Polish.DAG.Morphosyntax as PX
 import qualified NLP.Concraft.Polish.DAGSeg as Pol
 import qualified NLP.Concraft.Polish.DAG.Format.Base as DB
@@ -65,6 +66,7 @@ data Concraft
     -- , suppressProbs :: Bool
     , mayGuessNum   :: Maybe Int
     , shortestPath  :: Bool
+    , longestPath   :: Bool
     , numericDisamb :: Bool }
   | Eval
     { justTagsetPath :: FilePath
@@ -112,6 +114,8 @@ tagMode = Tag
     -- , suppressProbs = False &= help "Do not show probabilities"
     , shortestPath = False &= help
       "Select shortest paths prior to parsing (can serve as a segmentation baseline)"
+    , longestPath = False &= help
+      "Select longest paths prior to parsing (mutually exclusive with shortestPath)"
     , mayGuessNum = def &= help "Number of guessed tags for each unknown word"
     , numericDisamb = False &= help
       "Print disamb markers as numerical values in the probability column"
@@ -199,7 +203,11 @@ exec Tag{..} = do
         Just k  -> k
       cfg = Pol.AnnoConf
         { trimParam = guessNum
-        , shortestPath = shortestPath }
+        , pickPath = case (shortestPath, longestPath) of
+            (True, _) -> Just Seg.Min
+            (_, True) -> Just Seg.Max
+            _         -> Nothing
+        }
       out = Pol.annoAll cfg crf <$> inp
       showCfg = DB.ShowCfg
         -- { suppressProbs = suppressProbs
