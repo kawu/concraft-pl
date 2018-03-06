@@ -84,6 +84,8 @@ executable concraft-dag2-pl
       , tagset-positional
       , text
       , sgd
+      , pedestrian-dag
+      , crf-chain1-constrained
       , base                    >= 4        && < 5
       , cmdargs                 >= 0.10     && < 0.11
     hs-source-dirs: tools

@@ -1,6 +1,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE TupleSections #-}
+{-# LANGUAGE LambdaCase #-}
 
 
 -- | DAG-aware morphosyntax data layer in Polish.
@@ -26,6 +27,7 @@ module NLP.Concraft.Polish.DAG.Morphosyntax
 , Sent
 , SentO (..)
 , restore
+, restore'
 , withOrig
 
 -- * Conversion
@@ -40,7 +42,8 @@ module NLP.Concraft.Polish.DAG.Morphosyntax
 
 import           Prelude hiding (Word)
 import           Control.Applicative ((<$>), (<*>))
-import           Control.Arrow (first)
+-- import           Control.Arrow (first)
+import           Control.Monad (guard)
 import           Data.Binary (Binary, put, get, putWord8, getWord8)
 import           Data.Aeson
 import qualified Data.Aeson as Aeson
@@ -58,6 +61,7 @@ import qualified Data.DAG as DAG
 
 -- import qualified NLP.Concraft.DAG2 as C
 import qualified NLP.Concraft.DAG.Morphosyntax as X
+import qualified NLP.Concraft.DAG.Segmentation as Seg
 import qualified NLP.Concraft.Polish.Morphosyntax as R
 import           NLP.Concraft.Polish.Morphosyntax (Space(..))
 
@@ -240,9 +244,8 @@ data SentO t = SentO
     , orig  :: L.Text }
 
 
--- | Restore textual representation of a sentence.
--- The function is not very accurate, it could be improved
--- if we enriched the representation of spaces.
+-- | Restore textual representation of a sentence. The function is not very
+-- accurate, it could be improved if we enriched the representation of spaces.
 restore :: Sent t -> L.Text
 restore =
     let edgeStr = orth . X.word
@@ -259,6 +262,14 @@ withOrig s = SentO
     , orig = restore s }
 
 
+-- | A version of `restore` which places a space on each node.
+restore' :: Sent t -> L.Text
+restore' =
+    let edgeStr = orth . X.word
+        spaceStr = const " "
+    in  L.fromChunks . map (either spaceStr edgeStr) . tail . pickPath
+
+
 --------------------------------
 -- Utils
 --------------------------------
@@ -267,7 +278,24 @@ withOrig s = SentO
 -- | Pick any path from the given DAG. The result is a list
 -- of interleaved node and edge labels.
 pickPath :: DAG a b -> [Either a b]
-pickPath = undefined
+pickPath dag =
+  fstNodeVal path : concatMap getVals path
+  where
+    -- Take the value on the first node on the path
+    fstNodeVal = \case
+      edgeID : _ ->
+        Left $ DAG.nodeLabel (DAG.begsWith edgeID dag) dag
+      [] -> error "Morphosyntax.pickPath: empty path"
+    -- Select a shortest path in the DAG; thanks to edges being topologically
+    -- sorted, this should give us the list of edge IDs in an appropriate order.
+    path = S.toList $ Seg.findPath Seg.Min dag
+    -- Get the labels of the nodes and labels
+    getVals edgeID =
+      let
+        nodeID = DAG.endsWith edgeID dag
+      in
+        [ Right $ DAG.edgeLabel edgeID dag
+        , Left  $ DAG.nodeLabel nodeID dag ]
 
 
 ---------------------------

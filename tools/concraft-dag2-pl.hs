@@ -2,21 +2,30 @@
 {-# LANGUAGE DeriveDataTypeable #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE RecordWildCards #-}
+{-# LANGUAGE DoAndIfThenElse #-}
 
 
 import           Control.Applicative ((<$>))
-import           Control.Monad (unless)
+import           Control.Monad (unless, forM_)
 import           System.Console.CmdArgs
 -- import           System.IO (hFlush, stdout)
 import qualified Numeric.SGD.Momentum as SGD
 import qualified Data.Text as T
+import qualified Data.Text.IO as T
 -- import qualified Data.Text.Lazy as L
 import qualified Data.Text.Lazy.IO as L
 import           Data.Tagset.Positional (parseTagset)
 -- import qualified Data.Tagset.Positional as P
 
+import qualified Data.DAG as DAG
+
+import qualified Data.CRF.Chain1.Constrained.DAG.Dataset.Codec as CRF.Codec
+import qualified Data.CRF.Chain1.Constrained.DAG.Train as CRF.Train
+
 import qualified NLP.Concraft.DAG.Guess as Guess
+import qualified NLP.Concraft.DAG.Schema as Schema
 -- import qualified NLP.Concraft.DAG.Disamb as Disamb
+
 
 -- import qualified NLP.Concraft.DAG2 as C
 -- import qualified NLP.Concraft.Polish.DAG2 as P
@@ -79,6 +88,10 @@ data Concraft
     , weak           :: Bool
     , discardProb0   :: Bool
     }
+  | Check
+    { justTagsetPath :: FilePath
+    , dagPath        :: FilePath
+    }
   deriving (Data, Typeable, Show)
 
 
@@ -136,9 +149,16 @@ evalMode = Eval
     }
 
 
+checkMode :: Concraft
+checkMode = Check
+    { justTagsetPath = def &= typ "TAGSET-FILE"  &= argPos 0
+    , dagPath= def &= typ "DAG-FILE" &= argPos 1
+    }
+
+
 argModes :: Mode (CmdArgs Concraft)
 argModes = cmdArgsMode $ modes
-    [trainMode, tagMode, evalMode]
+    [trainMode, tagMode, evalMode, checkMode]
     &= summary concraftDesc
     &= program "concraft-dag-pl"
 
@@ -242,6 +262,45 @@ exec Eval{..} = do
     <*> fromFile taggPath
   putStr "Precision: " >> print (Acc.precision stats)
   putStr "Recall: " >> print (Acc.recall stats)
+
+
+exec Check{..} = do
+  tagset <- parseTagset justTagsetPath <$> readFile justTagsetPath
+  dags <- DB.parseData <$> L.readFile dagPath
+  forM_ dags $ \dag -> do
+    if (not $ DAG.isOK dag) then do
+      putStrLn "Incorrectly structured graph:"
+      showDAG dag
+    else if (not $ DAG.isDAG dag) then do
+      putStrLn "Graph with cycles:"
+      showDAG dag
+    else case verifyProb tagset dag of
+      Nothing -> return ()
+      Just p -> do
+        putStr "Probability equal to "
+        putStr (show p)
+        putStrLn ":"
+        showDAG dag
+  where
+    showDAG dag =
+      forM_ (DAG.dagEdges dag) $ \edgeID -> do
+        let from = DAG.begsWith edgeID dag
+            to = DAG.endsWith edgeID dag
+            val = DAG.edgeLabel edgeID dag
+        putStr (show $ DAG.unNodeID from)
+        putStr ", "
+        putStr (show $ DAG.unNodeID to)
+        putStr " => "
+        T.putStrLn (PX.orth $ X.word val)
+    verifyProb tagset dag =
+      let schema = Schema.fromConf Schema.nullConf
+          rawData = Guess.schemed (Pol.simplify4gsr tagset) schema [PX.packSent dag]
+          [encDag] = CRF.Codec.encodeDataL (CRF.Codec.mkCodec rawData) rawData
+          p = CRF.Train.dagProb encDag
+          eps = 1e-9
+      in  if p >= 1 - eps && p <= 1 + eps
+          then Nothing
+          else Just p
 
 
 -- ---------------------------------------

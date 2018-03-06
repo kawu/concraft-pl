@@ -470,6 +470,11 @@ simplify4dmb tagset PolX.Interp{..} = D.Tag
 
 
 -- | Simplify the tag for the sake of the guessing model.
+-- TODO: it is also used in the evaluation script, which assumes that
+-- `simplify4gsr` simplifies to a positional tag. The name of the function
+-- should reflect this, perhaps, or there should be two separate functions: one
+-- dedicated to guesser, one dedicated to evaluation (and other more generic
+-- things).
 simplify4gsr :: P.Tagset -> PolX.Interp PolX.Tag -> P.Tag
 simplify4gsr tagset PolX.Interp{..} = P.parseTag tagset tag
 
