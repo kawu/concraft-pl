@@ -15,7 +15,8 @@ import qualified Data.Text.IO as T
 -- import qualified Data.Text.Lazy as L
 import qualified Data.Text.Lazy.IO as L
 import           Data.Tagset.Positional (parseTagset)
--- import qualified Data.Tagset.Positional as P
+import qualified Data.Tagset.Positional as P
+import qualified Data.Set as S
 
 import qualified Data.DAG as DAG
 
@@ -83,8 +84,10 @@ data Concraft
     , taggPath       :: FilePath
     , onlyOov        :: Bool
     , onlyAmb        :: Bool
+    , onlyEos        :: Bool
     , expandTags     :: Bool
     , ignoreTags     :: Bool
+    , heedEos        :: Bool
     , weak           :: Bool
     , discardProb0   :: Bool
     }
@@ -142,8 +145,10 @@ evalMode = Eval
     , taggPath = def &= typ "TAGGED-FILE" &= argPos 2
     , onlyOov  = False &= help "Only OOV edges"
     , onlyAmb  = False &= help "Only segmentation-ambiguous edges"
+    , onlyEos = False &= help "Only EOS edges"
     , expandTags = False &= help "Expand tags"
     , ignoreTags = False &= help "Ignore tags (compute segmentation-level accurracy)"
+    , heedEos = False &= help "Pay attention to EOS markers (ignored by default)"
     , weak = False &= help "Compute weak accuracy rather than strong"
     , discardProb0 = False &= help "Discard sentences with near 0 probability"
     }
@@ -239,7 +244,10 @@ exec Tag{..} = do
 exec Eval{..} = do
   tagset <- parseTagset justTagsetPath <$> readFile justTagsetPath
   let simplify = fmap $ \seg ->
-        let newTags = X.mapWMap (Pol.simplify4gsr tagset) (X.tags seg)
+        let simplify4eval interp =
+              ( P.parseTag tagset $ PX.tag interp
+              , PX.eos interp && heedEos )
+            newTags = X.mapWMap simplify4eval (X.tags seg)
         in  seg {X.tags = newTags}
       process = PX.packSent . simplify
       fromFile = fmap (map process . DB.parseData) . L.readFile
@@ -252,6 +260,10 @@ exec Eval{..} = do
   let cfg = Acc.AccCfg
         { Acc.onlyOov = onlyOov
         , Acc.onlyAmb = onlyAmb
+        , Acc.onlyMarkedWith =
+          if onlyEos
+          then S.singleton True
+          else S.empty
         , Acc.accTagset = tagset
         , Acc.expandTag = expandTags
         , Acc.ignoreTag = ignoreTags

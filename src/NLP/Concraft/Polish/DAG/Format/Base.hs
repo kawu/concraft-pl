@@ -86,10 +86,11 @@ data ProbType
 -- mkProbType MaxProbs = Disamb.MaxProbs
 
 
--- | Show the given sentence.
+-- | Show entire data.
 showData :: ShowCfg -> [[AnnoSent]] -> L.Text
 showData cfg
-  = L.toLazyText
+  = flip L.append "\n"
+  . L.toLazyText
   . mconcat
   . intersperse "\n"
   . map (buildSents cfg)
