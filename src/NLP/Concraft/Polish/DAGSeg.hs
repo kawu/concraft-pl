@@ -110,7 +110,7 @@ segmentSchemaDefault = S.nullConf
 --     , begPackedC    = entry                   [-2, -1, 0, 1, 2] }
 
 
--- | Default configuration for the guessing observation schema.
+-- | Default configuration for the disambiguation observation schema.
 disambSchemaDefault :: SchemaConf
 disambSchemaDefault = S.nullConf
     { lowOrthC      = entry                         [-2, -1, 0, 1]
