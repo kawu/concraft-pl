@@ -411,6 +411,8 @@ data TrainConf = TrainConf {
     , r0        :: G.R0T
     -- | `G.zeroProbLabel` parameter
     , zeroProbLabel :: Tag
+    -- | Extract only visible features for the guesser
+    , guessOnlyVisible :: Bool
     }
 
 
@@ -426,8 +428,17 @@ train TrainConf{..} train0 eval0 = do
   let trainR'IO = map packSent <$> train0
       evalR'IO  = map packSent <$> eval0
 
+  putStr $ concat
+    [ "Batch size for the "
+    , "guessing and sentence segmentation models = "
+    ]
+  -- average number of sentences per paragraph
+  averageParSize <- average . map (fromIntegral . length . segment) <$> trainR'IO
+  let parBatchSize = ceiling $ fromIntegral (SGD.batchSize sgdArgs) / averageParSize
+  print parBatchSize
+
   putStrLn "\n===== Train guessing model ====="
-  guesser <- G.train guessConf trainR'IO evalR'IO
+  guesser <- G.train (guessConf parBatchSize) trainR'IO evalR'IO
   let guess = C.guessSent guessNum guesser
       prepSent dag =
         let ambiDag = XA.identifyAmbiguousSegments dag
@@ -436,7 +447,7 @@ train TrainConf{..} train0 eval0 = do
       evalG'IO  = map prepSent <$> evalR'IO
 
   putStrLn "\n===== Train sentence segmentation model ====="
-  segmenter <- D.train segmentConf trainG'IO evalG'IO
+  segmenter <- D.train (segmentConf parBatchSize) trainG'IO evalG'IO
   let prepSent = segment . fmap (resolveEOS 0.5)
       trainS'IO = concatMap prepSent <$> trainG'IO
       evalS'IO  = concatMap prepSent <$> evalG'IO
@@ -448,13 +459,18 @@ train TrainConf{..} train0 eval0 = do
 
   where
 
-    guessConf = G.TrainConf
-      guessSchemaDefault sgdArgs onDisk r0 zeroProbLabel
+    guessConf batchSize = G.TrainConf
+      guessSchemaDefault
+      (sgdArgs {SGD.batchSize = batchSize})
+      onDisk r0 zeroProbLabel
       (simplify4gsr tagset) strip4gsr
+      guessOnlyVisible
     strip4gsr interp = PolX.voidInterp (PolX.tag interp)
 
-    segmentConf = D.TrainConf
-      tiersSegment segmentSchemaDefault sgdArgs onDisk
+    segmentConf batchSize = D.TrainConf
+      tiersSegment segmentSchemaDefault
+      (sgdArgs {SGD.batchSize = batchSize})
+      onDisk
       (simplify4dmb tagset)
 
     disambConf = D.TrainConf
@@ -519,3 +535,8 @@ simplify4gsr tagset PolX.Interp{..} = P.parseTag tagset tag
 --   putStrLn "\n===== Train disambiguation model ====="
 --   disamb <- D.train disambConf trainG'IO evalG'IO
 --   return $ Concraft tagset guessNum guesser disamb
+
+
+-- | Compute an average of the list.
+average :: [Double] -> Double
+average xs = sum xs / fromIntegral (length xs)

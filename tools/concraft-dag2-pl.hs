@@ -68,7 +68,9 @@ data Concraft
     , outModel      :: FilePath
     , guessNum      :: Int
     , r0            :: Guess.R0T
-    , zeroProbLabel :: String }
+    , zeroProbLabel :: String
+    , visibleOnly :: Bool
+    }
   | Tag
     { inModel       :: FilePath
     -- , marginals     :: Bool
@@ -118,7 +120,9 @@ trainMode = Train
     , outModel = def &= typFile &= help "Output Model file"
     , guessNum = 10 &= help "Number of guessed tags for each unknown word"
     , r0 = Guess.OovChosen &= help "R0 construction method"
-    , zeroProbLabel = "xxx" &= help "Zero probability label" }
+    , zeroProbLabel = "xxx" &= help "Zero probability label"
+    , visibleOnly = False &= help "Extract only visible features for the guesser"
+    }
 
 
 tagMode :: Concraft
@@ -208,7 +212,8 @@ exec Train{..} = do
         , SGD.regVar = regVar
         , SGD.iterNum = iterNum
         , SGD.gain0 = gain0
-        , SGD.tau = tau }
+        , SGD.tau = tau
+        }
     trainConf tagset zeroLab = Pol.TrainConf
         { tagset    = tagset
         , sgdArgs   = sgdArgs
@@ -216,7 +221,9 @@ exec Train{..} = do
         , onDisk    = disk
         , guessNum  = guessNum
         , r0        = r0
-        , zeroProbLabel = zeroLab }
+        , zeroProbLabel = zeroLab
+        , guessOnlyVisible = visibleOnly
+        }
 
 
 exec Tag{..} = do
