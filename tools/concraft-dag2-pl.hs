@@ -69,7 +69,8 @@ data Concraft
     , guessNum      :: Int
     , r0            :: Guess.R0T
     , zeroProbLabel :: String
-    , visibleOnly :: Bool
+    , visibleOnly   :: Bool
+    , disambTiers   :: Pol.DisambTiersCfg
     }
   | Tag
     { inModel       :: FilePath
@@ -122,6 +123,7 @@ trainMode = Train
     , r0 = Guess.OovChosen &= help "R0 construction method"
     , zeroProbLabel = "xxx" &= help "Zero probability label"
     , visibleOnly = False &= help "Extract only visible features for the guesser"
+    , disambTiers = Pol.TiersDefault &= help "Dismabiguation tiers configuration"
     }
 
 
@@ -223,6 +225,7 @@ exec Train{..} = do
         , r0        = r0
         , zeroProbLabel = zeroLab
         , guessOnlyVisible = visibleOnly
+        , disambTiersCfg = disambTiers
         }
 
 

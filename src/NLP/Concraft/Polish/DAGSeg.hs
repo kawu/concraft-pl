@@ -1,5 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RecordWildCards #-}
+{-# LANGUAGE DeriveDataTypeable #-}
 
 
 -- | DAG-based model for morphosyntactic tagging.
@@ -32,6 +33,7 @@ module NLP.Concraft.Polish.DAGSeg
 
 -- * Training
 , TrainConf (..)
+, DisambTiersCfg (..)
 , train
 
 -- * Pruning
@@ -47,6 +49,8 @@ import           Data.Maybe (listToMaybe)
 import qualified Data.Text.Lazy as L
 import qualified Data.Set as S
 import qualified Data.Map.Strict as M
+import           Data.Data (Data)
+import           Data.Typeable (Typeable)
 
 import qualified Data.Tagset.Positional as P
 import qualified Numeric.SGD.Momentum as SGD
@@ -122,7 +126,7 @@ disambSchemaDefault = S.nullConf
     oov Nothing     = Nothing
 
 
--- | Default tiered tagging configuration.
+-- | Default tiered tagging configuration for the segmentation model.
 tiersSegment :: [D.Tier]
 tiersSegment =
     [tier]
@@ -134,15 +138,48 @@ tiersSegment =
       }
 
 
--- | Default tiered tagging configuration.
-tiersDisamb :: [D.Tier]
-tiersDisamb =
+-------------------------------------------------
+-- Tagging Tiers
+-------------------------------------------------
+
+
+-- | Configuration of disambiguation tiers.
+data DisambTiersCfg
+  = TiersDefault
+  | TiersGndCasSeparately
+  deriving (Data, Typeable, Show, Eq, Ord)
+
+
+-- | Tiered tagging configuration for the disambiguation model.
+tiersDisamb :: DisambTiersCfg -> [D.Tier]
+tiersDisamb cfg = case cfg of
+  TiersDefault -> tiersDisambDefault
+  TiersGndCasSeparately -> tiersDisambGndCasSeparately
+
+
+-- | Default tiered tagging configuration for the disambiguation model.
+tiersDisambDefault :: [D.Tier]
+tiersDisambDefault =
     [tier1, tier2]
   where
-    tier1 = D.Tier True False $ S.fromList ["cas", "per"]
+    tier1 = D.Tier True False $ S.fromList
+      ["cas", "per"]
     tier2 = D.Tier False False $ S.fromList
-        [ "nmb", "gnd", "deg", "asp" , "ngt", "acm"
-        , "acn", "ppr", "agg", "vlc", "dot" ]
+      [ "nmb", "gnd", "deg", "asp" , "ngt", "acm"
+      , "acn", "ppr", "agg", "vlc", "dot" ]
+
+-- | Separate tier with gender and case values.
+tiersDisambGndCasSeparately :: [D.Tier]
+tiersDisambGndCasSeparately =
+    [tier1, tier2, tier3]
+  where
+    tier1 = D.Tier True False $ S.fromList
+      [ "per" ]
+    tier2 = D.Tier False False $ S.fromList
+      [ "nmb", "deg", "asp" , "ngt", "acm"
+      , "acn", "ppr", "agg", "vlc", "dot" ]
+    tier3 = D.Tier False False $ S.fromList
+      [ "cas", "gnd" ]
 
 
 -------------------------------------------------
@@ -413,6 +450,8 @@ data TrainConf = TrainConf {
     , zeroProbLabel :: Tag
     -- | Extract only visible features for the guesser
     , guessOnlyVisible :: Bool
+    -- | Disambiguation tiers configuration
+    , disambTiersCfg :: DisambTiersCfg
     }
 
 
@@ -474,7 +513,8 @@ train TrainConf{..} train0 eval0 = do
       (simplify4dmb tagset)
 
     disambConf = D.TrainConf
-      tiersDisamb disambSchemaDefault sgdArgs onDisk
+      (tiersDisamb disambTiersCfg)
+      disambSchemaDefault sgdArgs onDisk
       (simplify4dmb tagset)
 
 
