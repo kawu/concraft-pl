@@ -16,6 +16,7 @@ import qualified Data.Text.IO as T
 import qualified Data.Text.Lazy.IO as L
 import           Data.Tagset.Positional (parseTagset)
 import qualified Data.Tagset.Positional as P
+import qualified Data.Map.Strict as M
 import qualified Data.Set as S
 
 import qualified Data.DAG as DAG
@@ -78,6 +79,8 @@ data Concraft
     , probType      :: DB.ProbType
     -- , suppressProbs :: Bool
     , mayGuessNum   :: Maybe Int
+    , freqPath      :: Maybe FilePath
+    , freqSmoothing :: Double
     , shortestPath  :: Bool
     , longestPath   :: Bool
     , numericDisamb :: Bool }
@@ -97,6 +100,11 @@ data Concraft
   | Check
     { justTagsetPath :: FilePath
     , dagPath        :: FilePath
+    }
+  | Freqs
+    { dagPath        :: FilePath
+    -- , justTagsetPath :: FilePath
+    -- , outPath        :: FilePath
     }
   deriving (Data, Typeable, Show)
 
@@ -134,6 +142,9 @@ tagMode = Tag
     -- , marginals = False &= help "Tag with marginal probabilities" }
     , probType = DB.Marginals &= help "Type of probabilities"
     -- , suppressProbs = False &= help "Do not show probabilities"
+    , freqPath = def &= typFile &= help "File with chosen/not-chosen counts"
+    , freqSmoothing = 1.0 &= help
+      "Smoothing parameter for frequency-based path selection"
     , shortestPath = False &= help
       "Select shortest paths prior to parsing (can serve as a segmentation baseline)"
     , longestPath = False &= help
@@ -167,9 +178,17 @@ checkMode = Check
     }
 
 
+freqsMode :: Concraft
+freqsMode = Freqs
+    { dagPath = def &= typ "DAG-FILE" &= argPos 1
+    -- , justTagsetPath = def &= typ "TAGSET-FILE"  &= argPos 0
+    -- , outPath = def &= typ "FREQ-FILE" &= help "Output file to store counts"
+    }
+
+
 argModes :: Mode (CmdArgs Concraft)
 argModes = cmdArgsMode $ modes
-    [trainMode, tagMode, evalMode, checkMode]
+    [trainMode, tagMode, evalMode, checkMode, freqsMode]
     &= summary concraftDesc
     &= program "concraft-dag-pl"
 
@@ -233,15 +252,24 @@ exec Tag{..} = do
   -- crf <- Pol.loadModel P.parseTag inModel
   crf <- Pol.loadModel Pol.simplify4gsr Pol.simplify4dmb inModel
   inp <- DB.parseData <$> L.getContents
+  pathSelection <-
+    case (shortestPath, longestPath, freqPath) of
+      (True, _, _) -> return $ Just Seg.Min
+      (_, True, _) -> return $ Just Seg.Max
+      (_, _, Just freqPath) -> do
+        freqMap <- loadFreqMap freqPath
+        let conf = Seg.FreqConf
+              { Seg.pickFreqMap = freqMap
+              , Seg.smoothingParam = freqSmoothing
+              }
+        return . Just $ Seg.Freq conf
+      _         -> return Nothing
   let guessNum = case mayGuessNum of
         Nothing -> C.guessNum crf
         Just k  -> k
       cfg = Pol.AnnoConf
         { trimParam = guessNum
-        , pickPath = case (shortestPath, longestPath) of
-            (True, _) -> Just Seg.Min
-            (_, True) -> Just Seg.Max
-            _         -> Nothing
+        , pickPath = pathSelection
         }
       out = Pol.annoAll cfg crf <$> inp
       showCfg = DB.ShowCfg
@@ -323,6 +351,44 @@ exec Check{..} = do
       in  if p >= 1 - eps && p <= 1 + eps
           then Nothing
           else Just p
+
+
+exec Freqs{..} = do
+  -- tagset <- parseTagset justTagsetPath <$> readFile justTagsetPath
+  dags <- DB.parseData <$> L.readFile dagPath
+  let freqMap = Seg.computeFreqs $ map PX.packSent dags
+  printFreqMap freqMap
+
+
+---------------------------------------
+-- Frequency map
+---------------------------------------
+
+
+printFreqMap
+  :: M.Map T.Text (Int, Int)
+  -> IO ()
+printFreqMap freqMap =
+  forM_ (M.toList freqMap) $ \(orth, (chosen, notChosen)) -> do
+    T.putStr $ T.replace "\t" " " orth
+    T.putStr "\t"
+    putStr $ show chosen
+    T.putStr "\t"
+    putStrLn $ show notChosen
+
+
+loadFreqMap
+  :: FilePath
+  -> IO (M.Map T.Text (Int, Int))
+loadFreqMap filePath = do
+  M.fromList . map readPair . T.lines <$> T.readFile filePath
+  where
+    readPair line =
+      case T.splitOn "\t" line of
+        [orth, chosen, notChosen] ->
+          (orth, (readInt chosen, readInt notChosen))
+        _ -> error $ "loadFreqMap: line incorrectly formatted: " ++ T.unpack line
+    readInt = read . T.unpack
 
 
 -- ---------------------------------------

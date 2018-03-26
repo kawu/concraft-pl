@@ -359,13 +359,25 @@ segment sent =
 -------------------------------------------------
 
 
+-- -- | Configuration related to frequency-based path picking.
+-- data PickFreqConf = PickFreqConf
+--   { pickFreqMap :: Maybe (M.Map T.Text (Int, Int))
+--     -- ^ A map which assigns (chosen, not chosen) counts to the invidiaul
+--     -- orthographic forms.
+--   , smoothingParam :: Double
+--     -- ^ A naive smoothing related parameter, which should be adddd to each
+--     -- count in `pickFreqMap`.
+--   }
+
+
 -- | Annotation config.
 data AnnoConf = AnnoConf
   { trimParam :: Int
     -- ^ How many morphosyntactic tags should be kept for OOV words
   , pickPath :: Maybe Seg.PathTyp
-    -- ^ Select the shortest/longest path in the graph prior to tagging (can
-    -- serve as a segmentation baseline)
+--     -- ^ Select the shortest/longest/... path in the graph prior to tagging (can
+--     -- serve as a segmentation baseline)
+--   , pickPathWithFreqs :: Maybe PickFreqConf
   }
 
 
@@ -401,7 +413,7 @@ annoAll AnnoConf{..} concraft sent00 =
     -- See whether the shortest path should be computed first
     sent0 =
       case pickPath of
-        Just typ ->  Seg.pickPath typ sent00
+        Just typ -> Seg.pickPath typ sent00
         Nothing -> sent00
 
     -- We add EOS markers only after guessing, because the possible tags are not
