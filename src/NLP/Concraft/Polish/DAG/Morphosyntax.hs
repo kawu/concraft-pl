@@ -277,7 +277,7 @@ restore' =
 
 -- | Pick any path from the given DAG. The result is a list
 -- of interleaved node and edge labels.
-pickPath :: DAG a b -> [Either a b]
+pickPath :: (X.Word b) => DAG a b -> [Either a b]
 pickPath dag =
   fstNodeVal path : concatMap getVals path
   where

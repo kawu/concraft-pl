@@ -375,9 +375,7 @@ data AnnoConf = AnnoConf
   { trimParam :: Int
     -- ^ How many morphosyntactic tags should be kept for OOV words
   , pickPath :: Maybe Seg.PathTyp
---     -- ^ Select the shortest/longest/... path in the graph prior to tagging (can
---     -- serve as a segmentation baseline)
---   , pickPathWithFreqs :: Maybe PickFreqConf
+    -- ^ Which path picking method should be used. The function takes the
   }
 
 
