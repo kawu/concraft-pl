@@ -312,6 +312,7 @@ exec Eval{..} = do
     <*> fromFile taggPath
   putStr "Precision: " >> print (Acc.precision stats)
   putStr "Recall: " >> print (Acc.recall stats)
+  putStr "Accuracy: " >> print (Acc.accuracy stats)
 
 
 exec Check{..} = do
