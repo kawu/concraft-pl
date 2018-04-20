@@ -3,6 +3,7 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE DoAndIfThenElse #-}
+{-# LANGUAGE LambdaCase #-}
 
 
 import           Control.Applicative ((<$>))
@@ -12,7 +13,7 @@ import           System.Console.CmdArgs
 import qualified Numeric.SGD.Momentum as SGD
 import qualified Data.Text as T
 import qualified Data.Text.IO as T
--- import qualified Data.Text.Lazy as L
+import qualified Data.Text.Lazy as L
 import qualified Data.Text.Lazy.IO as L
 import           Data.Tagset.Positional (parseTagset)
 import qualified Data.Tagset.Positional as P
@@ -38,6 +39,7 @@ import qualified NLP.Concraft.DAG.Segmentation as Seg
 import qualified NLP.Concraft.Polish.DAG.Morphosyntax as PX
 import qualified NLP.Concraft.Polish.DAGSeg as Pol
 import qualified NLP.Concraft.Polish.DAG.Format.Base as DB
+import qualified NLP.Concraft.Polish.DAG.Server as Server
 
 -- import qualified NLP.Concraft.Polish.Request as R
 
@@ -83,7 +85,18 @@ data Concraft
     , freqSmoothing :: Double
     , shortestPath  :: Bool
     , longestPath   :: Bool
-    , numericDisamb :: Bool }
+    , numericDisamb :: Bool
+    }
+  | Server
+    { inModel       :: FilePath
+    , probType      :: DB.ProbType
+    , mayGuessNum   :: Maybe Int
+    , numericDisamb :: Bool
+    , port          :: Int
+    }
+  | Client
+    { serverAddr    :: String
+    }
   | Eval
     { justTagsetPath :: FilePath
     , goldPath       :: FilePath
@@ -155,6 +168,23 @@ tagMode = Tag
     }
 
 
+serverMode :: Concraft
+serverMode = Server
+    { inModel  = def &= argPos 0 &= typ "MODEL-FILE"
+    , probType = DB.Marginals &= help "Type of probabilities"
+    , mayGuessNum = def &= help "Number of guessed tags for each unknown word"
+    , numericDisamb = False &= help
+      "Print disamb markers as numerical values in the probability column"
+    , port = 3000 &= help "Server port"
+    }
+
+
+clientMode :: Concraft
+clientMode = Client
+    { serverAddr = "http://localhost:3000/parse" &= help "Server address"
+    }
+
+
 evalMode :: Concraft
 evalMode = Eval
     { justTagsetPath = def &= typ "TAGSET-FILE"  &= argPos 0
@@ -188,7 +218,8 @@ freqsMode = Freqs
 
 argModes :: Mode (CmdArgs Concraft)
 argModes = cmdArgsMode $ modes
-    [trainMode, tagMode, evalMode, checkMode, freqsMode]
+    [ trainMode, tagMode, serverMode, clientMode
+    , evalMode, checkMode, freqsMode ]
     &= summary concraftDesc
     &= program "concraft-dag-pl"
 
@@ -277,6 +308,35 @@ exec Tag{..} = do
         { probType = probType
         , numericDisamb = numericDisamb }
   L.putStr $ DB.showData showCfg out
+
+
+exec Server{..} = do
+  crf <- Pol.loadModel Pol.simplify4gsr Pol.simplify4dmb inModel
+  let guessNum = case mayGuessNum of
+        Nothing -> C.guessNum crf
+        Just k  -> k
+      cfg = Pol.AnnoConf
+        { trimParam = guessNum
+        , pickPath = Nothing
+        }
+      showCfg = DB.ShowCfg
+        { probType = probType
+        , numericDisamb = numericDisamb
+        }
+      serverCfg = Server.ServerCfg
+        { concraft = crf
+        , annoCfg = cfg
+        , showCfg = showCfg
+        }
+  Server.runServer serverCfg port
+
+exec Client{..} = do
+  inp <- L.toStrict <$> L.getContents
+  let req = Server.Request {dag = inp}
+      cfg = Server.ClientCfg {serverAddr=serverAddr}
+  Server.sendRequest cfg req >>= \case
+    Nothing -> putStrLn "<< NO RESPONSE >>"
+    Just Server.Answer{..} -> T.putStr dag
 
 
 exec Eval{..} = do
