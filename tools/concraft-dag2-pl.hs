@@ -14,7 +14,9 @@ import qualified Numeric.SGD.Momentum as SGD
 import qualified Data.Text as T
 import qualified Data.Text.IO as T
 import qualified Data.Text.Lazy as L
-import qualified Data.Text.Lazy.IO as L
+-- import qualified Data.Text.Lazy.IO as L
+import qualified Data.Text.Lazy.Encoding as L
+import qualified Data.ByteString.Lazy as BL
 import           Data.Tagset.Positional (parseTagset)
 import qualified Data.Tagset.Positional as P
 import qualified Data.Map.Strict as M
@@ -249,10 +251,10 @@ exec Train{..} = do
           , PX.qualifier = Nothing
           , PX.metaInfo = Nothing
           , PX.eos = False }
-        train0 = DB.parseData <$> L.readFile trainPath
+        train0 = DB.parseData <$> readFileUtf8 trainPath
         eval0  = case evalPath of
           Nothing -> return []
-          Just ph -> DB.parseData <$> L.readFile ph
+          Just ph -> DB.parseData <$> readFileUtf8 ph
     -- putStrLn $ "\nRegularization variance: " ++ show regVar
     concraft <- Pol.train (trainConf tagset zeroProbLab) train0 eval0
     unless (null outModel) $ do
@@ -282,7 +284,8 @@ exec Train{..} = do
 exec Tag{..} = do
   -- crf <- Pol.loadModel P.parseTag inModel
   crf <- Pol.loadModel Pol.simplify4gsr Pol.simplify4dmb inModel
-  inp <- DB.parseData <$> L.getContents
+  -- inp <- DB.parseData <$> L.getContents
+  inp <- DB.parseData <$> getContentsUtf8
   pathSelection <-
     case (shortestPath, longestPath, freqPath) of
       (True, _, _) -> return $ Just Seg.Min
@@ -307,7 +310,7 @@ exec Tag{..} = do
         -- { suppressProbs = suppressProbs
         { probType = probType
         , numericDisamb = numericDisamb }
-  L.putStr $ DB.showData showCfg out
+  putStrUtf8 $ DB.showData showCfg out
 
 
 exec Server{..} = do
@@ -331,7 +334,8 @@ exec Server{..} = do
   Server.runServer serverCfg port
 
 exec Client{..} = do
-  inp <- L.toStrict <$> L.getContents
+  -- inp <- L.toStrict <$> L.getContents
+  inp <- L.toStrict <$> getContentsUtf8
   let req = Server.Request {dag = inp}
       cfg = Server.ClientCfg {serverAddr=serverAddr}
   Server.sendRequest cfg req >>= \case
@@ -348,7 +352,7 @@ exec Eval{..} = do
             newTags = X.mapWMap simplify4eval (X.tags seg)
         in  seg {X.tags = newTags}
       process = PX.packSent . simplify
-      fromFile = fmap (map process . DB.parseData) . L.readFile
+      fromFile = fmap (map process . DB.parseData) . readFileUtf8
 
   putStrLn $ concat
     [ "Note that in this evaulation only the tags (no lemmas,"
@@ -377,7 +381,7 @@ exec Eval{..} = do
 
 exec Check{..} = do
   tagset <- parseTagset justTagsetPath <$> readFile justTagsetPath
-  dags <- DB.parseData <$> L.readFile dagPath
+  dags <- DB.parseData <$> readFileUtf8 dagPath
   forM_ dags $ \dag -> do
     if (not $ DAG.isOK dag) then do
       putStrLn "Incorrectly structured graph:"
@@ -416,7 +420,7 @@ exec Check{..} = do
 
 exec Freqs{..} = do
   -- tagset <- parseTagset justTagsetPath <$> readFile justTagsetPath
-  dags <- DB.parseData <$> L.readFile dagPath
+  dags <- DB.parseData <$> readFileUtf8 dagPath
   let freqMap = Seg.computeFreqs $ map PX.packSent dags
   printFreqMap freqMap
 
@@ -450,6 +454,23 @@ loadFreqMap filePath = do
           (orth, (readInt chosen, readInt notChosen))
         _ -> error $ "loadFreqMap: line incorrectly formatted: " ++ T.unpack line
     readInt = read . T.unpack
+
+
+---------------------------------------
+-- UTF8
+---------------------------------------
+
+
+readFileUtf8 :: FilePath -> IO L.Text
+readFileUtf8 path = L.decodeUtf8 <$> BL.readFile path
+
+
+getContentsUtf8 :: IO L.Text
+getContentsUtf8 = L.decodeUtf8 <$> BL.getContents
+
+
+putStrUtf8 :: L.Text -> IO ()
+putStrUtf8 = BL.putStr . L.encodeUtf8
 
 
 -- ---------------------------------------

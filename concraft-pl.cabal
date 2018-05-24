@@ -88,6 +88,7 @@ executable concraft-dag2-pl
       , concraft
       , tagset-positional
       , text
+      , bytestring
       , sgd
       , pedestrian-dag
       , crf-chain1-constrained
