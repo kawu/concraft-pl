@@ -80,6 +80,8 @@ data Concraft
   | Tag
     { inModel       :: FilePath
     -- , marginals     :: Bool
+    , inFile        :: Maybe FilePath
+    , outFile       :: Maybe FilePath
     , probType      :: DB.ProbType
     -- , suppressProbs :: Bool
     , mayGuessNum   :: Maybe Int
@@ -98,6 +100,8 @@ data Concraft
     }
   | Client
     { serverAddr    :: String
+    , inFile        :: Maybe FilePath
+    , outFile       :: Maybe FilePath
     }
   | Eval
     { justTagsetPath :: FilePath
@@ -155,6 +159,8 @@ tagMode = Tag
     { inModel  = def &= argPos 0 &= typ "MODEL-FILE"
     -- , noAna    = False &= help "Do not analyse input text"
     -- , marginals = False &= help "Tag with marginal probabilities" }
+    , inFile  = def &= typFile &= help "Input file (stdin by default)"
+    , outFile = def &= typFile &= help "Output file (stdout by default)"
     , probType = DB.Marginals &= help "Type of probabilities"
     -- , suppressProbs = False &= help "Do not show probabilities"
     , freqPath = def &= typFile &= help "File with chosen/not-chosen counts"
@@ -184,6 +190,8 @@ serverMode = Server
 clientMode :: Concraft
 clientMode = Client
     { serverAddr = "http://localhost:3000/parse" &= help "Server address"
+    , inFile  = def &= typFile &= help "Input file (stdin by default)"
+    , outFile = def &= typFile &= help "Output file (stdout by default)"
     }
 
 
@@ -285,7 +293,9 @@ exec Tag{..} = do
   -- crf <- Pol.loadModel P.parseTag inModel
   crf <- Pol.loadModel Pol.simplify4gsr Pol.simplify4dmb inModel
   -- inp <- DB.parseData <$> L.getContents
-  inp <- DB.parseData <$> getContentsUtf8
+  inp <- DB.parseData <$> case inFile of
+    Nothing -> getContentsUtf8
+    Just path -> readFileUtf8 path
   pathSelection <-
     case (shortestPath, longestPath, freqPath) of
       (True, _, _) -> return $ Just Seg.Min
@@ -310,7 +320,9 @@ exec Tag{..} = do
         -- { suppressProbs = suppressProbs
         { probType = probType
         , numericDisamb = numericDisamb }
-  putStrUtf8 $ DB.showData showCfg out
+  case outFile of
+    Nothing -> putStrUtf8 $ DB.showData showCfg out
+    Just path -> writeFileUtf8 path $ DB.showData showCfg out
 
 
 exec Server{..} = do
@@ -335,12 +347,16 @@ exec Server{..} = do
 
 exec Client{..} = do
   -- inp <- L.toStrict <$> L.getContents
-  inp <- L.toStrict <$> getContentsUtf8
+  inp <- L.toStrict <$> case inFile of
+    Nothing -> getContentsUtf8
+    Just path -> readFileUtf8 path
   let req = Server.Request {dag = inp}
       cfg = Server.ClientCfg {serverAddr=serverAddr}
   Server.sendRequest cfg req >>= \case
     Nothing -> putStrLn "<< NO RESPONSE >>"
-    Just Server.Answer{..} -> T.putStr dag
+    Just Server.Answer{..} -> case outFile of
+      Nothing -> putStrUtf8 (L.fromStrict dag)
+      Just path -> writeFileUtf8 path (L.fromStrict dag)
 
 
 exec Eval{..} = do
@@ -463,6 +479,10 @@ loadFreqMap filePath = do
 
 readFileUtf8 :: FilePath -> IO L.Text
 readFileUtf8 path = L.decodeUtf8 <$> BL.readFile path
+
+
+writeFileUtf8 :: FilePath -> L.Text -> IO ()
+writeFileUtf8 path = BL.writeFile path . L.encodeUtf8
 
 
 getContentsUtf8 :: IO L.Text
