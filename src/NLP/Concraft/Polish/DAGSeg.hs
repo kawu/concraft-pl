@@ -166,7 +166,9 @@ tiersDisambDefault =
       ["cas", "per"]
     tier2 = D.Tier False False $ S.fromList
       [ "nmb", "gnd", "deg", "asp" , "ngt", "acm"
-      , "acn", "ppr", "agg", "vlc", "dot" ]
+      , "acn", "ppr", "agg", "vlc", "dot"
+      , "sbg", "col"
+      ]
 
 -- | Separate tier with gender and case values.
 tiersDisambGndCasSeparately :: [D.Tier]
@@ -177,9 +179,12 @@ tiersDisambGndCasSeparately =
       [ "per" ]
     tier2 = D.Tier False False $ S.fromList
       [ "nmb", "deg", "asp" , "ngt", "acm"
-      , "acn", "ppr", "agg", "vlc", "dot" ]
+      , "acn", "ppr", "agg", "vlc", "dot"
+      , "sbg", "col"
+      ]
     tier3 = D.Tier False False $ S.fromList
-      [ "cas", "gnd" ]
+      [ "cas", "gnd"
+      ]
 
 
 -------------------------------------------------
