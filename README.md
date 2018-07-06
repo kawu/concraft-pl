@@ -44,16 +44,16 @@ Concraft-pl works with tab-separated values (`.tsv`) files, with the individual
 paragraphs separated by blank lines. Each non-blank line corresponds to an edge
 in the paragraph DAG and contains the following 10 columns:
 
-    * ID of the start node
-    * ID of the end node
-    * word form
-    * base form (lemma)
-    * morphosyntactic tag
-    * commonness (common word, named entity)
-    * qualifiers
-    * probability of the edge
-    * meta information
-    * end-of-sentence (eos) marker
+  * ID of the start node
+  * ID of the end node
+  * word form
+  * base form (lemma)
+  * morphosyntactic tag
+  * commonness (common word, named entity)
+  * qualifiers
+  * probability of the edge
+  * meta information
+  * end-of-sentence (eos) marker
 
 For the moment, the tool ignores (i.e. rewrites) the values of commonness,
 qualifiers, and meta-information, but we plan to exploit them in the future.
@@ -72,10 +72,10 @@ The following example relies on the files available in the `example` directory.
     
 where:
 
-    * `train.dag` is the training file, based on which the model parameters are estimated
-    * `test.dag` is the evaluation file (optional; allows to track tagging quality during training)
-    * `tagset.cfg` is the tagset configuration
-    * `model.gz` is the output model (optional)
+  * `train.dag` is the training file, based on which the model parameters are estimated
+  * `test.dag` is the evaluation file (optional; allows to track tagging quality during training)
+  * `tagset.cfg` is the tagset configuration
+  * `model.gz` is the output model (optional)
 
 Consider using [runtime system options][ghc-rts].  You can speed up processing
 by making use of multiple cores by using the `-N` option.  The `-s` option will
