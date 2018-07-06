@@ -1,64 +1,81 @@
-Concraft-pl
-===========
+Concraft-pl 2.0
+===============
 
-This package provides a morphosyntactic tagger for the Polish language.
-The tool combines the following components into a pipeline:
-* A morphosyntactic segmentation and analysis tool [Maca][maca],
-* A morphosyntactic disambiguation library [Concraft][concraft],
+This package provides a morphosyntactic tagger for the Polish language. The tool
+is coupled with [Morfeusz][morfeusz], a morphosyntactic analyzer for Polish,
+which represents both morphosyntactic and segmentation ambiguities in the form
+of a directed acyclic graph (DAG).
 
-<!---
-* A simple, frequency-driven lemmatiser (TODO).  Until the lemmatiser component
-  is implemented, the tagger may output multiple interpretations (all related
-  to the same morphosyntactic tag, but with different lemmas) in some cases.
--->
+This is the new, 2.0 version of Concraft-pl. The previous version, now obsolete,
+can be found at https://github.com/kawu/concraft-pl/tree/maca.
 
-As for now, the tagger doesn't provide any lemmatisation capabilities.
-As a result, it may output multiple interpretations (all related
-to the same morphosyntactic tag, but with different lemmas) for some known
-words, while for the out-of-vocabulary words it just outputs orthographic
-forms as lemmas.
+As for now, the tagger doesn't provide any lemmatisation capabilities. As a
+result, it may output multiple interpretations (all related to the same
+morphosyntactic tag, but with different lemmas) for some known words, while for
+the out-of-vocabulary words it just outputs orthographic forms as lemmas.
 
+<!--
 See the [homepage][homepage] if you wish to download a pre-trained
 model for the Polish language.
+-->
 
 
 Installation
 ============
 
-It is recommanded to install Concraft-pl using the
-[Haskell Tool Stack][stack], which you will need to downoload and
-install on your machine beforehand.  Then clone this repository into
-a local directory and use `stack` to install the library by running:
+First you will need to download and install the [Haskell Tool Stack][stack].
+Then use the following script:
 
+    git clone -b dev https://github.com/kawu/sgd.git
+    git clone https://github.com/kawu/pedestrian-dag.git
+    git clone https://github.com/kawu/tagset-positional.git
+    git clone -b dag https://github.com/kawu/crf-chain1-constrained.git
+    git clone -b dag https://github.com/kawu/crf-chain2-tiers.git
+    git clone -b dag https://github.com/kawu/concraft.git
+    git clone https://github.com/kawu/concraft-pl.git
+    cd concraft-pl
     stack install
-
-Unless you plan to use a custom preprocessing pipeline or run
-[Maca][maca] on a different machine (see section
-[Tagging analysed data](#tagging-analysed-data)), you will also need
-the [Maca][maca] tool.  A detailed [installation guide][maca-install]
-can be found on the [Maca][maca] homepage.
-
+    
 
 Data format
 ===========
 
-The current version of Concraft-pl works on a simple `plain` text format supported by
-the [Corpus2][corpus2] tools.  You will have to install these tools when you install
-[Maca][maca] anyway, so you can use them to convert the output generated
-by Concraft-pl to one of other formats supported by [Corpus2][corpus2].
+Concraft-pl works with tab-separated values (`.tsv`) files, with the individual
+paragraphs separated by blank lines. Each non-blank line corresponds to an edge
+in the paragraph DAG and contains the following 10 columns:
+
+    * ID of the start node
+    * ID of the end node
+    * word form
+    * base form (lemma)
+    * morphosyntactic tag
+    * commonness (common word, named entity)
+    * qualifiers
+    * probability of the edge
+    * meta information
+    * end-of-sentence (eos) marker
+
+For the moment, the tool ignores (i.e. rewrites) the values of commonness,
+qualifiers, and meta-information, but we plan to exploit them in the future.
+
+An example of a file following the above specification can be found in
+`example/test.dag`.
 
 
 Training
 ========
 
-If you have the training material with disambiguation annotations (stored in the
-`plain` text format) you can train the Concraft-pl model yourself.
+The `train` command can be used to train the model based on a given `.dag` file.
+The following example relies on the files available in the `example` directory.
 
-    concraft-pl train train.plain -e eval.plain -o model.gz
+    concraft-pl train train.dag --tagsetpath=tagset.cfg -e test.dag -o model.gz
+    
+where:
 
-Concraft-pl uses the [NKJP][nkjp] [morphosyntactic tagset definition](config/nkjp-tagset.cfg)
-by default.  It will also reanalyse the input data before the actual training.  If you want
-to change this behaviour, use the `--tagset` and `--noana` command-line options.
+    * `train.dag` is the training file, based on which the model parameters are estimated
+    * `test.dag` is the evaluation file (optional; allows to track tagging quality during training)
+    * `tagset.cfg` is the tagset configuration
+    * `model.gz` is the output model (optional)
 
 Consider using [runtime system options][ghc-rts].  You can speed up processing
 by making use of multiple cores by using the `-N` option.  The `-s` option will
@@ -69,33 +86,33 @@ dataset and it doesn't fit in the computer memory, use the `--disk` flag.
 For example, to train the model using four threads and 256M allocation area
 size, run:
 
-    concraft-pl train train.plain -e eval.plain -o model.gz +RTS -N4 -A256M -s
+
+    concraft-pl train train.dag --tagsetpath=tagset.cfg -e test.dag -o model.gz +RTS -N4 -A256M -s
 
 Run `concraft-pl train --help` to learn more about the program arguments and
 possible training options.
 
+<!--
 Finally, you may consider pruning the resultant model in order to reduce its size.
 Features with values close to 0 (in log-domain) have little effect on the modeled
 probability and, therefore, it should be safe to discard them.
 
     concraft-pl prune -t 0.05 input-model.gz pruned-model.gz
+-->
 
 
 Tagging
 =======
 
-Once you have a Concraft-pl model you can use the following command tag `input.txt` file:
+Once you have a Concraft-pl model you can use the following command to tag:
 
-    concraft-pl tag model.gz < input.txt > output.plain
+    concraft-pl tag model.gz -i input.dag -o output.dag
 
-The input file is first divided into paragraphs (the tool interprets empty lines
-as paragraph ending markers).  After that, [Maca][maca] is used to segment and analyse
-each paragraph.  Finally, [Concraft][concraft] module is used to disambiguate each
-sentence in the [Maca][maca] output.
-
+<!--
 With the `--marginals` option enabled, Concraft-pl will output marginal probabilities
 corresponding to individual tags (determined on the basis of the disambiguation model)
 instead of `disamb` markers.
+-->
 
 Run `concraft-pl tag --help` to learn more about possible tagging options.
 
@@ -105,36 +122,29 @@ Server
 
 Concraft-pl provides also a client/server mode.  It is handy when, for example,
 you need to tag a large collection of small files.  Loading Concraft-pl model
-from a disk takes considerable amount of time which makes the tagging method
-described above very slow in such a setting.
+from a disk takes considerable amount of time.
 
-To start the Concraft-pl server, run:
+To start the Concraft-pl server on port `3000`, run:
 
-    concraft-pl server --inmodel model.gz
-
-You can supply a custom port number using a `--port` option.  For example,
-to run the server on the `10101` port, use the following command:
-
-    concraft-pl server --inmodel model.gz --port 10101
+    concraft-pl server --port=3000 -i model.gz
 
 To use the server in a multi-threaded environment, you need to specify the
 `-N` [RTS][ghc-rts] option.  A set of options which usually yields good
 server performance is presented in the following example:
 
-    concraft-pl server --inmodel model.gz +RTS -N -A4M -qg1 -I0
+    concraft-pl server --port=3000 -i model.gz +RTS -N -A4M -qg1 -I0
 
 Run `concraft-pl server --help` to learn more about possible server-mode options.
 
-The client mode works just like the tagging mode.  The only difference is that,
-instead of supplying your client with a model, you need to specify the port number
-(in case you used a custom one when starting the server; otherwise, the default
-port number will be used).
+The client mode works just like the tagging mode. The difference is that,
+instead of supplying the client with a model, you need to specify the server:
 
-    concraft-pl client --port 10101 < input.txt > output.plain
+    concraft-pl client -s "http://localhost:3000/parse" -i input.dag -o output.dag
 
 Run `concraft-pl client --help` to learn more about possible client-mode options.
 
 
+<!--
 Tagging analysed data
 =====================
 
@@ -154,6 +164,7 @@ This option is currently not supported in the client/server mode.
 *Remember to use the same preprocessing pipeline (segmentation + analysis) for both
 training and disambiguation.  Inconsistencies between training material and input
 data may severely harm the quality of disambiguation.*
+-->
 
 
 [stack]: http://docs.haskellstack.org "Haskell Tool Stack"
@@ -168,3 +179,4 @@ data may severely harm the quality of disambiguation.*
 [cabal]: http://www.haskell.org/cabal "Cabal"
 [haskell-platform]: http://www.haskell.org/platform "Haskell Platform"
 [nkjp]: http://nkjp.pl/index.php?page=0&lang=1 "NKJP"
+[morfeusz]: http://sgjp.pl/morfeusz/morfeusz.html "Morfeusz"
