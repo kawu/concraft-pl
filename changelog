@@ -1,5 +1,13 @@
 -*-change-log-*-
 
+2.0.1   Jul 2018
+        * External configuration of disambiguation tiers
+
+2.0.0   Jul 2018
+        * Support Morfeusz DAGs
+        * Use the Morfeusz format
+        * Drop dependency on Maca
+
 0.7.5	Aug 2016
 	* Start using `stack` to avoid dependency problems
 

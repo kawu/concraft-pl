@@ -33,7 +33,7 @@ module NLP.Concraft.Polish.DAGSeg
 
 -- * Training
 , TrainConf (..)
-, DisambTiersCfg (..)
+-- , DisambTiersCfg (..)
 , train
 
 -- * Pruning
@@ -68,6 +68,8 @@ import qualified NLP.Concraft.DAGSeg as C
 
 import           NLP.Concraft.Polish.DAG.Morphosyntax hiding (tag, Tag)
 import qualified NLP.Concraft.Polish.DAG.Morphosyntax as PolX
+import qualified NLP.Concraft.Polish.DAG.Config as Cfg
+import qualified NLP.Concraft.Polish.DAG.Config.Disamb as Cfg
 
 -- import Debug.Trace (trace)
 
@@ -143,48 +145,58 @@ tiersSegment =
 -------------------------------------------------
 
 
--- | Configuration of disambiguation tiers.
-data DisambTiersCfg
-  = TiersDefault
-  | TiersGndCasSeparately
-  deriving (Data, Typeable, Show, Eq, Ord)
+-- -- | Configuration of disambiguation tiers.
+-- data DisambTiersCfg
+--   = TiersDefault
+--   | TiersGndCasSeparately
+--   deriving (Data, Typeable, Show, Eq, Ord)
+--
+--
+-- -- | Tiered tagging configuration for the disambiguation model.
+-- tiersDisamb :: DisambTiersCfg -> [D.Tier]
+-- tiersDisamb cfg = case cfg of
+--   TiersDefault -> tiersDisambDefault
+--   TiersGndCasSeparately -> tiersDisambGndCasSeparately
+--
+--
+-- -- | Default tiered tagging configuration for the disambiguation model.
+-- tiersDisambDefault :: [D.Tier]
+-- tiersDisambDefault =
+--     [tier1, tier2]
+--   where
+--     tier1 = D.Tier True False $ S.fromList
+--       ["cas", "per"]
+--     tier2 = D.Tier False False $ S.fromList
+--       [ "nmb", "gnd", "deg", "asp" , "ngt", "acm"
+--       , "acn", "ppr", "agg", "vlc", "dot"
+--       , "sbg", "col"
+--       ]
+--
+-- -- | Separate tier with gender and case values.
+-- tiersDisambGndCasSeparately :: [D.Tier]
+-- tiersDisambGndCasSeparately =
+--     [tier1, tier2, tier3]
+--   where
+--     tier1 = D.Tier True False $ S.fromList
+--       [ "per" ]
+--     tier2 = D.Tier False False $ S.fromList
+--       [ "nmb", "deg", "asp" , "ngt", "acm"
+--       , "acn", "ppr", "agg", "vlc", "dot"
+--       , "sbg", "col"
+--       ]
+--     tier3 = D.Tier False False $ S.fromList
+--       [ "cas", "gnd"
+--       ]
 
 
--- | Tiered tagging configuration for the disambiguation model.
-tiersDisamb :: DisambTiersCfg -> [D.Tier]
-tiersDisamb cfg = case cfg of
-  TiersDefault -> tiersDisambDefault
-  TiersGndCasSeparately -> tiersDisambGndCasSeparately
-
-
--- | Default tiered tagging configuration for the disambiguation model.
-tiersDisambDefault :: [D.Tier]
-tiersDisambDefault =
-    [tier1, tier2]
-  where
-    tier1 = D.Tier True False $ S.fromList
-      ["cas", "per"]
-    tier2 = D.Tier False False $ S.fromList
-      [ "nmb", "gnd", "deg", "asp" , "ngt", "acm"
-      , "acn", "ppr", "agg", "vlc", "dot"
-      , "sbg", "col"
-      ]
-
--- | Separate tier with gender and case values.
-tiersDisambGndCasSeparately :: [D.Tier]
-tiersDisambGndCasSeparately =
-    [tier1, tier2, tier3]
-  where
-    tier1 = D.Tier True False $ S.fromList
-      [ "per" ]
-    tier2 = D.Tier False False $ S.fromList
-      [ "nmb", "deg", "asp" , "ngt", "acm"
-      , "acn", "ppr", "agg", "vlc", "dot"
-      , "sbg", "col"
-      ]
-    tier3 = D.Tier False False $ S.fromList
-      [ "cas", "gnd"
-      ]
+tiersDisamb :: Cfg.Config -> [D.Tier]
+tiersDisamb Cfg.Config{..} = do
+  Cfg.TierCfg{..} <- Cfg.tiersCfg disambCfg
+  return $ D.Tier
+    { D.withPos = withPos
+    , D.withEos = withEos
+    , D.withAtts = Cfg.unSet withAtts
+    }
 
 
 -------------------------------------------------
@@ -465,8 +477,10 @@ data TrainConf = TrainConf {
     , zeroProbLabel :: Tag
     -- | Extract only visible features for the guesser
     , guessOnlyVisible :: Bool
-    -- | Disambiguation tiers configuration
-    , disambTiersCfg :: DisambTiersCfg
+    -- | Global configuration
+    , globalConfig :: Cfg.Config
+    -- -- | Disambiguation tiers configuration
+    -- , disambTiersCfg :: DisambTiersCfg
     }
 
 
@@ -528,7 +542,8 @@ train TrainConf{..} train0 eval0 = do
       (simplify4dmb tagset)
 
     disambConf = D.TrainConf
-      (tiersDisamb disambTiersCfg)
+      -- (tiersDisamb disambTiersCfg)
+      (tiersDisamb globalConfig)
       disambSchemaDefault sgdArgs onDisk
       (simplify4dmb tagset)
 

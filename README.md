@@ -38,7 +38,7 @@ Then use the following script:
     
 
 Data format
-===========
+==============
 
 Concraft-pl works with tab-separated values (`.tsv`) files, with the individual
 paragraphs separated by blank lines. Each non-blank line corresponds to an edge
@@ -63,17 +63,18 @@ An example of a file following the above specification can be found in
 
 
 Training
-========
+==========
 
 The `train` command can be used to train the model based on a given `.dag` file.
 The following example relies on the files available in the `example` directory.
 
-    concraft-pl train train.dag --tagsetpath=tagset.cfg -e test.dag -o model.gz
+    concraft-pl train train.dag -c config.dhall --tagsetpath=tagset.cfg -e test.dag -o model.gz
     
 where:
 
   * `train.dag` is the training file, based on which the model parameters are estimated
   * `test.dag` is the evaluation file (optional; allows to track tagging quality during training)
+  * `config.dhall` is the general configuration (e.g., disambiguation tiers)
   * `tagset.cfg` is the tagset configuration
   * `model.gz` is the output model (optional)
 
@@ -88,7 +89,7 @@ For example, to train the model using four threads and 256M allocation area
 size, run:
 
 
-    concraft-pl train train.dag --tagsetpath=tagset.cfg -e test.dag -o model.gz +RTS -N4 -A256M -s
+    concraft-pl train train.dag -c config.dhall --tagsetpath=tagset.cfg -e test.dag -o model.gz +RTS -N4 -A256M -s
 
 Run `concraft-pl train --help` to learn more about the program arguments and
 possible training options.

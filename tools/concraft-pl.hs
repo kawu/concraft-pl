@@ -8,9 +8,11 @@
 
 import           Control.Applicative ((<$>))
 import           Control.Monad (unless, forM_)
+import           System.FilePath (isAbsolute, (</>))
 import           System.Console.CmdArgs
 -- import           System.IO (hFlush, stdout)
 import qualified Numeric.SGD.Momentum as SGD
+import           Data.String (fromString)
 import qualified Data.Text as T
 import qualified Data.Text.IO as T
 import qualified Data.Text.Lazy as L
@@ -21,6 +23,8 @@ import           Data.Tagset.Positional (parseTagset)
 import qualified Data.Tagset.Positional as P
 import qualified Data.Map.Strict as M
 import qualified Data.Set as S
+
+import qualified Dhall as Dhall
 
 import qualified Data.DAG as DAG
 
@@ -75,7 +79,8 @@ data Concraft
     , r0            :: Guess.R0T
     , zeroProbLabel :: String
     , visibleOnly   :: Bool
-    , disambTiers   :: Pol.DisambTiersCfg
+    -- , disambTiers   :: Pol.DisambTiersCfg
+    , config        :: FilePath
     }
   | Tag
     { inModel       :: FilePath
@@ -133,6 +138,7 @@ trainMode = Train
     { trainPath = def &= argPos 1 &= typ "TRAIN-FILE"
     , evalPath = def &= typFile &= help "Evaluation file"
     , tagsetPath = def &= typFile &= help "Tagset definition file"
+    , config = def &= typFile &= help "Global configuration file"
     -- , discardHidden = False &= help "Discard hidden features"
     , iterNum = 20 &= help "Number of SGD iterations"
     , batchSize = 50 &= help
@@ -150,7 +156,7 @@ trainMode = Train
     , r0 = Guess.OovChosen &= help "R0 construction method"
     , zeroProbLabel = "xxx" &= help "Zero probability label"
     , visibleOnly = False &= help "Extract only visible features for the guesser"
-    , disambTiers = Pol.TiersDefault &= help "Dismabiguation tiers configuration"
+    -- , disambTiers = Pol.TiersDefault &= help "Dismabiguation tiers configuration"
     }
 
 
@@ -251,6 +257,15 @@ exec Train{..} = do
         Nothing -> getDataFileName "config/nkjp-tagset.cfg"
         Just x  -> return x
     tagset <- parseTagset tagsetPath' <$> readFile tagsetPath'
+
+    -- Dhall configuration
+    let configPath =
+          if isAbsolute config
+          then config
+          else "./" </> config
+    dhall <- Dhall.detailed
+      (Dhall.input Dhall.auto $ fromString configPath)
+
     -- let zeroProbLab = P.parseTag taset zeroProbLabel
     let zeroProbLab = PX.Interp
           { PX.base = "none"
@@ -264,7 +279,7 @@ exec Train{..} = do
           Nothing -> return []
           Just ph -> DB.parseData <$> readFileUtf8 ph
     -- putStrLn $ "\nRegularization variance: " ++ show regVar
-    concraft <- Pol.train (trainConf tagset zeroProbLab) train0 eval0
+    concraft <- Pol.train (trainConf dhall tagset zeroProbLab) train0 eval0
     unless (null outModel) $ do
         putStrLn $ "\nSaving model in " ++ outModel ++ "..."
         Pol.saveModel outModel concraft
@@ -276,7 +291,7 @@ exec Train{..} = do
         , SGD.gain0 = gain0
         , SGD.tau = tau
         }
-    trainConf tagset zeroLab = Pol.TrainConf
+    trainConf dhall tagset zeroLab = Pol.TrainConf
         { tagset    = tagset
         , sgdArgs   = sgdArgs
         -- , reana     = not noAna
@@ -285,7 +300,8 @@ exec Train{..} = do
         , r0        = r0
         , zeroProbLabel = zeroLab
         , guessOnlyVisible = visibleOnly
-        , disambTiersCfg = disambTiers
+        -- , disambTiersCfg = disambTiers
+        , globalConfig = dhall
         }
 
 
