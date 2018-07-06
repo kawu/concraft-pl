@@ -81,8 +81,9 @@ Consider using [runtime system options][ghc-rts].  You can speed up processing
 by making use of multiple cores by using the `-N` option.  The `-s` option will
 produce the runtime statistics, such as the time spent in the garbage collector.
 If the program is spending too much time collecting garbage, you can try to
-increase the allocation area size with the `-A` option.  If you have a big
-dataset and it doesn't fit in the computer memory, use the `--disk` flag.
+increase the allocation area size with the `-A` option.
+<!--If you have a big dataset and it doesn't fit in the computer memory, use the
+`--disk` flag.-->
 For example, to train the model using four threads and 256M allocation area
 size, run:
 
