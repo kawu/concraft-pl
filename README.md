@@ -142,6 +142,9 @@ The client mode works just like the tagging mode. The difference is that,
 instead of supplying the client with a model, you need to specify the server:
 
     concraft-pl client -s "http://localhost:3000/parse" -i input.dag -o output.dag
+    
+**NOTE**: the client has been designed so as to be run on short data files.
+Ideally, the `input.dag` file should contain only one paragraph.
 
 Run `concraft-pl client --help` to learn more about possible client-mode options.
 
