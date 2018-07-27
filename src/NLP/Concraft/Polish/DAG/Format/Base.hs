@@ -255,7 +255,8 @@ parseRow :: L.Text -> Row
 parseRow =
   doit . L.splitOn "\t"
   where
-    doit [tlNode, hdNode, otForm, bsForm, tag, comm, qual, prob, meta, eos] = Row
+    doit (tlNode : hdNode : otForm : bsForm : tag :
+          comm : qual : prob : meta : eos : _) = Row
       { tailNode = read $ L.unpack tlNode
       , headNode = read $ L.unpack hdNode
       , orthForm = L.toStrict otForm
