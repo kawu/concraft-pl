@@ -120,6 +120,7 @@ data Concraft
     , heedEos        :: Bool
     , weak           :: Bool
     , discardProb0   :: Bool
+    , verbose        :: Bool
     }
   | Check
     { justTagsetPath :: FilePath
@@ -214,6 +215,7 @@ evalMode = Eval
     , heedEos = False &= help "Pay attention to EOS markers (ignored by default)"
     , weak = False &= help "Compute weak accuracy rather than strong"
     , discardProb0 = False &= help "Discard sentences with near 0 probability"
+    , verbose = False &= help "Print information about compared elements"
     }
 
 
@@ -387,22 +389,24 @@ exec Eval{..} = do
       fromFile = fmap (map process . DB.parseData) . readFileUtf8
 
   putStrLn $ concat
-    [ "Note that in this evaulation only the tags (no lemmas,"
-    , " no eos) are taken into account."
+    [ "Note that in this evaluation lemmas "
+    , "are *not* taken into account."
     ]
 
   let cfg = Acc.AccCfg
         { Acc.onlyOov = onlyOov
         , Acc.onlyAmb = onlyAmb
         , Acc.onlyMarkedWith =
-          if onlyEos
-          then S.singleton True
-          else S.empty
+            if onlyEos
+            then S.singleton True
+            else S.empty
         , Acc.accTagset = tagset
         , Acc.expandTag = expandTags
         , Acc.ignoreTag = ignoreTags
         , Acc.weakAcc = weak
-        , Acc.discardProb0 = discardProb0 }
+        , Acc.discardProb0 = discardProb0
+        , Acc.verbose = verbose
+        }
   stats <- Acc.collect cfg
     <$> fromFile goldPath
     <*> fromFile taggPath
