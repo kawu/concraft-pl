@@ -131,6 +131,10 @@ data Concraft
     -- , justTagsetPath :: FilePath
     -- , outPath        :: FilePath
     }
+  | Ambi
+    { dagPath        :: FilePath
+    , onlyChosen     :: Bool
+    }
   deriving (Data, Typeable, Show)
 
 
@@ -234,10 +238,17 @@ freqsMode = Freqs
     }
 
 
+ambiMode :: Concraft
+ambiMode = Ambi
+    { dagPath = def &= typ "DAG-FILE" &= argPos 1
+    , onlyChosen = False &= help "Take only the chose tokens into account"
+    }
+
+
 argModes :: Mode (CmdArgs Concraft)
 argModes = cmdArgsMode $ modes
     [ trainMode, tagMode, serverMode, clientMode
-    , evalMode, checkMode, freqsMode ]
+    , evalMode, checkMode, freqsMode, ambiMode ]
     &= summary concraftDesc
     &= program "concraft-pl"
 
@@ -459,6 +470,16 @@ exec Freqs{..} = do
   dags <- DB.parseData <$> readFileUtf8 dagPath
   let freqMap = Seg.computeFreqs $ map PX.packSent dags
   printFreqMap freqMap
+
+
+exec Ambi{..} = do
+  dags <- DB.parseData <$> readFileUtf8 dagPath
+  let stats = Seg.computeAmbiStats cfg $ map PX.packSent dags
+  print stats
+  where
+    cfg = Seg.AmbiCfg
+      { Seg.onlyChosen = onlyChosen
+      }
 
 
 ---------------------------------------
