@@ -67,9 +67,9 @@ Pre-trained models
 
 A model pre-trained on the [National Corpus of Polish][nkjp] can be downloaded
 from [here][ncp-pre-model]. The corresponding training material is also
-[available for download][ncp-pre-train]. It is compatible with the current
-version of [Morfeusz 2][morfeusz], which should be also used for morphosyntactic
-analysis preceding tagging.
+[available for download][ncp-pre-train]. This model is compatible with the
+current version of [Morfeusz 2][morfeusz], which should be also used for
+morphosyntactic analysis preceding tagging.
 
 
 Training
