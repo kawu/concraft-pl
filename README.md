@@ -62,6 +62,16 @@ An example of a file following the above specification can be found in
 `example/test.dag`.
 
 
+Pre-trained models
+==================
+
+A model pre-trained on the [National Corpus of Polish][nkjp] can be downloaded
+from [here][ncp-pre-model]. The corresponding training material is also
+[available for download][ncp-pre-train]. It is compatible with the current
+version of [Morfeusz 2][morfeusz], which should be also used for morphosyntactic
+analysis preceding tagging.
+
+
 Training
 ==========
 
@@ -185,3 +195,5 @@ data may severely harm the quality of disambiguation.*
 [haskell-platform]: http://www.haskell.org/platform "Haskell Platform"
 [nkjp]: http://nkjp.pl/index.php?page=0&lang=1 "NKJP"
 [morfeusz]: http://sgjp.pl/morfeusz/morfeusz.html "Morfeusz"
+[ncp-pre-model]: https://user.phil.hhu.de/~waszczuk/concraft/model-04-09-2018.gz "NCP model"
+[ncp-pre-train]: https://user.phil.hhu.de/~waszczuk/concraft/train.zip "NCP training data"
