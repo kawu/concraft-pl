@@ -107,6 +107,7 @@ data Concraft
     { serverAddr    :: String
     , inFile        :: Maybe FilePath
     , outFile       :: Maybe FilePath
+    , batchSize     :: Int
     }
   | Eval
     { justTagsetPath :: FilePath
@@ -203,6 +204,7 @@ clientMode = Client
     { serverAddr = "http://localhost:3000/parse" &= help "Server address"
     , inFile  = def &= typFile &= help "Input file (stdin by default)"
     , outFile = def &= typFile &= help "Output file (stdout by default)"
+    , batchSize = 10 &= help "Sent graphs in batches of the given size"
     }
 
 
@@ -374,18 +376,29 @@ exec Server{..} = do
         }
   Server.runServer serverCfg port
 
+
 exec Client{..} = do
-  -- inp <- L.toStrict <$> L.getContents
-  inp <- L.toStrict <$> case inFile of
+  -- clear the file, if specified (stdout otherwise)
+  case outFile of
+    Nothing -> return ()
+    Just path -> writeFileUtf8 path ""
+  inpAll <- case inFile of
     Nothing -> getContentsUtf8
     Just path -> readFileUtf8 path
-  let req = Server.Request {dag = inp}
-      cfg = Server.ClientCfg {serverAddr=serverAddr}
-  Server.sendRequest cfg req >>= \case
-    Nothing -> putStrLn "<< NO RESPONSE >>"
-    Just Server.Answer{..} -> case outFile of
-      Nothing -> putStrUtf8 (L.fromStrict dag)
-      Just path -> writeFileUtf8 path (L.fromStrict dag)
+  let inputs
+        = map (L.intercalate "\n\n")
+        . group batchSize
+        $ filter
+          (not . L.null)
+          (L.splitOn "\n\n" inpAll)
+  forM_ (map L.toStrict inputs) $ \inp -> do
+    let req = Server.Request {dag = inp}
+        cfg = Server.ClientCfg {serverAddr=serverAddr}
+    Server.sendRequest cfg req >>= \case
+      Nothing -> putStrLn "<< NO RESPONSE >>"
+      Just Server.Answer{..} -> case outFile of
+        Nothing -> putStrUtf8 (L.fromStrict dag)
+        Just path -> appendFileUtf8 path (L.fromStrict dag)
 
 
 exec Eval{..} = do
@@ -526,12 +539,36 @@ writeFileUtf8 :: FilePath -> L.Text -> IO ()
 writeFileUtf8 path = BL.writeFile path . L.encodeUtf8
 
 
+appendFileUtf8 :: FilePath -> L.Text -> IO ()
+appendFileUtf8 path = BL.appendFile path . L.encodeUtf8
+
+
 getContentsUtf8 :: IO L.Text
 getContentsUtf8 = L.decodeUtf8 <$> BL.getContents
 
 
 putStrUtf8 :: L.Text -> IO ()
 putStrUtf8 = BL.putStr . L.encodeUtf8
+
+
+---------------------------------------
+-- Utils
+---------------------------------------
+
+
+-- | Group the input list into the groups of X.
+group :: Int -> [a] -> [[a]]
+group n =
+  doit n []
+  where
+    doit k acc (x:xs)
+      | k > 0 =
+          doit (k-1) (x:acc) xs
+      | otherwise =
+          reverse acc : doit n [] (x:xs)
+    doit _ acc []
+      | null acc  = []
+      | otherwise = [reverse acc]
 
 
 -- ---------------------------------------
