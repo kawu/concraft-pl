@@ -153,8 +153,13 @@ instead of supplying the client with a model, you need to specify the server:
 
     concraft-pl client -s "http://localhost:3000/parse" -i input.dag -o output.dag
     
+<!--
 **NOTE**: the client has been designed so as to be run on short data files.
 Ideally, the `input.dag` file should contain only one paragraph.
+-->
+
+**NOTE**: you can use `stdin` and `stdout` instead of the `-i` and `-o` options,
+respectively.
 
 Run `concraft-pl client --help` to learn more about possible client-mode options.
 
