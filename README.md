@@ -146,6 +146,8 @@ presented in the following example:
 
     concraft-pl server --port=3000 -i model.gz +RTS -N -A64M
 <!--
+    # NOTE: adding the options `-qg1 -I0` may be good, but it only showed
+    # improvements when using smaller allocation area size.
     concraft-pl server --port=3000 -i model.gz +RTS -N -A4M -qg1 -I0
 -->
 
