@@ -140,11 +140,18 @@ To start the Concraft-pl server on port `3000`, run:
 
     concraft-pl server --port=3000 -i model.gz
 
-To use the server in a multi-threaded environment, you need to specify the
-`-N` [RTS][ghc-rts] option.  A set of options which usually yields good
-server performance is presented in the following example:
+To use the server in a multi-threaded environment, you need to specify the `-N`
+[RTS][ghc-rts] option. A set of options which yields good server performance is
+presented in the following example:
 
+    concraft-pl server --port=3000 -i model.gz +RTS -N -A64M
+<!--
     concraft-pl server --port=3000 -i model.gz +RTS -N -A4M -qg1 -I0
+-->
+
+The `-Asize` option specifies the allocation area size of the garbage collector.
+You can increase its value (e.g. `-A256M`), which may still improve the
+performance, but at the cost of a higher memory consumption.
 
 Run `concraft-pl server --help` to learn more about possible server-mode options.
 
