@@ -29,6 +29,7 @@ import qualified Data.Text as T
 import qualified Data.Text.Lazy as L
 import qualified Data.Text.Lazy.Builder as L
 import           Text.Printf (printf)
+import           Text.Read (readMaybe)
 
 import qualified Data.DAG as DAG
 -- import qualified Data.CRF.Chain1.Constrained.DAG.Dataset.Internal as DAG
@@ -257,14 +258,14 @@ parseRow =
   where
     doit (tlNode : hdNode : otForm : bsForm : tag :
           comm : qual : prob : meta : eos : _) = Row
-      { tailNode = read $ L.unpack tlNode
-      , headNode = read $ L.unpack hdNode
+      { tailNode = readTyp "tail node" $ L.unpack tlNode
+      , headNode = readTyp "head node" $ L.unpack hdNode
       , orthForm = L.toStrict otForm
       , baseForm = L.toStrict bsForm
       , theTag   = L.toStrict tag
       , commonness = nullIfEmpty comm
       , qualifier = nullIfEmpty qual
-      , tagProb  = read $ L.unpack prob
+      , tagProb  = readTyp "probability value" $ L.unpack prob
       , metaInfo = nullIfEmpty meta
       , eos = case eos of
           "eos" -> True
@@ -285,6 +286,16 @@ parseRow =
 -- (<>) :: Monoid m => m -> m -> m
 -- (<>) = mappend
 -- {-# INLINE (<>) #-}
+
+
+readTyp :: (Read a) => String -> String -> a
+readTyp typ x =
+  case readMaybe x of
+    Just x -> x
+    Nothing -> error $
+      "unable to parse \"" ++ x ++ "\" to a " ++ typ
+--       "Unable to parse <" ++ typ ++ ">" ++
+--       " (string=" ++ x ++ ")"
 
 
 -- | Tag which indicates unknown words.
