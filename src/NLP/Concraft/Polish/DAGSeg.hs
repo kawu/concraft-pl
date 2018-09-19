@@ -94,7 +94,7 @@ segmentSchemaDefault :: SchemaConf
 segmentSchemaDefault = S.nullConf
     { lowPrefixesC  = entryWith [1, 2]      [-1, 0, 1]
     , begPackedC    = entry                 [-1, 0, 1] }
-    -- ^ NOTE: The current configuration works quite well for segmentation.
+    -- NOTE: The current configuration works quite well for segmentation.
     -- Adding orthographic forms was not a good idea, at least not on a small
     -- training dataset.
 
