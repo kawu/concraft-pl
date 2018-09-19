@@ -8,7 +8,6 @@ resolver: lts-11.1
 packages:
 - '.'
 - '../pedestrian-dag'
-- '../sgd'
 - '../crf-chain1-constrained'
 - '../crf-chain2-tiers'
 - '../tagset-positional'
