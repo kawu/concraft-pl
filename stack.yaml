@@ -1,13 +1,11 @@
 # For more information, see: https://github.com/commercialhaskell/stack/blob/release/doc/yaml_configuration.md
 
 # Specifies the GHC version and set of packages available (e.g., lts-3.5, nightly-2015-09-21, ghc-7.10.2)
-# resolver: lts-8.12
 resolver: lts-11.1
 
 # Local packages, usually specified by relative directory name
 packages:
 - '.'
-- '../pedestrian-dag'
 - '../crf-chain1-constrained'
 - '../crf-chain2-tiers'
 - '../tagset-positional'
@@ -21,6 +19,7 @@ extra-deps:
 - monad-codec-0.2.0
 - monad-ox-0.3.0
 - sgd-0.4.0.1
+- pedestrian-dag-0.2.0
 
 # Override default flag values for local packages and extra-deps
 flags: {}

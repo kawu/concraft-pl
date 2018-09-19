@@ -26,7 +26,6 @@ Installation
 First you will need to download and install the [Haskell Tool Stack][stack].
 Then use the following script:
 
-    git clone https://github.com/kawu/pedestrian-dag.git
     git clone https://github.com/kawu/tagset-positional.git
     git clone -b dag https://github.com/kawu/crf-chain1-constrained.git
     git clone -b dag https://github.com/kawu/crf-chain2-tiers.git
