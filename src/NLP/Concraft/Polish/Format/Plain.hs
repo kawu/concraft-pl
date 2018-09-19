@@ -1,10 +1,9 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RecordWildCards #-}
 
--- | Simple format for morphosyntax representation which
--- assumes that all tags have a textual representation
--- with no spaces within and that one of the tags indicates
--- unknown words.
+-- | Simple format for morphosyntax representation which assumes that all tags
+-- have a textual representation with no spaces within and that one of the tags
+-- indicates unknown words.
 
 module NLP.Concraft.Polish.Format.Plain
 (
@@ -20,6 +19,7 @@ module NLP.Concraft.Polish.Format.Plain
 , showSent
 ) where
 
+import           Prelude hiding ((<>))
 import           Data.Monoid (Monoid, mappend, mconcat)
 import           Data.Maybe (catMaybes)
 import           Data.List (groupBy)
@@ -101,7 +101,7 @@ parseHeader xs =
 parseSpace :: L.Text -> Space
 parseSpace "none"    = None
 parseSpace "space"   = Space
-parseSpace "spaces"  = Space	-- Multiple spaces
+parseSpace "spaces"  = Space    -- Multiple spaces
 parseSpace "newline" = NewLine
 parseSpace "newlines" = NewLine -- Multiple newlines
 parseSpace xs        = error ("parseSpace: " ++ L.unpack xs)
