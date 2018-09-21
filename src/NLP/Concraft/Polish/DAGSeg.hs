@@ -10,7 +10,7 @@ module NLP.Concraft.Polish.DAGSeg
 (
 
 -- * Types
-  Tag (..)
+  Tag
 -- ** Simplification
 , simplify4gsr
 , simplify4dmb
@@ -41,21 +41,24 @@ module NLP.Concraft.Polish.DAGSeg
 ) where
 
 
-import           Prelude hiding (Word)
+import           Prelude hiding (Word, pred)
 import           Control.Applicative ((<$>))
-import           Control.Arrow (first)
+-- import           Control.Arrow (first)
 import           Control.Monad (guard)
 import           Data.Maybe (listToMaybe)
-import qualified Data.Text.Lazy as L
+import qualified Data.Text as T
+-- import qualified Data.Text.Lazy as L
 import qualified Data.Set as S
 import qualified Data.Map.Strict as M
-import           Data.Data (Data)
-import           Data.Typeable (Typeable)
+-- import           Data.Data (Data)
+-- import           Data.Typeable (Typeable)
 
 import qualified Data.Tagset.Positional as P
 import qualified Numeric.SGD.Momentum as SGD
 
 import qualified Data.DAG as DAG
+
+import qualified Data.CRF.Chain1.Constrained.DAG as CRF
 
 import qualified NLP.Concraft.DAG.Morphosyntax as X
 import qualified NLP.Concraft.DAG.Morphosyntax.Ambiguous as XA
@@ -209,39 +212,30 @@ type Tag = PolX.Interp PolX.Tag
 
 
 -- | Tag the sentence with guessing marginal probabilities.
-guess :: C.Concraft Tag -> Sent Tag -> Sent Tag
-guess = tagWith (C.guessMarginals . C.guesser)
+guess :: CRF.Config P.Tag -> C.Concraft Tag -> Sent Tag -> Sent Tag
+guess cfg = tagWith (C.guessMarginals cfg . C.guesser)
 
 
--- | Tag the sentence with disambiguation marginal probabilities.
-disamb :: C.Concraft Tag -> Sent Tag -> Sent Tag
-disamb = tagWith (C.disambMarginals . C.disamb)
+-- -- | Tag the sentence with disambiguation marginal probabilities.
+-- disamb :: C.Concraft Tag -> Sent Tag -> Sent Tag
+-- disamb = tagWith (C.disambMarginals . C.disamb)
 
 
--- | Tag the sentence with disambiguation probabilities.
-disamb' :: C.Concraft Tag -> D.ProbType -> Sent Tag -> Sent Tag
-disamb' crf typ = tagWith (C.disambProbs typ . C.disamb) crf
-
-
--- | Perform guessing -> trimming -> disambiguation.
-tag
-  :: Int
-  -- ^ Trimming parameter
-  -> C.Concraft Tag
-  -> Sent Tag
-  -> Sent Tag
-tag = tagWith . C.tag
+-- -- | Tag the sentence with disambiguation probabilities.
+-- disamb' :: C.Concraft Tag -> D.ProbType -> Sent Tag -> Sent Tag
+-- disamb' crf typ = tagWith (C.disambProbs typ . C.disamb) crf
 
 
 -- -- | Perform guessing -> trimming -> disambiguation.
--- tag'
---   :: Int
---   -- ^ Trimming parameter
---   -> D.ProbType
---   -> C.Concraft
+-- tag ::
+--      Int 
+--      -- ^ Trimming parameter
+--   -> CRF.Config P.Tag
+--      -- ^ Blacklist
+--   -> C.Concraft Tag
 --   -> Sent Tag
 --   -> Sent Tag
--- tag' k probTyp = tagWith (C.tag' k probTyp)
+-- tag k cfg = tagWith $ C.tag k cfg
 
 
 -- | Tag with the help of a lower-level annotation function.
@@ -393,6 +387,8 @@ data AnnoConf = AnnoConf
     -- ^ How many morphosyntactic tags should be kept for OOV words
   , pickPath :: Maybe Seg.PathTyp
     -- ^ Which path picking method should be used. The function takes the
+  , blackSet :: S.Set T.Text
+    -- ^ The set of blacklisted tags
   }
 
 
@@ -430,12 +426,17 @@ annoAll AnnoConf{..} concraft sent00 =
       case pickPath of
         Just typ -> Seg.pickPath typ sent00
         Nothing -> sent00
+  
+    -- Parsed blacklisted tags and CRF config
+    blackSet' =
+      S.fromList . map (P.parseTag (C.tagset concraft)) . S.toList $ blackSet
+    crfCfg = CRF.Config {blackSet = blackSet'}
 
     -- We add EOS markers only after guessing, because the possible tags are not
     -- yet determined for the OOV words.
     ambiDag = XA.identifyAmbiguousSegments sent0
     _guessSent0 = DAG.mapE (addEosMarkers ambiDag) $
-      tagWith (C.guess trimParam . C.guesser) concraft sent0
+      tagWith (C.guess trimParam crfCfg . C.guesser) concraft sent0
     -- Resolve EOS tags based on the segmentation model
     _guessSent1 = segment . fmap (resolveEOS 0.5) $
       tagWith (C.disambProbs D.MaxProbs . C.segmenter) concraft _guessSent0
@@ -507,18 +508,19 @@ train TrainConf{..} train0 eval0 = do
 
   putStrLn "\n===== Train guessing model ====="
   guesser <- G.train (guessConf parBatchSize) trainR'IO evalR'IO
-  let guess = C.guessSent guessNum guesser
+  let crfCfg = CRF.Config {blackSet = S.empty}
+      doGuess = C.guessSent guessNum crfCfg guesser
       prepSent dag =
         let ambiDag = XA.identifyAmbiguousSegments dag
-        in  DAG.mapE (addEosMarkers ambiDag) (guess dag)
+        in  DAG.mapE (addEosMarkers ambiDag) (doGuess dag)
       trainG'IO = map prepSent <$> trainR'IO
       evalG'IO  = map prepSent <$> evalR'IO
 
   putStrLn "\n===== Train sentence segmentation model ====="
   segmenter <- D.train (segmentConf parBatchSize) trainG'IO evalG'IO
-  let prepSent = segment . fmap (resolveEOS 0.5)
-      trainS'IO = concatMap prepSent <$> trainG'IO
-      evalS'IO  = concatMap prepSent <$> evalG'IO
+  let prepSent' = segment . fmap (resolveEOS 0.5)
+      trainS'IO = concatMap prepSent' <$> trainG'IO
+      evalS'IO  = concatMap prepSent' <$> evalG'IO
 
   putStrLn "\n===== Train disambiguation model ====="
   disamb <- D.train disambConf trainS'IO evalS'IO

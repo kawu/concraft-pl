@@ -87,6 +87,7 @@ data Concraft
     -- , marginals     :: Bool
     , inFile        :: Maybe FilePath
     , outFile       :: Maybe FilePath
+    , blackFile     :: Maybe FilePath
     , probType      :: DB.ProbType
     -- , suppressProbs :: Bool
     , mayGuessNum   :: Maybe Int
@@ -98,6 +99,7 @@ data Concraft
     }
   | Server
     { inModel       :: FilePath
+    , blackFile     :: Maybe FilePath
     , probType      :: DB.ProbType
     , mayGuessNum   :: Maybe Int
     , numericDisamb :: Bool
@@ -173,6 +175,7 @@ tagMode = Tag
     -- , marginals = False &= help "Tag with marginal probabilities" }
     , inFile  = def &= typFile &= help "Input file (stdin by default)"
     , outFile = def &= typFile &= help "Output file (stdout by default)"
+    , blackFile = def &= typFile &= help "File with blacklisted tags, one per line"
     , probType = DB.Marginals &= help "Type of probabilities"
     -- , suppressProbs = False &= help "Do not show probabilities"
     , freqPath = def &= typFile &= help "File with chosen/not-chosen counts"
@@ -191,6 +194,7 @@ tagMode = Tag
 serverMode :: Concraft
 serverMode = Server
     { inModel  = def &= argPos 0 &= typ "MODEL-FILE"
+    , blackFile = def &= typFile &= help "File with blacklisted tags, one per line"
     , probType = DB.Marginals &= help "Type of probabilities"
     , mayGuessNum = def &= help "Number of guessed tags for each unknown word"
     , numericDisamb = False &= help
@@ -327,12 +331,16 @@ exec Tag{..} = do
   inp <- DB.parseData <$> case inFile of
     Nothing -> getContentsUtf8
     Just path -> readFileUtf8 path
+  blackSet <- S.fromList <$>
+    case blackFile of
+      Nothing -> pure []
+      Just path -> map L.toStrict . L.lines <$> readFileUtf8 path
   pathSelection <-
     case (shortestPath, longestPath, freqPath) of
       (True, _, _) -> return $ Just Seg.Min
       (_, True, _) -> return $ Just Seg.Max
-      (_, _, Just freqPath) -> do
-        freqMap <- loadFreqMap freqPath
+      (_, _, Just freqPath') -> do
+        freqMap <- loadFreqMap freqPath'
         let conf = Seg.FreqConf
               { Seg.pickFreqMap = freqMap
               , Seg.smoothingParam = freqSmoothing
@@ -345,6 +353,7 @@ exec Tag{..} = do
       cfg = Pol.AnnoConf
         { trimParam = guessNum
         , pickPath = pathSelection
+        , blackSet = blackSet
         }
       out = Pol.annoAll cfg crf <$> inp
       showCfg = DB.ShowCfg
@@ -358,12 +367,17 @@ exec Tag{..} = do
 
 exec Server{..} = do
   crf <- Pol.loadModel Pol.simplify4gsr Pol.simplify4dmb inModel
+  blackSet <- S.fromList <$>
+    case blackFile of
+      Nothing -> pure []
+      Just path -> map L.toStrict . L.lines <$> readFileUtf8 path
   let guessNum = case mayGuessNum of
         Nothing -> C.guessNum crf
         Just k  -> k
       cfg = Pol.AnnoConf
         { trimParam = guessNum
         , pickPath = Nothing
+        , blackSet = blackSet
         }
       showCfg = DB.ShowCfg
         { probType = probType

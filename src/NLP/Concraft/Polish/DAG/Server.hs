@@ -23,7 +23,7 @@ module NLP.Concraft.Polish.DAG.Server
   ) where
 
 
-import           Control.Monad.IO.Class (liftIO)
+-- import           Control.Monad.IO.Class (liftIO)
 
 import           GHC.Generics
 

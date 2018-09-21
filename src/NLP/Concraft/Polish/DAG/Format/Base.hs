@@ -21,7 +21,7 @@ import           Prelude hiding (Word)
 import           Data.Monoid (mconcat, mappend)
 import qualified Data.Map as M
 import           Data.List (intersperse, groupBy)
-import           Data.Maybe (listToMaybe)
+-- import           Data.Maybe (listToMaybe)
 import           Data.String (IsString)
 import           Data.Data (Data)
 import           Data.Typeable (Typeable)
@@ -37,7 +37,7 @@ import qualified Data.DAG as DAG
 import qualified NLP.Concraft.DAG.Morphosyntax as X
 -- import qualified NLP.Concraft.Polish.DAG2 as C
 -- import           NLP.Concraft.Polish.DAG2 (AnnoSent(..))
-import qualified NLP.Concraft.Polish.DAGSeg as C
+-- import qualified NLP.Concraft.Polish.DAGSeg as C
 import           NLP.Concraft.Polish.DAGSeg (AnnoSent(..))
 import qualified NLP.Concraft.Polish.Morphosyntax as I
 
@@ -114,9 +114,9 @@ buildSent showCfg AnnoSent{..} = finalize $ do
   let tailNode = DAG.begsWith edgeID dag
       headNode = DAG.endsWith edgeID dag
       X.Seg{..} = DAG.edgeLabel edgeID dag
-  interp <- map Just (M.toList (X.unWMap tags)) ++
+  interpWeight <- map Just (M.toList (X.unWMap tags)) ++
             if known word then [] else [Nothing]
-  return $ case interp of
+  return $ case interpWeight of
     Just (interp@Interp{..}, weight) -> buildInterp
       showCfg tailNode headNode word interp
       (case probType showCfg of
@@ -291,7 +291,7 @@ parseRow =
 readTyp :: (Read a) => String -> String -> a
 readTyp typ x =
   case readMaybe x of
-    Just x -> x
+    Just y -> y
     Nothing -> error $
       "unable to parse \"" ++ x ++ "\" to a " ++ typ
 --       "Unable to parse <" ++ typ ++ ">" ++

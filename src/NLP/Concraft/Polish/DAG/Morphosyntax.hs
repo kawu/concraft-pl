@@ -43,16 +43,16 @@ module NLP.Concraft.Polish.DAG.Morphosyntax
 import           Prelude hiding (Word)
 import           Control.Applicative ((<$>), (<*>))
 -- import           Control.Arrow (first)
-import           Control.Monad (guard)
-import           Data.Binary (Binary, put, get, putWord8, getWord8)
+-- import           Control.Monad (guard)
+import           Data.Binary (Binary, put, get)
 import           Data.Aeson
-import qualified Data.Aeson as Aeson
+-- import qualified Data.Aeson as Aeson
 import qualified Data.Set as S
 import qualified Data.Map.Strict as M
-import           Data.Maybe (catMaybes)
+-- import           Data.Maybe (catMaybes)
 import qualified Data.Text as T
 import qualified Data.Text.Lazy as L
-import qualified Data.Tagset.Positional as P
+-- import qualified Data.Tagset.Positional as P
 
 import           Data.DAG (DAG)
 import qualified Data.DAG as DAG
@@ -62,7 +62,7 @@ import qualified Data.DAG as DAG
 -- import qualified NLP.Concraft.DAG2 as C
 import qualified NLP.Concraft.DAG.Morphosyntax as X
 import qualified NLP.Concraft.DAG.Segmentation as Seg
-import qualified NLP.Concraft.Polish.Morphosyntax as R
+-- import qualified NLP.Concraft.Polish.Morphosyntax as R
 import           NLP.Concraft.Polish.Morphosyntax (Space(..))
 
 

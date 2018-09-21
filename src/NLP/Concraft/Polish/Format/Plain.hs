@@ -19,7 +19,7 @@ module NLP.Concraft.Polish.Format.Plain
 , showSent
 ) where
 
-import           Prelude hiding ((<>))
+-- import           Prelude hiding ((<>))
 import           Data.Monoid (Monoid, mappend, mconcat)
 import           Data.Maybe (catMaybes)
 import           Data.List (groupBy)
