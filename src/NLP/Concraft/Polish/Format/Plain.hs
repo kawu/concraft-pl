@@ -1,5 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RecordWildCards #-}
+{-# LANGUAGE CPP #-}
 
 -- | Simple format for morphosyntax representation which assumes that all tags
 -- have a textual representation with no spaces within and that one of the tags
@@ -19,7 +20,10 @@ module NLP.Concraft.Polish.Format.Plain
 , showSent
 ) where
 
--- import           Prelude hiding ((<>))
+#if MIN_VERSION_base(4,11,0)
+import           Prelude hiding ((<>))
+#endif
+
 import           Data.Monoid (Monoid, mappend, mconcat)
 import           Data.Maybe (catMaybes)
 import           Data.List (groupBy)
