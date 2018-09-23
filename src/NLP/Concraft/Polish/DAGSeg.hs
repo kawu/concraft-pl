@@ -430,7 +430,9 @@ annoAll AnnoConf{..} concraft sent00 =
     -- Parsed blacklisted tags and CRF config
     blackSet' =
       S.fromList . map (P.parseTag (C.tagset concraft)) . S.toList $ blackSet
-    crfCfg = CRF.Config {blackSet = blackSet'}
+    -- Make sure that the blackset is evaluated (otherwise, some malfored
+    -- tags may be silentely ignored by the tool)
+    crfCfg = length (show blackSet') `seq` CRF.Config {blackSet = blackSet'}
 
     -- We add EOS markers only after guessing, because the possible tags are not
     -- yet determined for the OOV words.
