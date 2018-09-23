@@ -89,7 +89,7 @@ produce the runtime statistics, such as the time spent in the garbage collector.
 If the program is spending too much time collecting garbage, you can try to
 increase the allocation area size with the `-A` option.
 <!--If you have a big dataset and it doesn't fit in the computer memory, use the
-`--disk` flag.-->
+`-\-disk` flag.-->
 For example, to train the model using four threads and 256M allocation area
 size, run:
 
@@ -116,7 +116,7 @@ Once you have a Concraft-pl model you can use the following command to tag:
     concraft-pl tag model.gz -i input.dag -o output.dag
 
 <!--
-With the `--marginals` option enabled, Concraft-pl will output marginal probabilities
+With the `-\-marginals` option enabled, Concraft-pl will output marginal probabilities
 corresponding to individual tags (determined on the basis of the disambiguation model)
 instead of `disamb` markers.
 -->
@@ -143,7 +143,7 @@ presented in the following example:
 <!--
     # NOTE: adding the options `-qg1 -I0` may be good, but it only showed
     # improvements when using smaller allocation area size.
-    concraft-pl server --port=3000 -i model.gz +RTS -N -A4M -qg1 -I0
+    concraft-pl server -\-port=3000 -i model.gz +RTS -N -A4M -qg1 -I0
 -->
 
 The `-Asize` option specifies the allocation area size of the garbage collector.
@@ -151,6 +151,9 @@ You can increase its value (e.g. `-A256M`), which may still improve the
 performance, but at the cost of a higher memory consumption.
 
 Run `concraft-pl server --help` to learn more about possible server-mode options.
+
+Client
+======
 
 The client mode works just like the tagging mode. The difference is that,
 instead of supplying the client with a model, you need to specify the server:
@@ -167,6 +170,17 @@ respectively.
 
 Run `concraft-pl client --help` to learn more about possible client-mode options.
 
+Blacklist
+=========
+
+Both in the standard and in the client/server mode, you can provide a list of
+blacklisted tags using the `-b` (`--blackfile`) option.  Blacklisted tags are
+guaranteed not to be selected by the guesser.  The blacklisted tags provided on
+input (i.e., resulting from morphosyntactic analysis) can still be selected by
+the disambiguation module, though.
+
+The list of blacklisted tags should be provided in a separate file, one tag per
+line.
 
 <!--
 Tagging analysed data
@@ -179,9 +193,9 @@ preprocessing pipeline.
 
 If you want to use a preprocessing pipeline significantly different from
 the standard one (Maca), you should first train your own Concraft model.
-To train the model on analysed data use the `--noana` training flag.
+To train the model on analysed data use the `-\-noana` training flag.
 
-Use the same `--noana` flag when you want to tag analysed data.
+Use the same `-\-noana` flag when you want to tag analysed data.
 Input format should be the same as the output format.
 This option is currently not supported in the client/server mode.
 
