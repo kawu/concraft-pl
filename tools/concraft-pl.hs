@@ -331,10 +331,10 @@ exec Tag{..} = do
   inp <- DB.parseData <$> case inFile of
     Nothing -> getContentsUtf8
     Just path -> readFileUtf8 path
-  blackSet <- S.fromList <$>
+  blackSet <-
     case blackFile of
-      Nothing -> pure []
-      Just path -> map L.toStrict . L.lines <$> readFileUtf8 path
+      Nothing -> pure S.empty
+      Just path -> readBlackSet path
   pathSelection <-
     case (shortestPath, longestPath, freqPath) of
       (True, _, _) -> return $ Just Seg.Min
@@ -367,10 +367,10 @@ exec Tag{..} = do
 
 exec Server{..} = do
   crf <- Pol.loadModel Pol.simplify4gsr Pol.simplify4dmb inModel
-  blackSet <- S.fromList <$>
+  blackSet <-
     case blackFile of
-      Nothing -> pure []
-      Just path -> map L.toStrict . L.lines <$> readFileUtf8 path
+      Nothing -> pure S.empty
+      Just path -> readBlackSet path
   let guessNum = case mayGuessNum of
         Nothing -> C.guessNum crf
         Just k  -> k
@@ -538,6 +538,16 @@ loadFreqMap filePath = do
           (orth, (readInt chosen, readInt notChosen))
         _ -> error $ "loadFreqMap: line incorrectly formatted: " ++ T.unpack line
     readInt = read . T.unpack
+
+
+---------------------------------------
+-- Blacklist
+---------------------------------------
+
+
+readBlackSet :: FilePath -> IO (S.Set T.Text)
+readBlackSet path =
+  S.fromList . map (L.toStrict . L.strip) . L.lines <$> readFileUtf8 path
 
 
 ---------------------------------------
