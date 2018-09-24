@@ -123,6 +123,17 @@ instead of `disamb` markers.
 
 Run `concraft-pl tag --help` to learn more about possible tagging options.
 
+Blacklist
+---------
+
+You can provide a list of blacklisted tags using the `-b` (`--blackfile`)
+option.  Blacklisted tags are guaranteed not to be selected by the guesser.
+The blacklisted tags provided on input (i.e., resulting from morphosyntactic
+analysis) can still be selected by the disambiguation module, though.
+
+The list of blacklisted tags should be provided in a separate file, one tag per
+line.
+
 
 Server
 ======
@@ -152,8 +163,8 @@ performance, but at the cost of a higher memory consumption.
 
 Run `concraft-pl server --help` to learn more about possible server-mode options.
 
-Client
-======
+Haskell Client
+--------------
 
 The client mode works just like the tagging mode. The difference is that,
 instead of supplying the client with a model, you need to specify the server:
@@ -165,22 +176,18 @@ instead of supplying the client with a model, you need to specify the server:
 Ideally, the `input.dag` file should contain only one paragraph.
 -->
 
-**NOTE**: you can use `stdin` and `stdout` instead of the `-i` and `-o` options,
-respectively.
+**NOTE**: you can use `stdin` and `stdout` instead of the `-i` and `-o`
+options, respectively.
 
 Run `concraft-pl client --help` to learn more about possible client-mode options.
 
-Blacklist
-=========
+Python Client
+-------------
 
-Both in the standard and in the client/server mode, you can provide a list of
-blacklisted tags using the `-b` (`--blackfile`) option.  Blacklisted tags are
-guaranteed not to be selected by the guesser.  The blacklisted tags provided on
-input (i.e., resulting from morphosyntactic analysis) can still be selected by
-the disambiguation module, though.
+A [Python client code][python-client] code is also provided. It allows to
+communicate with the Concraft-pl's server directly from Python.  Clients in
+other programming languages can be written in a similar manner.
 
-The list of blacklisted tags should be provided in a separate file, one tag per
-line.
 
 <!--
 Tagging analysed data
@@ -217,6 +224,7 @@ data may severely harm the quality of disambiguation.*
 [cabal]: http://www.haskell.org/cabal "Cabal"
 [haskell-platform]: http://www.haskell.org/platform "Haskell Platform"
 [nkjp]: http://nkjp.pl/index.php?page=0&lang=1 "NKJP"
-[morfeusz]: http://sgjp.pl/morfeusz/morfeusz.html "Morfeusz"
+[morfeusz]: http://sgjp.pl/morfeusz/index.html "Morfeusz"
 [ncp-pre-model]: https://user.phil.hhu.de/~waszczuk/concraft/model-04-09-2018.gz "NCP model"
 [ncp-pre-train]: https://user.phil.hhu.de/~waszczuk/concraft/train.zip "NCP training data"
+[python-client]: https://github.com/kawu/concraft-pl/tree/master/bindings/python "Python client"

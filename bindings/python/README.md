@@ -1,9 +1,9 @@
 Python
 ======
 
-This directory contains a Python client code which allows to communicate with
+This directory contains a Python client code, which allows to communicate with
 the Concraft-pl's server.  The code relies on the [Morfeusz][morfeusz] Python
-library, which you should install beforehand.
+library, which should be installed beforehand.
 
 
 Example
@@ -70,5 +70,5 @@ The code provided here was written by Witold Kieraś from the Institute of
 Computer Sciense, Polish Academy of Sciences, and adapted by Jakub Waszczuk.
 
 
-[morfeusz]: http://sgjp.pl/morfeusz/morfeusz.html "Morfeusz"
+[morfeusz]: http://sgjp.pl/morfeusz/index.html "Morfeusz"
 [main]: https://github.com/kawu/concraft-pl#server "Concraft server"
