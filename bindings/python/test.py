@@ -2,15 +2,16 @@
 # *-* coding: utf-8 *-*
 
 from morfeusz2 import Morfeusz
-from concraft import Concraft
+from concraft_pl2 import Concraft
 
-morf = Morfeusz(expand_tags=True)
-conc = Concraft()
+morfeusz = Morfeusz(expand_tags=True)
+concraft = Concraft()
 
-dag = morf.analyse(u'Jam się w ogóle nie bał.')
-res = conc.disamb(dag)
+dag = morfeusz.analyse(u'W Szczebrzeszynie chrząszcz brzmi w trzcinie.')
+res = concraft.disamb(dag)
 print(res)
 
-dag = morf.analyse(u'Tomek jam się w ogóle nie bał.')
-dag_str = conc.stringify_dag(dag)
-print(conc.disamb_str(dag_str))
+dag = morfeusz.analyse(u'W Szczebrzeszynie chrząszcz brzmi w trzcinie.')
+dag_str = concraft.dag_to_str(dag)
+dag_disamb_str = concraft.disamb_str(dag_str)
+print(dag_disamb_str)

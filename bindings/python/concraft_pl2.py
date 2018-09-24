@@ -12,7 +12,7 @@ class Concraft(object):
     def __init__(self, server_addr='http://localhost:3000/parse'):
         self.server_addr = server_addr
 
-    def stringify_dag(self, morf_dag):
+    def dag_to_str(self, morf_dag):
         """
         Convert a DAG in the Morfeusz-compliant format to a DAG in the
         Concraft-compliant format.
@@ -24,9 +24,9 @@ class Concraft(object):
             conc_dag += line_string
         return conc_dag
 
-    def unstringify_dag(self, dag_str):
+    def str_to_dag(self, dag_str):
         """
-        Reverse of `stringify_dag`.
+        Reverse of `dag_to_str`.
         """
         analyse_list = []
         for line in dag_str.split('\n'):
@@ -56,6 +56,6 @@ class Concraft(object):
         """
         Disambiguate a DAG represented in the Morfeusz-compliant format.
         """
-        dag_str = self.stringify_dag(dag)
+        dag_str = self.dag_to_str(dag)
         dag_result = self.disamb_str(dag_str)
-        return self.unstringify_dag(dag_result)
+        return self.str_to_dag(dag_result)
