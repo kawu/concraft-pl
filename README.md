@@ -56,17 +56,6 @@ An example of a file following the above specification can be found in
 `example/test.dag`.
 
 
-Pre-trained models
-==================
-
-A model pre-trained on the [National Corpus of Polish][nkjp] can be downloaded
-from [here][ncp-pre-model]. The corresponding training material is also
-[available for download][ncp-pre-train]. This model is compatible with the
-current version of [Morfeusz SGJP][morfeusz] (i.e., the version from September
-1st 2018 or newer), which should be also used for morphosyntactic analysis
-preceding tagging.
-
-
 Training
 ==========
 
@@ -106,6 +95,16 @@ probability and, therefore, it should be safe to discard them.
 
     concraft-pl prune -t 0.05 input-model.gz pruned-model.gz
 -->
+
+Pre-trained models
+------------------
+
+A model pre-trained on the [National Corpus of Polish][nkjp] can be downloaded
+from [here][ncp-pre-model]. The corresponding training material is also
+[available for download][ncp-pre-train]. This model is compatible with the
+current version of [Morfeusz SGJP][morfeusz] (i.e., the version from September
+1st 2018 or newer), which should be also used for morphosyntactic analysis
+preceding tagging.
 
 
 Tagging
