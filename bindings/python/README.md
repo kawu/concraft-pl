@@ -12,7 +12,7 @@ Example
 First you should run the Concraft-pl server, as explained on the [main github
 page][main]:
 
-  concraft-pl server -i model.gz +RTS -N -A64M
+    concraft-pl server -i model.gz +RTS -N -A64M
 
 You can then enter the Python interpreter, import Morfeusz and the local
 Concraft-pl client code, and create Morfeusz and Concraft client instances:
@@ -32,8 +32,8 @@ Finally, you can use Morfeusz to perform morphosyntactic analysis, and Concraft
 to disambiguated the resulting DAG:
 
 ```python
->>> dag = morfeusz.analyse(u'W Szczebrzeszynie chrząszcz brzmi w trzcinie.')
->>> dag_disamb = concraft.disamb(dag)
+dag = morfeusz.analyse(u'W Szczebrzeszynie chrząszcz brzmi w trzcinie.')
+dag_disamb = concraft.disamb(dag)
 ```
 
 The Concraft class also provides a lower level method, `disamb_str`, and
@@ -41,10 +41,14 @@ conversion routines, `dag_to_str` and `str_to_dag`, which allow to work with
 the main text format supported by Concraft:
 
 ```python
->>> dag = morfeusz.analyse(u'W Szczebrzeszynie chrząszcz brzmi w trzcinie.')
->>> dag_str = concraft.dag_to_str(dag)
->>> dag_disamb_str = concraft.disamb_str(dag_str)
->>> print(dag_disamb_str)
+dag = morfeusz.analyse(u'W Szczebrzeszynie chrząszcz brzmi w trzcinie.')
+dag_str = concraft.dag_to_str(dag)
+dag_disamb_str = concraft.disamb_str(dag_str)
+print(dag_disamb_str)
+```
+
+This should result in:
+```
 0	1	W	w	prep:acc:nwok			0.0000			
 0	1	W	w	prep:loc:nwok			1.0000			disamb
 1	2	Szczebrzeszynie	Szczebrzeszyn	subst:sg:loc:m3	nazwa geograficzna		1.0000			disamb
@@ -67,4 +71,4 @@ Computer Sciense, Polish Academy of Sciences, and adapted by Jakub Waszczuk.
 
 
 [morfeusz]: http://sgjp.pl/morfeusz/morfeusz.html "Morfeusz"
-[main]: https://github.com/kawu/concraft-pl&server "Concraft server"
+[main]: https://github.com/kawu/concraft-pl#server "Concraft server"
