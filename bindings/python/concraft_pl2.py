@@ -5,12 +5,24 @@
 # * Witek Kieraś
 # * Kuba Waszczuk
 
+
 import requests
 import json
+import time
+from subprocess import Popen, PIPE
+
 
 class Concraft(object):
-    def __init__(self, server_addr='http://localhost:3000/parse'):
-        self.server_addr = server_addr
+    def __init__(self, server_addr='http://localhost', port=3000):
+        """
+        Parameters
+        ----------
+        server_addr : url
+            Address of the Concraft-pl server
+        port : Server
+            Port number used by the Concraft-pl server
+        """
+        self.server_addr = server_addr + ":{}/parse".format(port)
 
     def dag_to_str(self, morf_dag):
         """
@@ -59,3 +71,45 @@ class Concraft(object):
         dag_str = self.dag_to_str(dag)
         dag_result = self.disamb_str(dag_str)
         return self.str_to_dag(dag_result)
+
+
+class Server(object):
+    def __init__(self, model_path, concraft_path="concraft-pl", port=3000,
+            core_num=1, allocation_size=64):
+        """
+        Start a Concraft-pl server instance in the background.
+
+        Parameters
+        ----------
+        model_path : path
+            Path to a Concraft-pl model
+        concraft_path : path
+            Path to a Concraft-pl executable
+        port : int
+            Port number to be used to run a Concraft-pl server instance
+        core_num : int
+            Number of processor cores to use
+        allocation_size : int
+            Allocation area size (in MBs) of the garbage collector
+        """
+        self.port = port
+        self.concraft_server = Popen([concraft_path, 'server',
+            '--port={}'.format(port), '-i', model_path, '+RTS',
+            '-N{}'.format(core_num), '-A{}M'.format(allocation_size),],
+            stdin=PIPE, stdout=PIPE, stderr=PIPE)
+        # print(u"Concraft model " + model_path + u" loading...")
+        loaded = False
+        while not loaded:
+            try:
+                request_data = {'dag':''}
+                r = requests.post('http://localhost:{}/parse'.format(port),
+                        data=json.dumps(request_data))
+                loaded = True
+                #print(u"loaded!")
+            except requests.ConnectionError as e:
+                #print(u"loading�~@�")
+                time.sleep(1)
+
+    def terminate(self):
+        """Terminate the Concraft-pl server."""
+        self.concraft_server.terminate()

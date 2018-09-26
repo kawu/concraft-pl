@@ -107,6 +107,7 @@ data Concraft
     }
   | Client
     { serverAddr    :: String
+    , port           :: Int
     , inFile        :: Maybe FilePath
     , outFile       :: Maybe FilePath
     , batchSize     :: Int
@@ -205,7 +206,8 @@ serverMode = Server
 
 clientMode :: Concraft
 clientMode = Client
-    { serverAddr = "http://localhost:3000/parse" &= help "Server address"
+    { serverAddr = "http://localhost" &= help "Server address"
+    , port = 3000 &= help "Server port number"
     , inFile  = def &= typFile &= help "Input file (stdin by default)"
     , outFile = def &= typFile &= help "Output file (stdout by default)"
     , batchSize = 10 &= help "Sent graphs in batches of the given size"
@@ -407,7 +409,7 @@ exec Client{..} = do
           (L.splitOn "\n\n" inpAll)
   forM_ (map L.toStrict inputs) $ \inp -> do
     let req = Server.Request {dag = inp}
-        cfg = Server.ClientCfg {serverAddr=serverAddr}
+        cfg = Server.ClientCfg {serverAddr=serverAddr, portNumber=port}
     Server.sendRequest cfg req >>= \case
       Nothing -> putStrLn "<< NO RESPONSE >>"
       Just Server.Answer{..} -> case outFile of

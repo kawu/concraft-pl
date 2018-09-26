@@ -168,7 +168,7 @@ Haskell Client
 The client mode works just like the tagging mode. The difference is that,
 instead of supplying the client with a model, you need to specify the server:
 
-    concraft-pl client -s "http://localhost:3000/parse" -i input.dag -o output.dag
+    concraft-pl client -s "http://localhost" --port=3000 -i input.dag -o output.dag
     
 <!--
 **NOTE**: the client has been designed so as to be run on short data files.

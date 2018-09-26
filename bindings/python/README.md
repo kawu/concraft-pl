@@ -9,18 +9,23 @@ library, which should be installed beforehand.
 Example
 =======
 
-First you should run the Concraft-pl server, as explained on the [main github
-page][main]:
+To run the Concraft-pl server, you can use the command explained on the [main
+github page][main]:
 
     concraft-pl server -i model.gz +RTS -N -A64M
 
-You can then enter the Python interpreter, import Morfeusz and the local
-Concraft-pl client code, and create Morfeusz and Concraft client instances:
+Alternatively, you can launch the server directly from Python:
 
 ```python
 from morfeusz2 import Morfeusz
-from concraft_pl2 import Concraft
+from concraft_pl2 import Concraft, Server
 
+server = Server(model_path="/path/to/concraft-pl/model.gz")
+```
+
+Next, create the Morfeusz and Concraft instances:
+
+```python
 morfeusz = Morfeusz(expand_tags=True)
 concraft = Concraft()
 ```
@@ -62,6 +67,12 @@ This should result in:
 6	7	.	.	interp			1.0000		eos	disamb
 ```
 
+If you run the Concraft-pl server directly from Python, don't forget to
+terminate it once you are done with coding:
+
+```python
+server.terminate()
+```
 
 Acknowledgements
 ================

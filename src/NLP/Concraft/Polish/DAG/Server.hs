@@ -114,6 +114,7 @@ runServer env port = W.scotty port (serverApp env)
 
 data ClientCfg = ClientCfg
   { serverAddr :: String
+  , portNumber :: Int
   }
 
 
@@ -123,6 +124,7 @@ sendRequest
   -> IO (Maybe Answer)
 sendRequest ClientCfg{..} req = do
   let json = A.toJSON req
-  r <- Wreq.post serverAddr json
+      server = serverAddr ++ ":" ++ show portNumber ++ "/parse"
+  r <- Wreq.post server json
   let result = A.decode =<< r ^? Wreq.responseBody
   return result
