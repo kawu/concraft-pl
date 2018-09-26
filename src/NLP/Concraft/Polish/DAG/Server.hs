@@ -124,7 +124,8 @@ sendRequest
   -> IO (Maybe Answer)
 sendRequest ClientCfg{..} req = do
   let json = A.toJSON req
-      server = serverAddr ++ ":" ++ show portNumber ++ "/parse"
+      trimAddr = reverse . dropWhile (=='/') . reverse
+      server = trimAddr serverAddr ++ ":" ++ show portNumber ++ "/parse"
   r <- Wreq.post server json
   let result = A.decode =<< r ^? Wreq.responseBody
   return result

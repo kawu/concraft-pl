@@ -1,5 +1,8 @@
 -*-change-log-*-
 
+2.2.0   Sep 2018
+	* Make '/parse' in the server address implicit
+
 2.1.0   Sep 2018
 	* External configuration of blacklisted tags
 
