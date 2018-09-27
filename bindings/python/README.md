@@ -5,6 +5,9 @@ This directory contains a Python client code, which allows to communicate with
 the Concraft-pl's server.  The code relies on the [Morfeusz][morfeusz] Python
 library, which should be installed beforehand.
 
+**Warning**: the Python API is not stable yet, it can still undergo significant
+changes in future versions.
+
 
 Example
 =======
