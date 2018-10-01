@@ -20,6 +20,7 @@ extra-deps:
 - monad-ox-0.3.0
 - vector-binary-0.1.1
 - temporary-1.1.2.5
+- base-orphans-0
 
 # Override default flag values for local packages and extra-deps
 flags: {}
