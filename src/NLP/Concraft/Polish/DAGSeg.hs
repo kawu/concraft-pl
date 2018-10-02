@@ -13,6 +13,7 @@ module NLP.Concraft.Polish.DAGSeg
   Tag
 -- ** Simplification
 , simplify4gsr
+, complexify4gsr
 , simplify4dmb
 
 -- ** Model
@@ -443,13 +444,23 @@ annoAll AnnoConf{..} concraft sent00 =
     _guessSent1 = segment . fmap (resolveEOS 0.5) $
       tagWith (C.disambProbs D.MaxProbs . C.segmenter) concraft _guessSent0
 
+--     -- TEMP
+--     _guessSent1 = (:[]) $
+--       tagWith (C.guess trimParam crfCfg . C.guesser) concraft sent0
+--       -- tagWith (const clearIt) concraft sent0
+--     -- clearIt = fmap (fmap (const 0.0) . X.unWMap . X.tags) . DAG.mapN (const ())
+
     annoOne _guessSent = AnnoSent
       { guessSent = _guessSent
       , disambs   = _disambs
       , marginals = _marginals
       , maxProbs  = _maxProbs
+--       , disambs   =  clearDAG _guessSent
+--       , marginals = clearDAG _guessSent
+--       , maxProbs  = clearDAG _guessSent
       }
       where
+--         clearDAG = fmap (const M.empty) . DAG.mapN (const ())
         _marginals =
           annoWith (C.disambProbs D.Marginals . C.disamb) concraft _guessSent
         _maxProbs  =
@@ -535,7 +546,9 @@ train TrainConf{..} train0 eval0 = do
       guessSchemaDefault
       (sgdArgs {SGD.batchSize = batchSize})
       onDisk r0 zeroProbLabel
-      (simplify4gsr tagset) strip4gsr
+      (simplify4gsr tagset)
+      (complexify4gsr tagset)
+      strip4gsr
       guessOnlyVisible
     strip4gsr interp = PolX.voidInterp (PolX.tag interp)
 
@@ -567,6 +580,10 @@ simplify4dmb tagset PolX.Interp{..} = D.Tag
 -- things).
 simplify4gsr :: P.Tagset -> PolX.Interp PolX.Tag -> P.Tag
 simplify4gsr tagset PolX.Interp{..} = P.parseTag tagset tag
+
+
+complexify4gsr :: P.Tagset -> P.Tag -> PolX.Interp PolX.Tag
+complexify4gsr tagset tag = PolX.voidInterp (P.showTag tagset tag)
 
 
 -- -- | Train the `Concraft` model.

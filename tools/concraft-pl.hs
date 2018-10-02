@@ -328,7 +328,7 @@ exec Train{..} = do
 
 exec Tag{..} = do
   -- crf <- Pol.loadModel P.parseTag inModel
-  crf <- Pol.loadModel Pol.simplify4gsr Pol.simplify4dmb inModel
+  crf <- Pol.loadModel Pol.simplify4gsr Pol.complexify4gsr Pol.simplify4dmb inModel
   -- inp <- DB.parseData <$> L.getContents
   inp <- DB.parseData <$> case inFile of
     Nothing -> getContentsUtf8
@@ -368,7 +368,7 @@ exec Tag{..} = do
 
 
 exec Server{..} = do
-  crf <- Pol.loadModel Pol.simplify4gsr Pol.simplify4dmb inModel
+  crf <- Pol.loadModel Pol.simplify4gsr Pol.complexify4gsr Pol.simplify4dmb inModel
   blackSet <-
     case blackFile of
       Nothing -> pure S.empty
