@@ -120,7 +120,7 @@ corresponding to individual tags (determined on the basis of the disambiguation 
 instead of `disamb` markers.
 -->
 
-Run `concraft-pl tag --help` to learn more about possible tagging options.
+Run `concraft-pl tag --help` to learn more about the possible tagging options.
 
 Blacklist
 ---------
@@ -132,6 +132,18 @@ analysis) can still be selected by the disambiguation module, though.
 
 The list of blacklisted tags should be provided in a separate file, one tag per
 line.
+
+Marginals and performance considerations
+----------------------------------------
+
+By default, Concraft-pl outputs the marginal probabilities of the individual
+interpetations on top of the standard `disamb` markers.  Calculating marginals,
+however, is more computation intensive than determining these markers.
+
+If you wish to speed up tagging and you don't care about the
+disambiguation-related probabilities, you can use the `-p guess` option.  With
+this option, Concraft-pl outputs the marginal probabilities stemming from the
+guessing model istead.
 
 
 Server
