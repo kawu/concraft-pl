@@ -24,10 +24,10 @@ library
     hs-source-dirs: src
     build-depends:
         base >= 4 && < 5
-      , concraft                >= 0.13     && < 0.14
+      , concraft                >= 0.14     && < 0.15
       , pedestrian-dag          >= 0.2      && < 0.3
       , crf-chain1-constrained  >= 0.5      && < 0.6
-      , crf-chain2-tiers        >= 0.3      && < 0.4
+      , crf-chain2-tiers        >= 0.4      && < 0.5
       , tagset-positional       >= 0.3      && < 0.4
       , sgd                     >= 0.4      && < 0.5
       , containers              >= 0.4      && < 0.6

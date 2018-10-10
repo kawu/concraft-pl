@@ -217,28 +217,6 @@ guess :: CRF.Config P.Tag -> C.Concraft Tag -> Sent Tag -> Sent Tag
 guess cfg = tagWith (C.guessMarginals cfg . C.guesser)
 
 
--- -- | Tag the sentence with disambiguation marginal probabilities.
--- disamb :: C.Concraft Tag -> Sent Tag -> Sent Tag
--- disamb = tagWith (C.disambMarginals . C.disamb)
-
-
--- -- | Tag the sentence with disambiguation probabilities.
--- disamb' :: C.Concraft Tag -> D.ProbType -> Sent Tag -> Sent Tag
--- disamb' crf typ = tagWith (C.disambProbs typ . C.disamb) crf
-
-
--- -- | Perform guessing -> trimming -> disambiguation.
--- tag ::
---      Int 
---      -- ^ Trimming parameter
---   -> CRF.Config P.Tag
---      -- ^ Blacklist
---   -> C.Concraft Tag
---   -> Sent Tag
---   -> Sent Tag
--- tag k cfg = tagWith $ C.tag k cfg
-
-
 -- | Tag with the help of a lower-level annotation function.
 tagWith
   -- :: (C.Concraft Tag -> X.Sent Word P.Tag -> C.Anno P.Tag Double)
@@ -292,15 +270,41 @@ addEosMarkers ambiDag edgeID seg
           , (interp {eos=False}, p) ]
 
 
--- | Decide if the word should be marked as eos or not.
+-- | Mark the word as EOS or not.
 resolveEOS
+  :: X.Seg Word Tag
+  -> M.Map Tag Bool
+  -> X.Seg Word Tag
+resolveEOS seg selMap
+  | isEos     = seg {X.tags = markEos}
+  | otherwise = seg {X.tags = markNoEos}
+  where
+    isEos = not (null chosen) && all PolX.eos chosen
+    chosen = [interp | (interp, True) <- M.toList selMap]
+    -- Mark the segment as EOS or not
+    markEos = X.mkWMap
+      [ (interp {PolX.eos=True}, p)
+      | (interp, p) <- M.toList (X.unWMap tagMap) ]
+    markNoEos = X.mkWMap
+      [ (interp {PolX.eos=False}, p)
+      | (interp, p) <- M.toList (X.unWMap tagMap) ]
+    tagMap = X.tags seg
+
+
+-- | Decide if the word should be marked as eos or not, based on marginal
+-- probabilities.
+--
+-- TODO: we don't need this heavy machinery any more.  This function is now
+-- only used for training data preparation.
+--
+resolveEOS'
   :: Double
      -- ^ 0.5 means that the probability of the tag being EOS is twice as high
      -- as that of not being EOS. 1.0 means that EOS will be marked only if its
      -- 100% probable.
   -> X.Seg Word Tag
   -> X.Seg Word Tag
-resolveEOS minProp seg
+resolveEOS' minProp seg
   | isEos     = seg {X.tags = markEos}
   | otherwise = seg {X.tags = markNoEos}
   where
@@ -441,8 +445,10 @@ annoAll AnnoConf{..} concraft sent00 =
     _guessSent0 = DAG.mapE (addEosMarkers ambiDag) $
       tagWith (C.guess trimParam crfCfg . C.guesser) concraft sent0
     -- Resolve EOS tags based on the segmentation model
-    _guessSent1 = segment . fmap (resolveEOS 0.5) $
-      tagWith (C.disambProbs D.MaxProbs . C.segmenter) concraft _guessSent0
+--     _guessSent1 = segment . fmap (resolveEOS' 0.5) $
+--       tagWith (C.disambProbs D.MaxProbs . C.segmenter) concraft _guessSent0
+    _guessSent1 = segment . fmap (uncurry resolveEOS) . DAG.zipE _guessSent0 $
+      annoWith (C.disamb . C.segmenter) concraft _guessSent0
 
 --     -- TEMP
 --     _guessSent1 = (:[]) $
@@ -462,12 +468,14 @@ annoAll AnnoConf{..} concraft sent00 =
       where
 --         clearDAG = fmap (const M.empty) . DAG.mapN (const ())
         _marginals =
-          annoWith (C.disambProbs D.Marginals . C.disamb) concraft _guessSent
+          annoWith (C.disambProbs D.Marginals . C.disamber) concraft _guessSent
         _maxProbs  =
-          annoWith (C.disambProbs D.MaxProbs . C.disamb) concraft _guessSent
+          annoWith (C.disambProbs D.MaxProbs . C.disamber) concraft _guessSent
         _disambs   =
-          C.disambPath (optimal _maxProbs) _maxProbs
-          where optimal = maybe [] id . listToMaybe . C.findOptimalPaths
+          annoWith (C.disamb . C.disamber) concraft _guessSent
+--         _disambs   =
+--           C.disambPath (optimal _maxProbs) _maxProbs
+--           where optimal = maybe [] id . listToMaybe . C.findOptimalPaths
 
 
 -------------------------------------------------
@@ -531,7 +539,7 @@ train TrainConf{..} train0 eval0 = do
 
   putStrLn "\n===== Train sentence segmentation model ====="
   segmenter <- D.train (segmentConf parBatchSize) trainG'IO evalG'IO
-  let prepSent' = segment . fmap (resolveEOS 0.5)
+  let prepSent' = segment . fmap (resolveEOS' 0.5)
       trainS'IO = concatMap prepSent' <$> trainG'IO
       evalS'IO  = concatMap prepSent' <$> evalG'IO
 
