@@ -77,6 +77,15 @@ terminate it once you are done with coding:
 server.terminate()
 ```
 
+Or, even better, use `try ... catch`:
+```python
+try:
+   server = Server(model_path="/path/to/concraft-pl/model.gz")
+   ...
+finally:
+   server.terminate()
+```
+
 Acknowledgements
 ================
 
