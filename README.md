@@ -29,6 +29,18 @@ Then use the following script:
     git clone https://github.com/kawu/concraft-pl.git
     cd concraft-pl
     stack install
+
+Known installation issues
+-------------------------
+
+### Ubuntu
+
+If Concraft-pl's installation fails with the message that the `tinfo` library
+is missing, install the `libtinfo-dev` package first:
+
+    sudo apt install libtinfo-dev
+
+and then repeat the [installation instructions](#installation).
     
 
 Data format
