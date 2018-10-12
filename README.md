@@ -33,14 +33,10 @@ Then use the following script:
 Known installation issues
 -------------------------
 
-### Ubuntu
-
-If Concraft-pl's installation fails with the message that the `tinfo` library
-is missing, install the `libtinfo-dev` package first:
-
-    sudo apt install libtinfo-dev
-
-and then repeat the [installation instructions](#installation).
+**Ubuntu**. If Concraft-pl's installation fails with the message that the
+`tinfo` library is missing, install the `libtinfo-dev` package (`sudo apt
+install libtinfo-dev`) and then run `stack install` again in the cloned
+repository.
     
 
 Data format
