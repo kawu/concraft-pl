@@ -1,7 +1,7 @@
 -*-change-log-*-
 
 2.3.0   Oct 2018
-	* Faster disambiguation (using "fastTag")
+	* Faster disambiguation (using "fastTag" from the 2-order CRF library)
 
 2.2.0   Sep 2018
 	* Make '/parse' in the server address implicit
