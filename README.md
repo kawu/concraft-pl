@@ -143,7 +143,7 @@ Marginals and performance considerations
 
 By default, Concraft-pl outputs the marginal probabilities of the individual
 interpetations on top of the standard `disamb` markers.  Calculating marginals,
-however, is more computation intensive than determining these markers.
+however, is more computation intensive than determining those markers.
 
 If you wish to speed up tagging and you don't care about the
 disambiguation-related probabilities, you can use the `-p guess` option.  With
