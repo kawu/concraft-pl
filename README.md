@@ -77,6 +77,30 @@ where:
   * `tagset.cfg` is the tagset configuration
   * `model.gz` is the output model (optional)
 
+The total probability of each DAG in the training dataset should be equal to 1.
+The same applies to the testing dataset.  The DAGs which do not satisfy this
+constraint will be discarded.
+
+To understand how a DAG's total probability is calculated, we need some
+definitions:
+
+  * A *path* is a sequence of edges leading from the initial node to the final
+    node in the DAG.
+  * A *labeled path* is a path where each edge is labeled with the
+    corresponding morphosyntactic interpretation.
+  * The *probability of a labeled path* is the product of the probabilities
+    assigned to the interpretations of the individual edges on the path.
+
+Then, the total probability of a DAG is defined as the sum of the probabilities
+of all the labeled paths in the DAG.
+
+Run `concraft-pl train --help` to learn more about the program arguments and
+possible training options.
+
+
+Runtime options
+---------------
+
 Consider using [runtime system options][ghc-rts].  You can speed up processing
 by making use of multiple cores by using the `-N` option.  The `-s` option will
 produce the runtime statistics, such as the time spent in the garbage collector.
@@ -89,9 +113,6 @@ size, run:
 
 
     concraft-pl train train.dag -c config.dhall --tagsetpath=tagset.cfg -e test.dag -o model.gz +RTS -N4 -A256M -s
-
-Run `concraft-pl train --help` to learn more about the program arguments and
-possible training options.
 
 <!--
 Finally, you may consider pruning the resultant model in order to reduce its size.
@@ -110,6 +131,22 @@ configuration) is also [available for download][ncp-pre-train]. This model is
 compatible with the current version of [Morfeusz SGJP][morfeusz] (i.e., the
 version from September 1st 2018 or newer), which should be also used for
 morphosyntactic analysis preceding tagging.
+
+Discarded sentences
+-------------------
+
+During the process of training, you may encounter a warning like this one:
+
+```
+===== Train sentence segmentation model =====
+Discarded 49/18484 elements from the training dataset
+```
+
+This means that some of the graphs (paragraphs, sentences) in the training
+dataset have incorrectly assigned probabilities.  You can use the following
+command to identify such graphs:
+
+    concraft-pl check -j tagset.cfg train.dag
 
 
 Tagging
