@@ -132,16 +132,18 @@ probabilities.  You can use the following command to identify such graphs:
 
 The probabilities assigned to the individual interpretations in the DAG should
 follow certain rules.  Let `in(v)` be the sum of the probabilities assigned to
-the arcs incoming to `v` and `out(v)` the sum of the probabilities assigned to
-the arcs outgoing from `v`.  Let also `s` be the source node (with no incoming
-arcs) and `t` the target node (with no outgoing arcs).  Then:
+the arcs incoming to `v` and `out(v)` be the sum of the probabilities assigned
+to the arcs outgoing from `v`.  Let also assume that:
 
-  * `in(s) = 1` for source node `s` (with no incoming arcs)
-  * `out(t) = 1` for target node `t` (with no outgoing arcs)
-  * `in(v) = out(v)` for any node `v`
+  * `in(s) = 1` for the source node `s` (with no incoming arcs)
+  * `out(t) = 1` for the target node `t` (with no outgoing arcs)
 
-For instance, the following DAG is structured properly, even though it contains
-four different paths, each with probability 0.25.
+Then, the following constraint must be satisfied for any node `v` in the DAG:
+
+  * `in(v) = out(v)`
+
+For instance, the following DAG (which contains four different paths, each with
+probability 0.25) is structured properly:
 ```
 0	1	co	co:s	subst			0.25		
 0	1	co	co:c	comp			0.25		
