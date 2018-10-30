@@ -6,9 +6,6 @@ resolver: lts-11.1
 # Local packages, usually specified by relative directory name
 packages:
 - '.'
-- '../crf-chain1-constrained'
-- '../crf-chain2-tiers'
-- '../concraft'
 
 # Packages to be pulled from upstream that are not in the resolver (e.g., acme-missiles-0.3)
 extra-deps:
@@ -20,9 +17,9 @@ extra-deps:
 - sgd-0.4.0.1
 - pedestrian-dag-0.2.0
 - tagset-positional-0.3.1
-# - crf-chain1-constrained-0.5.0
-# - crf-chain2-tiers-0.5.0
-# - concraft-0.14.1
+- crf-chain1-constrained-0.6.0
+- crf-chain2-tiers-0.6.0
+- concraft-0.14.2
 
 # Override default flag values for local packages and extra-deps
 flags: {}
