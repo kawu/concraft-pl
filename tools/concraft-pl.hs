@@ -30,6 +30,7 @@ import qualified Data.DAG as DAG
 
 import qualified Data.CRF.Chain1.Constrained.DAG.Dataset.Codec as CRF.Codec
 import qualified Data.CRF.Chain1.Constrained.DAG.Train as CRF.Train
+import           Data.CRF.Chain1.Constrained.DAG.Train (Error(..))
 
 import qualified NLP.Concraft.DAG.Guess as Guess
 import qualified NLP.Concraft.DAG.Schema as Schema
@@ -123,7 +124,7 @@ data Concraft
     , ignoreTags     :: Bool
     , heedEos        :: Bool
     , weak           :: Bool
-    , discardProb0   :: Bool
+    -- , discardProb0   :: Bool
     , verbose        :: Bool
     }
   | Check
@@ -226,7 +227,7 @@ evalMode = Eval
     , ignoreTags = False &= help "Ignore tags (compute segmentation-level accurracy)"
     , heedEos = False &= help "Pay attention to EOS markers (ignored by default)"
     , weak = False &= help "Compute weak accuracy rather than strong"
-    , discardProb0 = False &= help "Discard sentences with near 0 probability"
+    -- , discardProb0 = False &= help "Discard sentences with near 0 probability"
     , verbose = False &= help "Print information about compared elements"
     }
 
@@ -444,7 +445,7 @@ exec Eval{..} = do
         , Acc.expandTag = expandTags
         , Acc.ignoreTag = ignoreTags
         , Acc.weakAcc = weak
-        , Acc.discardProb0 = discardProb0
+        -- , Acc.discardProb0 = discardProb0
         , Acc.verbose = verbose
         }
   stats <- Acc.collect cfg
@@ -459,19 +460,36 @@ exec Check{..} = do
   tagset <- parseTagset justTagsetPath <$> readFile justTagsetPath
   dags <- DB.parseData <$> readFileUtf8 dagPath
   forM_ dags $ \dag -> do
-    if (not $ DAG.isOK dag) then do
-      putStrLn "Incorrectly structured graph:"
-      showDAG dag
-    else if (not $ DAG.isDAG dag) then do
-      putStrLn "Graph with cycles:"
-      showDAG dag
-    else case verifyProb tagset dag of
+    case verifyDAG tagset dag of
       Nothing -> return ()
-      Just p -> do
-        putStr "Probability equal to "
-        putStr (show p)
-        putStrLn ":"
+      Just err -> do
+        putStrLn (show err)
         showDAG dag
+--         case err of
+--           Malformed -> do
+--             putStrLn "Incorrectly structured graph:"
+--             showDAG dag
+--           Cyclic -> do
+--             putStrLn "Graph with cycles:"
+--             showDAG dag
+--           _ -> do
+--             -- putStrLn "Another error:"
+--             putStrLn (show err)
+--             showDAG dag
+--
+--     if (not $ DAG.isOK dag) then do
+--       putStrLn "Incorrectly structured graph:"
+--       showDAG dag
+--     else if (not $ DAG.isDAG dag) then do
+--       putStrLn "Graph with cycles:"
+--       showDAG dag
+--     else case verifyProb tagset dag of
+--       Nothing -> return ()
+--       Just p -> do
+--         putStr "Probability equal to "
+--         putStr (show p)
+--         putStrLn ":"
+--         showDAG dag
   where
     showDAG dag =
       forM_ (DAG.dagEdges dag) $ \edgeID -> do
@@ -483,15 +501,20 @@ exec Check{..} = do
         putStr (show $ DAG.unNodeID to)
         putStr " => "
         T.putStrLn (PX.orth $ X.word val)
-    verifyProb tagset dag =
+    verifyDAG tagset dag =
       let schema = Schema.fromConf Schema.nullConf
           rawData = Guess.schemed (Pol.simplify4gsr tagset) schema [PX.packSent dag]
           [encDag] = CRF.Codec.encodeDataL (CRF.Codec.mkCodec rawData) rawData
-          p = CRF.Train.dagProb encDag
-          eps = 1e-9
-      in  if p >= 1 - eps && p <= 1 + eps
-          then Nothing
-          else Just p
+      in  CRF.Train.verifyDAG encDag
+--     verifyProb tagset dag =
+--       let schema = Schema.fromConf Schema.nullConf
+--           rawData = Guess.schemed (Pol.simplify4gsr tagset) schema [PX.packSent dag]
+--           [encDag] = CRF.Codec.encodeDataL (CRF.Codec.mkCodec rawData) rawData
+--           p = CRF.Train.dagProb encDag
+--           eps = 1e-9
+--       in  if p >= 1 - eps && p <= 1 + eps
+--           then Nothing
+--           else Just p
 
 
 exec Freqs{..} = do

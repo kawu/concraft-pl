@@ -1,5 +1,8 @@
 -*-change-log-*-
 
+2.4.0   Oct 2018
+	* DAG verification improved
+
 2.3.0   Oct 2018
 	* Faster disambiguation (using "fastTag" from the 2-order CRF library)
 

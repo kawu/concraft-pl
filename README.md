@@ -77,26 +77,18 @@ where:
   * `tagset.cfg` is the tagset configuration
   * `model.gz` is the output model (optional)
 
-The total probability of each DAG in the training dataset should be equal to 1.
-The same applies to the testing dataset.  The DAGs which do not satisfy this
-constraint will be discarded.
-
-To understand how a DAG's total probability is calculated, we need some
-definitions:
-
-  * A *path* is a sequence of edges leading from the initial node to the final
-    node in the DAG.
-  * A *labeled path* is a path where each edge is labeled with the
-    corresponding morphosyntactic interpretation.
-  * The *probability of a labeled path* is the product of the probabilities
-    assigned to the interpretations of the individual edges on the path.
-
-Then, the total probability of a DAG is defined as the sum of the probabilities
-of all the labeled paths in the DAG.
-
 Run `concraft-pl train --help` to learn more about the program arguments and
 possible training options.
 
+Pre-trained models
+------------------
+
+A model pre-trained on the [National Corpus of Polish][nkjp] can be downloaded
+from [here][ncp-pre-model]. The corresponding training material (including
+configuration) is also [available for download][ncp-pre-train]. This model is
+compatible with the current version of [Morfeusz SGJP][morfeusz] (i.e., the
+version from September 1st 2018 or newer), which should be also used for
+morphosyntactic analysis preceding tagging.
 
 Runtime options
 ---------------
@@ -122,18 +114,8 @@ probability and, therefore, it should be safe to discard them.
     concraft-pl prune -t 0.05 input-model.gz pruned-model.gz
 -->
 
-Pre-trained models
-------------------
-
-A model pre-trained on the [National Corpus of Polish][nkjp] can be downloaded
-from [here][ncp-pre-model]. The corresponding training material (including
-configuration) is also [available for download][ncp-pre-train]. This model is
-compatible with the current version of [Morfeusz SGJP][morfeusz] (i.e., the
-version from September 1st 2018 or newer), which should be also used for
-morphosyntactic analysis preceding tagging.
-
-Discarded sentences
--------------------
+Probabilities
+-------------
 
 During the process of training, you may encounter a warning like this one:
 
@@ -143,10 +125,31 @@ Discarded 49/18484 elements from the training dataset
 ```
 
 This means that some of the graphs (paragraphs, sentences) in the training
-dataset have incorrectly assigned probabilities.  You can use the following
-command to identify such graphs:
+dataset are either ill-formed (e.g. have cycles) or have incorrectly assigned
+probabilities.  You can use the following command to identify such graphs:
 
     concraft-pl check -j tagset.cfg train.dag
+
+The probabilities assigned to the individual interpretations in the DAG should
+follow certain rules.  Let `in(v)` be the sum of the probabilities assigned to
+the arcs incoming to `v` and `out(v)` the sum of the probabilities assigned to
+the arcs outgoing from `v`.  Let also `s` be the source node (with no incoming
+arcs) and `t` the target node (with no outgoing arcs).  Then:
+
+  * `in(s) = 1` for source node `s` (with no incoming arcs)
+  * `out(t) = 1` for target node `t` (with no outgoing arcs)
+  * `in(v) = out(v)` for any node `v`
+
+For instance, the following DAG is structured properly, even though it contains
+four different paths, each with probability 0.25.
+```
+0	1	co	co:s	subst			0.25		
+0	1	co	co:c	comp			0.25		
+0	2	coś	coś:s	subst			0.25		
+0	2	coś	coś:q	part			0.25		
+1	2	ś	być	aglt			0.5		
+2	3	jadł	jeść	praet			1.0		
+```
 
 
 Tagging
