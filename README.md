@@ -51,11 +51,13 @@ in the paragraph DAG and contains the following 10 columns:
   * commonness (common word, named entity)
   * qualifiers
   * probability of the edge
-  * meta information
+  * interpretation-related meta information
   * end-of-sentence (eos) marker
+  * segment-related meta information
 
 For the moment, the tool ignores (i.e. rewrites) the values of commonness,
-qualifiers, and meta-information, but we plan to exploit them in the future.
+qualifiers, and meta-information (both interpretation- and segment-related),
+but we plan to exploit them in the future.
 
 An example of a file following the above specification can be found in
 `example/test.dag`.
