@@ -150,8 +150,10 @@ instance (Ord t, Binary t) => Binary (Interp t) where
 data Word = Word
     { orth      :: T.Text
     -- , space     :: Space
-    , known     :: Bool }
-    deriving (Show, Eq, Ord)
+    , known     :: Bool
+    , wordInfo  :: Maybe T.Text
+      -- ^ Additional word-related meta-information
+    } deriving (Show, Eq, Ord)
 
 instance X.Word Word where
     orth = orth
@@ -159,19 +161,22 @@ instance X.Word Word where
 
 instance Binary Word where
     -- put Word{..} = put orth >> put space >> put known
-    put Word{..} = put orth >> put known
+    put Word{..} = put orth >> put known >> put wordInfo
     -- get = Word <$> get <*> get <*> get
-    get = Word <$> get <*> get
+    get = Word <$> get <*> get <*> get
 
 instance ToJSON Word where
     toJSON Word{..} = object
         [ "orth"  .= orth
-        , "known" .= known ]
+        , "known" .= known
+        , "wordInfo" .= wordInfo
+        ]
 
 instance FromJSON Word where
     parseJSON (Object v) = Word
         <$> v .: "orth"
         <*> v .: "known"
+        <*> v .: "wordInfo"
     parseJSON _ = error "parseJSON [Word]"
 
 

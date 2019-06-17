@@ -30,7 +30,7 @@ import qualified Data.DAG as DAG
 
 import qualified Data.CRF.Chain1.Constrained.DAG.Dataset.Codec as CRF.Codec
 import qualified Data.CRF.Chain1.Constrained.DAG.Train as CRF.Train
-import           Data.CRF.Chain1.Constrained.DAG.Train (Error(..))
+-- import           Data.CRF.Chain1.Constrained.DAG.Train (Error(..))
 
 import qualified NLP.Concraft.DAG.Guess as Guess
 import qualified NLP.Concraft.DAG.Schema as Schema

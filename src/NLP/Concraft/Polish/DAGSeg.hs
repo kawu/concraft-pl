@@ -46,7 +46,7 @@ import           Prelude hiding (Word, pred)
 import           Control.Applicative ((<$>))
 -- import           Control.Arrow (first)
 import           Control.Monad (guard)
-import           Data.Maybe (listToMaybe)
+-- import           Data.Maybe (listToMaybe)
 import qualified Data.Text as T
 -- import qualified Data.Text.Lazy as L
 import qualified Data.Set as S

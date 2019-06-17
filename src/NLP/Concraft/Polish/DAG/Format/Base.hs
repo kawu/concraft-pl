@@ -150,9 +150,9 @@ buildInterp
   -> DAG.NodeID  -- ^ Tail node
   -> DAG.NodeID  -- ^ Head node
   -> Word        -- ^ Word
-  -> Interp PolX.Tag
-  -> Double
-  -> Bool
+  -> Interp PolX.Tag  -- ^ A particular morphosyntactic interpretation
+  -> Double      -- ^ Probability to report (e.g., marginal probability)
+  -> Bool        -- Disamb makrer
   -> L.Builder
 buildInterp ShowCfg{..} tailNode headNode word Interp{..} weight disamb =
   mconcat $ intersperse "\t" $
@@ -168,6 +168,7 @@ buildInterp ShowCfg{..} tailNode headNode word Interp{..} weight disamb =
     else buildWeight weight
   , buildMayText metaInfo
   , if eos then "eos" else ""
+  , buildMayText (wordInfo word)
   ] ++
   if numericDisamb then [] else [buildDisamb disamb]
   where
@@ -210,6 +211,7 @@ data Row = Row
   , tagProb    :: Double
   , metaInfo   :: Maybe T.Text
   , eos        :: Bool
+  , segmInfo   :: Maybe T.Text
   }
 
 
@@ -230,10 +232,13 @@ fromRows =
       where
         edge = X.Seg
           { word = newWord
-          , tags = newTags }
+          , tags = newTags
+          }
         newWord = Word
           { orth = orthForm row0
-          , known = not $ ign `elem` map theTag rows }
+          , known = not $ ign `elem` map theTag rows
+          , wordInfo = segmInfo row0
+          }
         newTags = X.mkWMap
           [ (interp, tagProb)
           | Row{..} <- rows
@@ -257,7 +262,7 @@ parseRow =
   doit . L.splitOn "\t"
   where
     doit (tlNode : hdNode : otForm : bsForm : tag :
-          comm : qual : prob : meta : eos : _) = Row
+          comm : qual : prob : meta : eos : segi : _) = Row
       { tailNode = readTyp "tail node" $ L.unpack tlNode
       , headNode = readTyp "head node" $ L.unpack hdNode
       , orthForm = L.toStrict otForm
@@ -270,8 +275,29 @@ parseRow =
       , eos = case eos of
           "eos" -> True
           _ -> False
+      , segmInfo = nullIfEmpty segi
       }
-    doit _ = error "parseRow: unexpected number of row cells"
+--     doit (tlNode : hdNode : otForm : bsForm : tag :
+--           comm : qual : prob : meta : eos : _) = Row
+--       { tailNode = readTyp "tail node" $ L.unpack tlNode
+--       , headNode = readTyp "head node" $ L.unpack hdNode
+--       , orthForm = L.toStrict otForm
+--       , baseForm = L.toStrict bsForm
+--       , theTag   = L.toStrict tag
+--       , commonness = nullIfEmpty comm
+--       , qualifier = nullIfEmpty qual
+--       , tagProb  = readTyp "probability value" $ L.unpack prob
+--       , metaInfo = nullIfEmpty meta
+--       , eos = case eos of
+--           "eos" -> True
+--           _ -> False
+--       , segmInfo = Nothing
+--       }
+    doit xs =
+      error $ unlines
+        [ "[parseRow] expected 11 columns, got " ++ show (length xs)
+        , L.unpack (L.intercalate "\t" xs)
+        ]
     nullIfEmpty x = case x of
       "" -> Nothing
       _  -> Just (L.toStrict x)
