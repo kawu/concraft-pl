@@ -147,12 +147,12 @@ Then, the following constraint must be satisfied for any node `v` in the DAG:
 For instance, the following DAG (which contains four different paths, each with
 probability 0.25) is structured properly:
 ```
-0	1	co	co:s	subst			0.25		
-0	1	co	co:c	comp			0.25		
-0	2	coś	coś:s	subst			0.25		
-0	2	coś	coś:q	part			0.25		
-1	2	ś	być	aglt			0.5		
-2	3	jadł	jeść	praet			1.0		
+0	1	co	co:s	subst			0.25			
+0	1	co	co:c	comp			0.25			
+0	2	coś	coś:s	subst			0.25			
+0	2	coś	coś:q	part			0.25			
+1	2	ś	być	aglt			0.5			
+2	3	jadł	jeść	praet			1.0			
 ```
 
 
