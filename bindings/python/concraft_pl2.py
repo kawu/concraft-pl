@@ -32,7 +32,7 @@ class Concraft(object):
         conc_dag = ''
         for item in morf_dag:
             num1, num2, (forma, lemat, tag, posp, kwal) = item
-            line_string = '\t'.join((str(num1), str(num2), forma, lemat, tag, ','.join(posp), ','.join(kwal), '0.0', '', '' + '\n'))
+            line_string = '\t'.join((str(num1), str(num2), forma, lemat, tag, ','.join(posp), ','.join(kwal), '0.0', '', '', '' + '\n'))
             conc_dag += line_string
         return conc_dag
 
@@ -43,7 +43,7 @@ class Concraft(object):
         analyse_list = []
         for line in dag_str.split('\n'):
             if line != '':
-                num1, num2, forma, lemat, tag, posp, kwal, prob, interp, eos, disamb = line.strip('\n').split('\t')
+                num1, num2, forma, lemat, tag, posp, kwal, prob, interp_meta, eos, seg_meta, disamb = line.strip('\n').split('\t')
                 eos = 'eos' if eos else None
                 disamb = 'disamb' if disamb else None
                 posp = posp.split(',') if posp else []
