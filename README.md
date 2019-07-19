@@ -1,10 +1,11 @@
 Concraft-pl 2.0
 ===============
 
-This package provides a morphosyntactic tagger for the Polish language. The tool
-is coupled with [Morfeusz][morfeusz], a morphosyntactic analyzer for Polish,
-which represents both morphosyntactic and segmentation ambiguities in the form
-of a directed acyclic graph (DAG).
+This repository provides Concraft-pl, a morphosyntactic tagger for the Polish
+language based on conditional random fields [1,2].  The tool is coupled with
+[Morfeusz][morfeusz], a morphosyntactic analyzer for Polish, which represents
+both morphosyntactic and segmentation ambiguities in the form of a directed
+acyclic graph (DAG).
 
 This is the new, 2.0 version of Concraft-pl. The previous version, now obsolete,
 can be found at https://github.com/kawu/concraft-pl/tree/maca.
@@ -270,6 +271,14 @@ This option is currently not supported in the client/server mode.
 training and disambiguation.  Inconsistencies between training material and input
 data may severely harm the quality of disambiguation.*
 -->
+
+
+References
+==========
+
+[1] Jakub Waszczuk. *Harnessing the CRF complexity with domain-specific constraints. The case of morphosyntactic tagging of a highly inflected language*. In Proceedings of the 24th International Conference on Computational Linguistics (COLING 2012), pages 2789–2804, Mumbai, India, 2012.
+
+[2] Jakub Waszczuk, Witold Kieraś, and Marcin Woliński. *Morphosyntactic disambiguation and segmentation for historical Polish with graph-based conditional random fields*. In Petr Sojka, Aleš Horák, Ivan Kopeček, and Karel Pala, editors, Text, Speech, and Dialogue: 21st International Conference, TSD 2018, Brno, Czech Republic, September 11-14, 2018.
 
 
 [stack]: http://docs.haskellstack.org "Haskell Tool Stack"
