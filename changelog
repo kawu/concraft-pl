@@ -1,5 +1,8 @@
 -*-change-log-*-
 
+2.5.0   Sep 2019
+	* Add column for storing segment-related information (format change)
+
 2.4.0   Oct 2018
 	* DAG verification improved
 
