@@ -87,9 +87,7 @@ Pre-trained models
 ------------------
 
 A model pre-trained on the [National Corpus of Polish][nkjp] can be downloaded
-from [here][ncp-pre-model].
-<!--
-The corresponding training material (including configuration) is also
+from [here][ncp-pre-model]. <!-- The corresponding training material (including configuration) is also
 [available for download][ncp-pre-train]. -->
 This model is compatible with the current version of [Morfeusz SGJP][morfeusz]
 (i.e., the version from September 1st 2018 or newer), which should be also used
