@@ -87,11 +87,13 @@ Pre-trained models
 ------------------
 
 A model pre-trained on the [National Corpus of Polish][nkjp] can be downloaded
-from [here][ncp-pre-model]. The corresponding training material (including
-configuration) is also [available for download][ncp-pre-train]. This model is
-compatible with the current version of [Morfeusz SGJP][morfeusz] (i.e., the
-version from September 1st 2018 or newer), which should be also used for
-morphosyntactic analysis preceding tagging.
+from [here][ncp-pre-model].
+<!--
+The corresponding training material (including configuration) is also
+[available for download][ncp-pre-train]. -->
+This model is compatible with the current version of [Morfeusz SGJP][morfeusz]
+(i.e., the version from September 1st 2018 or newer), which should be also used
+for morphosyntactic analysis preceding tagging.
 
 Runtime options
 ---------------
@@ -294,6 +296,7 @@ References
 [haskell-platform]: http://www.haskell.org/platform "Haskell Platform"
 [nkjp]: http://nkjp.pl/index.php?page=0&lang=1 "NKJP"
 [morfeusz]: http://sgjp.pl/morfeusz/index.html "Morfeusz"
-[ncp-pre-model]: https://user.phil.hhu.de/~waszczuk/concraft/model-04-09-2018.gz "NCP model"
-[ncp-pre-train]: https://user.phil.hhu.de/~waszczuk/concraft/train.zip "NCP training data"
+[ncp-pre-model]: http://mozart.ipipan.waw.pl/~wkieras/DasModel-2019-10-08.gz "NCP model"
+<!-- [ncp-pre-model]: https://user.phil.hhu.de/~waszczuk/concraft/model-04-09-2018.gz "NCP model"
+[ncp-pre-train]: https://user.phil.hhu.de/~waszczuk/concraft/train.zip "NCP training data" -->
 [python-client]: https://github.com/kawu/concraft-pl/tree/master/bindings/python "Python client"
