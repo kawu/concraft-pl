@@ -41,7 +41,7 @@ Data format
 ==============
 
 Concraft-pl works with tab-separated values (`.tsv`) files, with the individual
-paragraphs separated by blank lines. Each non-blank line corresponds to an edge
+paragraphs followed by blank lines. Each non-blank line corresponds to an edge
 in the paragraph DAG and contains the following 11 columns:
 
   * ID of the start node
