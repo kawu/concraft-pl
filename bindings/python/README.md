@@ -2,15 +2,26 @@ Python
 ======
 
 This directory contains a Python client code, which allows to communicate with
-the Concraft-pl's server.  The code relies on the [Morfeusz][morfeusz] Python
-library, which should be installed beforehand.
+the Concraft-pl's server.
 
+<!--
 **Warning**: the Python API is not stable yet, it can still undergo significant
 changes in future versions.
+-->
+
+Prerequisites
+-------------
+
+The code relies on the [Morfeusz][morfeusz] Python library, which should be
+installed beforehand.  To install the remaining requirements:
+
+      pip install -r requirements.txt
 
 
 Example
 =======
+
+#### Server
 
 To run the Concraft-pl server, you can use the command explained on the [main
 github page][main]:
@@ -26,8 +37,15 @@ from concraft_pl2 import Concraft, Server
 server = Server(model_path="/path/to/concraft-pl/model.gz")
 ```
 
-Next, create the Morfeusz and Concraft instances:
+In case the `concraft-pl` executable is not on the path, you can provide it
+as argument when creating the `Server` object:
+```python
+server = Server(model_path="/path/to/concraft-pl/model.gz", concraft_path="/path/to/concraft-pl)
+```
 
+#### Client
+
+To create the Morfeusz and Concraft client instances:
 ```python
 morfeusz = Morfeusz(expand_tags=True)
 concraft = Concraft()
@@ -37,7 +55,7 @@ The `expand_tags=True` option is required, Concraft-pl will not be able to
 perform disambiguation otherwise.
 
 Finally, you can use Morfeusz to perform morphosyntactic analysis, and Concraft
-to disambiguated the resulting DAG:
+to disambiguate the resulting DAG:
 
 ```python
 dag = morfeusz.analyse(u'W Szczebrzeszynie chrząszcz brzmi w trzcinie.')
@@ -84,6 +102,15 @@ try:
    ...
 finally:
    server.terminate()
+```
+
+#### Windows
+
+If you experience perfornamce issues on Windows in the client/server mode, try
+to change the value of the `server_addr` from the default `http://localhost` to
+`http://127.0.0.1` when creating the `Concraft` client instance:
+```python
+concraft = Concraft(server_addr='http://127.0.0.1')
 ```
 
 Acknowledgements

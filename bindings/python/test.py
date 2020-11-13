@@ -7,7 +7,7 @@ from concraft_pl2 import Concraft, Server
 try:
   morfeusz = Morfeusz(expand_tags=True)
   server = Server(model_path="model-04-09-2018.gz", port=3001)
-  concraft = Concraft(port=3001)
+  concraft = Concraft(server_addr='http://127.0.0.1', port=3001)
   
   dag = morfeusz.analyse(u'W Szczebrzeszynie chrząszcz brzmi w trzcinie.')
   res = concraft.disamb(dag)
