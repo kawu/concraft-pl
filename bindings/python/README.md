@@ -40,7 +40,7 @@ server = Server(model_path="/path/to/concraft-pl/model.gz")
 In case the `concraft-pl` executable is not on the path, you can provide it
 as argument when creating the `Server` object:
 ```python
-server = Server(model_path="/path/to/concraft-pl/model.gz", concraft_path="/path/to/concraft-pl)
+server = Server(model_path="/path/to/concraft-pl/model.gz", concraft_path="/path/to/concraft-pl")
 ```
 
 #### Client
